@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="图标">
+    <file>front.png</file>
+    <file>behind.png</file>
+  </qresource>
+</RCC>

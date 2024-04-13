@@ -1,0 +1,6 @@
+info = input('输入一个十进制整数：')
+num = int(info)
+print('十进制:',num)
+print('二进制:',bin(num)[2:])
+print('八进制:',oct(num)[2:])
+print('十六进制:',hex(num)[2:])

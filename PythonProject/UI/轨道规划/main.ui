@@ -1,0 +1,1233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1124</width>
+    <height>699</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QFrame" name="frame">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1101</width>
+     <height>681</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QFrame#frame{
+	background-color:qlineargradient(x0:0,y1:0,x0:1,y2:2,stop:0 rgb(20,32,44),stop:1 rgb(32,85,117));
+}</string>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <widget class="QFrame" name="frame_3">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>211</width>
+      <height>661</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QFrame{
+	background-color: rgba(255, 255, 255,10%);
+	border-radius:20px;
+}</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QPushButton" name="planet_create">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton{
+	color:rgb(255, 255, 255);
+	background-color:rgba(165,205,255,125);
+	border:0px outset rgb(255,255,255);
+	border-radius:8px;
+	text-align:center center;
+	margin-right:3px;
+	margin-bottom:0px;
+	font-size:14px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 18px &quot;Microsoft YaHei&quot;;
+}
+QPushButton:hover{
+	background-color:rgba(165,205,255,80%);
+	border:2px outset rgba(36,36,36,0);
+}
+QPushButton:pressed{
+	background-color:rgba(165,205,255,90%);
+	border:4px outset rgba(36,36,36,0);
+}</string>
+       </property>
+       <property name="text">
+        <string>创建星球</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QListWidget" name="planet_list">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="mouseTracking">
+        <bool>false</bool>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QListView{
+	border:none;
+	background-color:rgba(255,255,255,10%);
+	color:rgba(255,255,255,0.8);
+}
+QListView::item{
+	background-color:transparent;
+	height:40px;
+	padding:5px;
+	margin-bottom:5px;
+}
+QListView::item:hover{
+	background-color:transparent;
+	color:rgba(255,255,255,0.8);
+}
+QListView::item:selected{
+	background-color:rgba(255,255,255,35%);
+	color:rgba(255,255,255,0.8);
+	border-left:2px solid rgb(255,255,255);
+	border-radius:18px
+}
+</string>
+       </property>
+       <property name="verticalScrollBarPolicy">
+        <enum>Qt::ScrollBarAlwaysOff</enum>
+       </property>
+       <property name="horizontalScrollBarPolicy">
+        <enum>Qt::ScrollBarAlwaysOff</enum>
+       </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QAbstractScrollArea::AdjustIgnored</enum>
+       </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::EditKeyPressed</set>
+       </property>
+       <property name="tabKeyNavigation">
+        <bool>true</bool>
+       </property>
+       <property name="layoutMode">
+        <enum>QListView::Batched</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="planet_select">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton{
+	color:rgb(255, 255, 255);
+	background-color:rgba(165,205,255,125);
+	border:0px outset rgb(255,255,255);
+	border-radius:8px;
+	text-align:center center;
+	margin-right:3px;
+	margin-bottom:0px;
+	font-size:14px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 18px &quot;Microsoft YaHei&quot;;
+}
+QPushButton:hover{
+	background-color:rgba(165,205,255,80%);
+	border:2px outset rgba(36,36,36,0);
+}
+QPushButton:pressed{
+	background-color:rgba(165,205,255,90%);
+	border:4px outset rgba(36,36,36,0);
+}</string>
+       </property>
+       <property name="text">
+        <string>选择星球</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="planet_delete">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton{
+	color:rgb(255, 255, 255);
+	background-color:rgba(205, 0, 0,125);
+	border:0px outset rgb(255,255,255);
+	border-radius:8px;
+	text-align:center center;
+	margin-right:3px;
+	margin-bottom:0px;
+	font-size:14px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 18px &quot;Microsoft YaHei&quot;;
+}
+QPushButton:hover{
+	background-color:rgba(205,0,0,80%);
+	border:2px outset rgba(36,36,36,0);
+}
+QPushButton:pressed{
+	background-color:rgba(205,0,0,90%);
+	border:4px outset rgba(36,36,36,0);
+}</string>
+       </property>
+       <property name="text">
+        <string>删除星球</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QFrame" name="frame_7">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>10</y>
+      <width>401</width>
+      <height>661</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QFrame{
+	background-color: rgba(255, 255, 255,10%);
+	border-radius:20px
+}</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QFrame" name="frame_8">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>381</width>
+       <height>401</height>
+      </rect>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <widget class="QLabel" name="label_11">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>10</y>
+        <width>81</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255, 0.8);
+	font-size:16px;
+	font-weight:bold;
+	font:bold 16px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>变轨示意图</string>
+      </property>
+     </widget>
+     <widget class="QGraphicsView" name="view">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>40</y>
+        <width>341</width>
+        <height>341</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: rgba(255, 255, 255, 0);</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QFrame" name="frame_9">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>430</y>
+       <width>381</width>
+       <height>221</height>
+      </rect>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <widget class="QLabel" name="label_12">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>10</y>
+        <width>131</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255,80%);
+	font-size:16px;
+	font-weight:bold;
+	font:bold 16px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>变轨方案详细信息</string>
+      </property>
+     </widget>
+     <widget class="QLCDNumber" name="lcd_ap">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>50</y>
+        <width>64</width>
+        <height>23</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_15">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>50</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>远地点</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_16">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>90</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>近地点</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_17">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>50</y>
+        <width>71</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>交会速度差</string>
+      </property>
+     </widget>
+     <widget class="QLCDNumber" name="lcd_pe">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>90</y>
+        <width>64</width>
+        <height>23</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLCDNumber" name="lcd_v">
+      <property name="geometry">
+       <rect>
+        <x>270</x>
+        <y>50</y>
+        <width>64</width>
+        <height>23</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_18">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>50</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>km</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_19">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>90</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>km</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_20">
+      <property name="geometry">
+       <rect>
+        <x>340</x>
+        <y>50</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>m/s</string>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frame_11">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>10</y>
+      <width>451</width>
+      <height>661</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgba(255, 255, 255, 0);</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QFrame" name="frame_12">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>0</y>
+       <width>431</width>
+       <height>221</height>
+      </rect>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <widget class="QFrame" name="frame_14">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>170</y>
+        <width>411</width>
+        <height>51</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <widget class="QPushButton" name="calculate">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>12</y>
+         <width>391</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton{
+	color:rgb(255, 255, 255);
+	background-color:rgba(43,162,239,125);
+	border:0px outset rgb(255,255,255);
+	border-radius:15px;
+	text-align:center center;
+	margin-right:3px;
+	margin-bottom:0px;
+	font-size:14px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 18px &quot;Microsoft YaHei&quot;;
+}
+QPushButton:hover{
+	background-color:rgba(43,162,239,80%);
+	border:2px outset rgba(36,36,36,0);
+}
+QPushButton:pressed{
+	background-color:rgba(43,162,239,90%);
+	border:4px outset rgba(36,36,36,0);
+}</string>
+       </property>
+       <property name="text">
+        <string>规划</string>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QFrame" name="frame_15">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>431</width>
+        <height>171</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QFrame{
+	background-color: rgba(255, 255, 255,10%);
+	border-radius:20px
+}</string>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <widget class="QLineEdit" name="info_ap">
+       <property name="geometry">
+        <rect>
+         <x>280</x>
+         <y>40</y>
+         <width>111</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="cursor">
+        <cursorShape>ArrowCursor</cursorShape>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::WheelFocus</enum>
+       </property>
+       <property name="layoutDirection">
+        <enum>Qt::LeftToRight</enum>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLineEdit{
+	color:rgb(255, 255, 255);
+	background-color:rgba(255,255,255, 35%);
+	border:0px outset rgb(255,255,255);
+	border-radius:10px;
+	text-align:center center;
+	margin-right:3px;
+	margin-bottom:0px;
+	font-size:13px;
+	font:13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="dragEnabled">
+        <bool>false</bool>
+       </property>
+       <property name="readOnly">
+        <bool>false</bool>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label">
+       <property name="geometry">
+        <rect>
+         <x>250</x>
+         <y>40</y>
+         <width>21</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	background-color: rgba(255, 255, 255, 0%);
+	color:rgb(255, 255, 255);
+	font-size:13px;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="text">
+        <string>AP</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_2">
+       <property name="geometry">
+        <rect>
+         <x>250</x>
+         <y>70</y>
+         <width>21</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	background-color: rgba(255, 255, 255, 0%);
+	color:rgb(255, 255, 255);
+	font-size:13px;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="text">
+        <string>PE</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_3">
+       <property name="geometry">
+        <rect>
+         <x>250</x>
+         <y>0</y>
+         <width>111</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+       </property>
+       <property name="text">
+        <string>变轨点信息</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_4">
+       <property name="geometry">
+        <rect>
+         <x>250</x>
+         <y>100</y>
+         <width>21</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	background-color: rgba(255, 255, 255, 0%);
+	color:rgb(255, 255, 255);
+	font-size:13px;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="text">
+        <string>Δt</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_5">
+       <property name="geometry">
+        <rect>
+         <x>250</x>
+         <y>130</y>
+         <width>21</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	background-color: rgba(255, 255, 255, 0%);
+	color:rgb(255, 255, 255);
+	font-size:13px;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="text">
+        <string>H</string>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="info_pe">
+       <property name="geometry">
+        <rect>
+         <x>280</x>
+         <y>70</y>
+         <width>111</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="cursor">
+        <cursorShape>ArrowCursor</cursorShape>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLineEdit{
+	color:rgb(255, 255, 255);
+	background-color:rgba(255,255,255, 35%);
+	border:0px outset rgb(255,255,255);
+	border-radius:10px;
+	text-align:center center;
+	margin-right:3px;
+	margin-bottom:0px;
+	font-size:13px;
+	font:13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="info_delta_t">
+       <property name="geometry">
+        <rect>
+         <x>280</x>
+         <y>100</y>
+         <width>111</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="cursor">
+        <cursorShape>ArrowCursor</cursorShape>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLineEdit{
+	color:rgb(255, 255, 255);
+	background-color:rgba(255,255,255, 35%);
+	border:0px outset rgb(255,255,255);
+	border-radius:10px;
+	text-align:center center;
+	margin-right:3px;
+	margin-bottom:0px;
+	font-size:13px;
+	font:13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="info_h">
+       <property name="geometry">
+        <rect>
+         <x>280</x>
+         <y>130</y>
+         <width>111</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="cursor">
+        <cursorShape>ArrowCursor</cursorShape>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLineEdit{
+	color:rgb(255, 255, 255);
+	background-color:rgba(255,255,255, 35%);
+	border:0px outset rgb(255,255,255);
+	border-radius:10px;
+	text-align:center center;
+	margin-right:3px;
+	margin-bottom:0px;
+	font-size:13px;
+	font:13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_6">
+       <property name="geometry">
+        <rect>
+         <x>400</x>
+         <y>40</y>
+         <width>21</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	background-color: rgba(255, 255, 255, 0%);
+	color:rgb(255, 255, 255);
+	font-size:13px;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="text">
+        <string>km</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_7">
+       <property name="geometry">
+        <rect>
+         <x>400</x>
+         <y>70</y>
+         <width>21</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	background-color: rgba(255, 255, 255, 0%);
+	color:rgb(255, 255, 255);
+	font-size:13px;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="text">
+        <string>km</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_8">
+       <property name="geometry">
+        <rect>
+         <x>400</x>
+         <y>100</y>
+         <width>21</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	background-color: rgba(255, 255, 255, 0%);
+	color:rgb(255, 255, 255);
+	font-size:13px;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="text">
+        <string>s</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_9">
+       <property name="geometry">
+        <rect>
+         <x>400</x>
+         <y>130</y>
+         <width>21</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	background-color: rgba(255, 255, 255, 0%);
+	color:rgb(255, 255, 255);
+	font-size:13px;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;
+}</string>
+       </property>
+       <property name="text">
+        <string>km</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QRadioButton" name="front">
+       <property name="geometry">
+        <rect>
+         <x>70</x>
+         <y>140</y>
+         <width>16</width>
+         <height>19</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true"/>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QRadioButton" name="behind">
+       <property name="geometry">
+        <rect>
+         <x>180</x>
+         <y>140</y>
+         <width>16</width>
+         <height>19</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true"/>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QFrame" name="frame_5">
+       <property name="geometry">
+        <rect>
+         <x>140</x>
+         <y>30</y>
+         <width>101</width>
+         <height>91</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">image: url(:/图标/behind.png);
+background-color: rgba(255, 255, 255, 0);</string>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::StyledPanel</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
+       </property>
+      </widget>
+      <widget class="QFrame" name="frame_6">
+       <property name="geometry">
+        <rect>
+         <x>40</x>
+         <y>30</y>
+         <width>81</width>
+         <height>71</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">image: url(:/图标/front.png);
+background-color: rgba(255, 255, 255, 0);</string>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::StyledPanel</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_13">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>0</y>
+         <width>101</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+       </property>
+       <property name="text">
+        <string>目标在前</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_14">
+       <property name="geometry">
+        <rect>
+         <x>140</x>
+         <y>0</y>
+         <width>101</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel{
+	color:rgba(255, 255, 255,0.8);
+	font-size:10px;
+	font-style:italic;
+	font-weight:bold;
+	font:bold 13px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+       </property>
+       <property name="text">
+        <string>目标在后</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QFrame" name="frame_13">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>220</y>
+       <width>431</width>
+       <height>441</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QFrame{
+	background-color: rgba(255, 255, 255,10%);
+	border-radius:20px
+}</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <widget class="QLabel" name="label_10">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>10</y>
+        <width>71</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	color:rgba(255, 255, 255,80%);
+	font-size:16px;
+	font-weight:bold;
+	font:bold 16px &quot;Microsoft YaHei&quot;;	
+	background-color: rgba(255, 255, 255, 0%);
+}</string>
+      </property>
+      <property name="text">
+       <string>待选方案</string>
+      </property>
+     </widget>
+     <widget class="QListWidget" name="listWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>70</y>
+        <width>411</width>
+        <height>361</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QListView{
+	border:none;
+	background-color:rgba(255,255,255,0%);
+	color:rgba(255,255,255,0.8);
+}
+QListView::item{
+	background-color:transparent;
+	height:40px;
+	padding-left:4px;
+}
+QListView::item:hover{
+	background-color:transparent;
+	color:rgba(43,162,238,150);
+}
+QListView::item:selected{
+	background-color:transparent;
+	color:rgb(43,162,238);
+}</string>
+      </property>
+     </widget>
+     <widget class="QListWidget" name="plan">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>50</y>
+        <width>411</width>
+        <height>381</height>
+       </rect>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="mouseTracking">
+       <bool>false</bool>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::NoFocus</enum>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QListView{
+	border:none;
+	background-color:rgba(255,255,255,10%);
+	color:rgba(255,255,255,0.8);
+}
+QListView::item{
+	background-color:transparent;
+	height:40px;
+	padding:5px;
+	margin-bottom:5px;
+}
+QListView::item:hover{
+	background-color:transparent;
+	color:rgba(255,255,255,0.8);
+}
+QListView::item:selected{
+	background-color:rgba(255,255,255,35%);
+	color:rgba(255,255,255,0.8);
+	border-left:2px solid rgb(255,255,255);
+	border-radius:18px
+}
+</string>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="sizeAdjustPolicy">
+       <enum>QAbstractScrollArea::AdjustIgnored</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::EditKeyPressed</set>
+      </property>
+      <property name="tabKeyNavigation">
+       <bool>true</bool>
+      </property>
+      <property name="layoutMode">
+       <enum>QListView::Batched</enum>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+ </widget>
+ <resources>
+  <include location="../素材库/picture/png.qrc"/>
+ </resources>
+ <connections/>
+</ui>

@@ -1,0 +1,5 @@
+rm test OBS_samples.txt
+ifort Data.f90 -o test
+./test
+cp OBS_samples.txt ..
+

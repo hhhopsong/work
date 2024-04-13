@@ -1,0 +1,10 @@
+cd bld
+gmake clean
+gmake 
+rm -rf *.o *.mod
+cd ..
+cd samples
+rm -f *
+cd .. 
+./test
+
