@@ -6,7 +6,23 @@ from metpy.constants import earth_avg_radius
 
 
 def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.array([]), lat=np.array([]), PressLevel=200, mode=2):
-    # 计算的是单一时次的TN波作用通量, 请注意输入的数据
+    """
+    计算的是单一时次的TN波作用通量, 请注意输入的数据格式为list或者numpy.array(推荐),代码参考了下列样例,并做了勘误。\n
+
+    计算模式 1 作者:气象学家(网络昵称)
+        https://cloud.tencent.com/developer/article/1826835?from=information.detail.%E7%BC%96%E7%A8%8B%E7%BB%86%E8%8A%82\n
+    计算模式 2 作者:摸鱼咯(网络昵称)
+        https://www.jianshu.com/p/97042d9019c0?ivk_sa=1024320u
+    :param Geopotential_climatic: 气候态位势高度场
+    :param U_climatic: 气候态U风
+    :param V_climatic: 气候态V风
+    :param Geopotential: 目标时次位势高度场
+    :param lon: 经度
+    :param lat: 纬度
+    :param PressLevel: 气压层
+    :param mode: 计算模式
+    :return: fx, fy
+    """
     p = PressLevel * units('hPa')  # 也有用300hPa的
     p0 = 1000 * units('hPa')    # 标准气压
     if mode == 1:
