@@ -54,7 +54,7 @@ n = len(PC_78[:, 0])
 t_lead_lag_corr = lead_lag_corr * np.sqrt((n - 2) / (1 - lead_lag_corr ** 2))
 t_lead_lag_corr2 = lead_lag_corr2 * np.sqrt((n - 2) / (1 - lead_lag_corr2 ** 2))
 # 计算临界值
-t_critical = t.ppf(0.95, n - 2)
+t_critical = t.ppf(0.975, n - 2)
 # 进行显著性检验
 p_lead_lag_corr = np.zeros((12, len(lon_sst)))
 p_lead_lag_corr.fill(np.nan)

@@ -1,6 +1,9 @@
-import numpy as np
+from cartopy import crs as ccrs
+import matplotlib.pyplot as plt
 
-a = np.array([[1, 2, 3],[1, 2, 3],[1, 2, 3]])
-b = np.array([[1, 2, 3],[1, 2, 3],[1, 2, 3]])
-
-print(a*b)
+# 画极地投影地图
+fig = plt.figure(figsize=(10, 10))
+ax = fig.add_subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
+ax.coastlines()
+ax.gridlines()
+plt.show()
