@@ -1,7 +1,7 @@
 from cartopy import crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
-from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter  # ×¨ÃÅÌá¹©¾­Î³¶ÈµÄ
+from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter  # ä¸“é—¨æä¾›ç»çº¬åº¦çš„
 from cartopy.util import add_cyclic_point
 import numpy as np
 import xarray as xr
@@ -23,101 +23,100 @@ import pprint
 
 
 std_q78 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\std_q78.nc')
-shp = fr"D:/CODES/Python/PythonProject/map/shp/south_china/ÖĞ¹úÄÏ·½.shp"
+shp = fr"D:/CODES/Python/PythonProject/map/shp/south_china/ä¸­å›½å—æ–¹.shp"
 split_shp = gpd.read_file(shp)
 split_shp.crs = 'wgs84'
 std_q78 = std_q78.salem.roi(shape=split_shp)
 pc_index = 0
-# eof·Ö½â
-eof_78 = Eof(std_q78['tmax'].to_numpy())  # ½øĞĞeof·Ö½â
+# eofåˆ†è§£
+eof_78 = Eof(std_q78['tmax'].to_numpy())  # è¿›è¡Œeofåˆ†è§£
 EOF_78 = eof_78.eofs(eofscaling=2,
-                     neofs=2)  # µÃµ½¿Õ¼äÄ£Ì¬U eofscaling ¶ÔµÃµ½µÄ³¡½øĞĞ·ÅËõ £¨1Îª³ıÒÔÌØÕ÷ÖµÆ½·½¸ù£¬2Îª³ËÒÔÌØÕ÷ÖµÆ½·½¸ù£¬Ä¬ÈÏÎª0²»´¦Àí£© neofs¾ö¶¨Êä³öµÄ¿Õ¼äÄ£Ì¬³¡¸öÊı
-PC_78 = eof_78.pcs(pcscaling=1, npcs=2)  # Í¬ÉÏ npcs¾ö¶¨Êä³öµÄÊ±¼äĞòÁĞ¸öÊı
-s_78 = eof_78.varianceFraction(neigs=2)  # µÃµ½Ç°neig¸öÄ£Ì¬µÄ·½²î¹±Ï×
-# Êı¾İ¶ÁÈ¡
-sat = xr.open_dataset(r"C:\Users\10574\OneDrive\File\Graduation Thesis\ThesisData\ERA5\ERA5_2mTemperature_MeanSlp.nc")
+                     neofs=2)  # å¾—åˆ°ç©ºé—´æ¨¡æ€U eofscaling å¯¹å¾—åˆ°çš„åœºè¿›è¡Œæ”¾ç¼© ï¼ˆ1ä¸ºé™¤ä»¥ç‰¹å¾å€¼å¹³æ–¹æ ¹ï¼Œ2ä¸ºä¹˜ä»¥ç‰¹å¾å€¼å¹³æ–¹æ ¹ï¼Œé»˜è®¤ä¸º0ä¸å¤„ç†ï¼‰ neofså†³å®šè¾“å‡ºçš„ç©ºé—´æ¨¡æ€åœºä¸ªæ•°
+PC_78 = eof_78.pcs(pcscaling=1, npcs=2)  # åŒä¸Š npcså†³å®šè¾“å‡ºçš„æ—¶é—´åºåˆ—ä¸ªæ•°
+s_78 = eof_78.varianceFraction(neigs=2)  # å¾—åˆ°å‰neigä¸ªæ¨¡æ€çš„æ–¹å·®è´¡çŒ®
+# æ•°æ®è¯»å–
+ice = xr.open_dataset(r"C:\Users\10574\OneDrive\File\Graduation Thesis\ThesisData\HadISST\HadISST_ice.nc")
 
-# Êı¾İÇĞÆ¬
-T2m = sat['t2m'].sel(time=slice('1979-01-01', '2014-12-31'))
-T2m_78 = T2m.sel(time=T2m.time.dt.month.isin([7, 8]))
-# ¾­Î³¶È
-lon_sat = T2m['longitude']
-lat_sat = T2m['latitude']
+# æ•°æ®åˆ‡ç‰‡
+ice = ice['sic'].sel(time=slice('1979-01-01', '2014-12-31'))
+ice_78 = ice.sel(time=ice.time.dt.month.isin([7, 8]))
+# ç»çº¬åº¦
+lon_ice = ice['longitude']
+lat_ice = ice['latitude']
 
-# ½«Æß°ËÔÂ·İÊı¾İ½øĞĞÃ¿ÄêÆ½¾ù
-sat_78 = T2m_78.groupby('time.year').mean('time')
-sat_78 = np.array(sat_78)
+# å°†ä¸ƒå…«æœˆä»½æ•°æ®è¿›è¡Œæ¯å¹´å¹³å‡
+ice_78 = ice_78.groupby('time.year').mean('time')
+ice_78 = np.array(ice_78)
 try:
-    # ¶ÁÈ¡Ïà¹ØÏµÊı
-    reg_sat = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_sat.nc')
+    # è¯»å–ç›¸å…³ç³»æ•°
+    reg_ice = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_ice.nc')
 except:
-    # ½«Êı¾İ»Ø¹éµ½PCÉÏ
-    reg_sat = [[np.polyfit(PC_78[:, pc_index], sat_78[:, ilat, ilon], 1)[0] for ilon in range(len(lon_sat))] for ilat in tqdm(range(len(lat_sat)), desc='¼ÆËãSAT', position=0, leave=True)]
-    xr.DataArray(reg_sat, coords=[lat_sat, lon_sat], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_sat.nc')
-    ###Êı¾İÔÙ¶ÁÈ¡
-    reg_sat = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_sat.nc')
+    # å°†æ•°æ®å›å½’åˆ°PCä¸Š
+    reg_ice = [[np.polyfit(PC_78[:, pc_index], ice_78[:, ilat, ilon], 1)[0] for ilon in range(len(lon_ice))] for ilat in tqdm(range(len(lat_ice)), desc='è®¡ç®—ice', position=0, leave=True)]
+    xr.DataArray(reg_ice, coords=[lat_ice, lon_ice], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_ice.nc')
+    ###æ•°æ®å†è¯»å–
+    reg_ice = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_ice.nc')
 
-# ½øĞĞÏÔÖøĞÔ0.05¼ìÑé
+# è¿›è¡Œæ˜¾è‘—æ€§0.05æ£€éªŒ
 from scipy.stats import t
 
-# ¼ÆËã×ÔÓÉ¶È.
+# è®¡ç®—è‡ªç”±åº¦.
 n = len(PC_78[:, 0])
-# Ê¹ÓÃt¼ìÑé¼ÆËã»Ø¹éÏµÊıµÄµÄÏÔÖøĞÔ
-# ¼ÆËãtÖµ
+# ä½¿ç”¨tæ£€éªŒè®¡ç®—å›å½’ç³»æ•°çš„çš„æ˜¾è‘—æ€§
+# è®¡ç®—tå€¼
 Lxx = np.sum((PC_78[:, pc_index] - np.mean(PC_78[:, pc_index])) ** 2)
-# SST
-Sr_sat = reg_sat**2 * Lxx
-St_sat = np.sum((sat_78 - np.mean(sat_78, axis=0)) ** 2, axis=0)
-¦Ò_sat = np.sqrt((St_sat - Sr_sat) / (n - 2))
-t_sat = reg_sat * np.sqrt(Lxx) / ¦Ò_sat
+# ice
+Sr_ice = reg_ice**2 * Lxx
+St_ice = np.sum((ice_78 - np.mean(ice_78, axis=0)) ** 2, axis=0)
+Ïƒ_ice = np.sqrt((St_ice - Sr_ice) / (n - 2))
+t_ice = reg_ice * np.sqrt(Lxx) / Ïƒ_ice
 
-# ¼ÆËãÁÙ½çÖµ
+# è®¡ç®—ä¸´ç•Œå€¼
 t_critical = t.ppf(0.975, n - 2)
-# ½øĞĞÏÔÖøĞÔ¼ìÑé
-p_sat78 = np.zeros((len(lat_sat), len(lon_sat)))
-p_sat78.fill(np.nan)
-p_sat78[np.abs(t_sat['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+# è¿›è¡Œæ˜¾è‘—æ€§æ£€éªŒ
+p_ice78 = np.zeros((len(lat_ice), len(lon_ice)))
+p_ice78.fill(np.nan)
+p_ice78[np.abs(t_ice['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
 
-# »æÍ¼
-# ##µØÍ¼ÒªËØÉèÖÃ
+# ç»˜å›¾
+# ##åœ°å›¾è¦ç´ è®¾ç½®
 plt.rcParams['font.sans-serif'] = ['Arial']
 plt.rcParams['axes.unicode_minus'] = False
-plt.subplots_adjust(wspace=0.1, hspace=0.001)  # wspace¡¢hspace×óÓÒ¡¢ÉÏÏÂµÄ¼ä¾à
+plt.subplots_adjust(wspace=0.1, hspace=0.001)  # wspaceã€hspaceå·¦å³ã€ä¸Šä¸‹çš„é—´è·
 font = {'family' : 'Arial','weight' : 'bold','size' : 12}
-# plt.subplots_adjust(wspace=0.1, hspace=0.32)  # wspace¡¢hspace×óÓÒ¡¢ÉÏÏÂµÄ¼ä¾à
-extent1 = [0, 360, 50, 90]  # ¾­¶È·¶Î§£¬Î³¶È·¶Î§
+# plt.subplots_adjust(wspace=0.1, hspace=0.32)  # wspaceã€hspaceå·¦å³ã€ä¸Šä¸‹çš„é—´è·
+extent1 = [0, 360, 50, 90]  # ç»åº¦èŒƒå›´ï¼Œçº¬åº¦èŒƒå›´
 xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
 yticks1 = np.arange(extent1[2], extent1[3] + 1, 10)
 
 fig = plt.figure(figsize=(10, 10))
 
 # ##ax1 Corr. PC1 & JA SST,2mT
-level1 = [-1, -.7, -.4, -.1, -.05, .05, .1, .4, .7, 1]
+level1 = [-.1, -.06, -.03, -.01, .01, .03, .06, .1]
 ax1 = fig.add_subplot(1,1,1, projection=ccrs.NorthPolarStereo(central_longitude=90))
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
-# È¥³ıfill_value 1e+20
-# È¥³ı180°×Ïß!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!¼ÓÉÏ½Ø¾à
-reg_sat, a1_sat_lon = add_cyclic_point(reg_sat['__xarray_dataarray_variable__'].to_numpy(), coord=lon_sat)
-print('¿ªÊ¼»æÖÆµØÍ¼1')
-ax1.set_title('(a)Reg 2mT', fontsize=20, loc='left')
-a1 = ax1.contourf(a1_sat_lon, lat_sat, reg_sat, cmap=cmaps.GMT_polar[4:10]+cmaps.CBR_wet[0]+cmaps.GMT_polar[10:16], levels=level1, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
-ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # Ìí¼Óº£°¶Ïß
-ax1.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black',linewidth=2)
+# å»é™¤fill_value 1e+20
+# å»é™¤180ç™½çº¿!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!åŠ ä¸Šæˆªè·
+reg_ice, a1_ice_lon = add_cyclic_point(reg_ice['__xarray_dataarray_variable__'].to_numpy(), coord=lon_ice)
+print('å¼€å§‹ç»˜åˆ¶åœ°å›¾1')
+ax1.set_title('(a)Reg SIC', fontsize=20, loc='left')
+a1 = ax1.contourf(a1_ice_lon, lat_ice, reg_ice, cmap=cmaps.GMT_polar[4:10]+cmaps.CBR_wet[0]+cmaps.GMT_polar[10:16], levels=level1, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
 
-p_sat, a1_lon_sat = add_cyclic_point(p_sat78, coord=lon_sat)
-p_sat = np.where(p_sat == 1, 0, np.nan)
+p_ice, a1_lon_ice = add_cyclic_point(p_ice78, coord=lon_ice)
+p_ice = np.where(p_ice == 1, 0, np.nan)
 
-a1_uv = ax1.quiver(a1_lon_sat, lat_sat, p_sat, p_sat, scale=20, color='black', headlength=3,
+a1_uv = ax1.quiver(a1_lon_ice, lat_ice, p_ice, p_ice, scale=20, color='black', headlength=3,
                    regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(central_longitude=0), width=0.005)
+ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # æ·»åŠ æµ·å²¸çº¿
+ax1.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black',linewidth=2)
+ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray')# æ·»åŠ é™†åœ°å¹¶ä¸”é™†åœ°éƒ¨åˆ†å…¨éƒ¨å¡«å……æˆæµ…ç°è‰²
+
 
 grid_lon = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=1, color='grey',linestyle='--')
 grid_lon.xlocator = FixedLocator(np.linspace(-180,180,13))
-grid_lon.ylocator = FixedLocator([0])
+grid_lon.ylocator = FixedLocator([65, 80])
 grid_lon.xlabel_style = {'size': 20}
-
-grid_lat = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='grey',linestyle='--')
-grid_lon.xlocator = FixedLocator([])
-grid_lat.ylocator = FixedLocator([65, 80])
+grid_lon.ylabel_style = {'size': 0}
 
 theta = np.linspace(0, 2*np.pi, 100)
 center, radius = [0.5, 0.5], 0.5
@@ -125,38 +124,38 @@ verts = np.vstack([np.sin(theta), np.cos(theta)]).T
 circle = mpath.Path(verts * radius + center)
 ax1.set_boundary(circle, transform=ax1.transAxes)
 
-'''# ¿Ì¶ÈÏßÉèÖÃ
+'''# åˆ»åº¦çº¿è®¾ç½®
 ax1.set_xticks(xticks1, crs=proj)
 lon_formatter = LongitudeFormatter()
 lat_formatter = LatitudeFormatter()
 ax1.xaxis.set_major_formatter(lon_formatter)
 font = {'family': 'Arial', 'weight': 'bold', 'size': 28}
 
-xmajorLocator = MultipleLocator(60)  # ÏÈ¶¨ÒåxmajorLocator£¬ÔÙ½øĞĞµ÷ÓÃ
-ax1.xaxis.set_major_locator(xmajorLocator)  # xÖá×î´ó¿Ì¶È
+xmajorLocator = MultipleLocator(60)  # å…ˆå®šä¹‰xmajorLocatorï¼Œå†è¿›è¡Œè°ƒç”¨
+ax1.xaxis.set_major_locator(xmajorLocator)  # xè½´æœ€å¤§åˆ»åº¦
 xminorLocator = MultipleLocator(10)
-ax1.xaxis.set_minor_locator(xminorLocator)  # xÖá×îĞ¡¿Ì¶È
+ax1.xaxis.set_minor_locator(xminorLocator)  # xè½´æœ€å°åˆ»åº¦
 
-# ax1.axes.xaxis.set_ticklabels([]) ##Òş²Ø¿Ì¶È±êÇ©
-# ×î´ó¿Ì¶È¡¢×îĞ¡¿Ì¶ÈµÄ¿Ì¶ÈÏß³¤¶Ì£¬´ÖÏ¸ÉèÖÃ
-ax1.tick_params(which='major', length=11, width=2, color='darkgray')  # ×î´ó¿Ì¶È³¤¶È£¬¿í¶ÈÉèÖÃ£¬
-ax1.tick_params(which='minor', length=8, width=1.8, color='darkgray')  # ×îĞ¡¿Ì¶È³¤¶È£¬¿í¶ÈÉèÖÃ
+# ax1.axes.xaxis.set_ticklabels([]) ##éšè—åˆ»åº¦æ ‡ç­¾
+# æœ€å¤§åˆ»åº¦ã€æœ€å°åˆ»åº¦çš„åˆ»åº¦çº¿é•¿çŸ­ï¼Œç²—ç»†è®¾ç½®
+ax1.tick_params(which='major', length=11, width=2, color='darkgray')  # æœ€å¤§åˆ»åº¦é•¿åº¦ï¼Œå®½åº¦è®¾ç½®ï¼Œ
+ax1.tick_params(which='minor', length=8, width=1.8, color='darkgray')  # æœ€å°åˆ»åº¦é•¿åº¦ï¼Œå®½åº¦è®¾ç½®
 ax1.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
-plt.rcParams['xtick.direction'] = 'out'  # ½«xÖáµÄ¿Ì¶ÈÏß·½ÏòÉèÖÃÏòÄÚ»òÕßÍâ
-# µ÷Õû¿Ì¶ÈÖµ×ÖÌå´óĞ¡
+plt.rcParams['xtick.direction'] = 'out'  # å°†xè½´çš„åˆ»åº¦çº¿æ–¹å‘è®¾ç½®å‘å†…æˆ–è€…å¤–
+# è°ƒæ•´åˆ»åº¦å€¼å­—ä½“å¤§å°
 ax1.tick_params(axis='both', labelsize=28, colors='black')
-# ÉèÖÃ×ø±ê¿Ì¶ÈÖµµÄ´óĞ¡ÒÔ¼°¿Ì¶ÈÖµµÄ×ÖÌå
+# è®¾ç½®åæ ‡åˆ»åº¦å€¼çš„å¤§å°ä»¥åŠåˆ»åº¦å€¼çš„å­—ä½“
 labels = ax1.get_xticklabels()
 [label.set_fontname('Arial') for label in labels]
 font2 = {'family': 'Arial', 'weight': 'bold', 'size': 28}'''
 
-# color barÎ»ÖÃ
-# position = fig.add_axes([0.296, 0.08, 0.44, 0.011])#Î»ÖÃ[×ó,ÏÂ,ÓÒ,ÉÏ]
-position1 = fig.add_axes([0.296, 0.05, 0.44, 0.011])
-cb1 = plt.colorbar(a1, cax=position1, orientation='horizontal')  # orientationÎªË®Æ½»ò´¹Ö±
-cb1.ax.tick_params(length=1, labelsize=14)  # lengthÎª¿Ì¶ÈÏßµÄ³¤¶È
-cb1.locator = ticker.FixedLocator([-1, -.7, -.4, -.1, 0, .1, .4, .7, 1]) # colorbarÉÏµÄ¿Ì¶ÈÖµ¸öÊı
+# color barä½ç½®
+# position = fig.add_axes([0.296, 0.08, 0.44, 0.011])#ä½ç½®[å·¦,ä¸‹,å³,ä¸Š]
+position1 = fig.add_axes([0.146, 0.01, 0.74, 0.03])
+cb1 = plt.colorbar(a1, cax=position1, orientation='horizontal')  # orientationä¸ºæ°´å¹³æˆ–å‚ç›´
+cb1.ax.tick_params(length=1, labelsize=14)  # lengthä¸ºåˆ»åº¦çº¿çš„é•¿åº¦
+cb1.locator = ticker.FixedLocator([-.1, -.06, -.03, -.01, .01, .03, .06, .1]) # colorbarä¸Šçš„åˆ»åº¦å€¼ä¸ªæ•°
 
 
-plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\ÂÛÎÄÅäÍ¼\º£±ù¹Û²â³¡»Ø¹é.png', dpi=1000, bbox_inches='tight')
+plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\è®ºæ–‡é…å›¾\æµ·å†°è§‚æµ‹åœºå›å½’.png', dpi=1000, bbox_inches='tight')
 plt.show()

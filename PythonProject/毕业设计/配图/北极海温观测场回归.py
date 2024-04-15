@@ -112,12 +112,9 @@ a1_uv = ax1.quiver(a1_lon_sat, lat_sat, p_sat, p_sat, scale=20, color='black', h
 
 grid_lon = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=1, color='grey',linestyle='--')
 grid_lon.xlocator = FixedLocator(np.linspace(-180,180,13))
-grid_lon.ylocator = FixedLocator([0])
-grid_lon.xlabel_style = {'size': 20}
-
-grid_lat = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='grey',linestyle='--')
-grid_lon.xlocator = FixedLocator([])
-grid_lat.ylocator = FixedLocator([65, 80])
+grid_lon.ylocator = FixedLocator([65, 80])
+grid_lon.xlabel_style = {'size': 14}
+grid_lon.ylabel_style = {'size': 0}
 
 theta = np.linspace(0, 2*np.pi, 100)
 center, radius = [0.5, 0.5], 0.5
@@ -152,7 +149,7 @@ font2 = {'family': 'Arial', 'weight': 'bold', 'size': 28}'''
 
 # color bar位置
 # position = fig.add_axes([0.296, 0.08, 0.44, 0.011])#位置[左,下,右,上]
-position1 = fig.add_axes([0.296, 0.05, 0.44, 0.011])
+position1 = fig.add_axes([0.146, 0.01, 0.74, 0.03])
 cb1 = plt.colorbar(a1, cax=position1, orientation='horizontal')  # orientation为水平或垂直
 cb1.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
 cb1.locator = ticker.FixedLocator([-1, -.7, -.4, -.1, 0, .1, .4, .7, 1]) # colorbar上的刻度值个数
