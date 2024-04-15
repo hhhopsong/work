@@ -109,7 +109,8 @@ p_sat = np.where(p_sat == 1, 0, np.nan)
 # 显著性打点
 a1_uv = ax1.quiver(a1_lon_sat, lat_sat, p_sat, p_sat, scale=20, color='black', headlength=3,
                    regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(central_longitude=0), width=0.005)
-
+# 框选预测因子
+ax1.plot([70, 70, 50, 50, 70], [33, 64.4, 64.4, 33, 33], color='red', linewidth=2, linestyle='-',transform=ccrs.PlateCarree(central_longitude=90))
 grid_lon = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=1, color='grey',linestyle='--')
 grid_lon.xlocator = FixedLocator(np.linspace(-180,180,13))
 grid_lon.ylocator = FixedLocator([65, 80])
