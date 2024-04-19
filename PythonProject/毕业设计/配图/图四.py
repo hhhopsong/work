@@ -209,7 +209,7 @@ St_v850 = np.sum((v850_78 - np.mean(v850_78, axis=0)) ** 2, axis=0)
 σ_v850 = np.sqrt((St_v850 - Sr_v850) / (n - 2))
 t_v850 = reg_v850 * np.sqrt(Lxx) / σ_v850
 # 计算临界值
-t_critical = t.ppf(0.975, n - 2)
+t_critical = t.ppf(0.95, n - 2)
 # 进行显著性检验
 p_sst78 = np.zeros((len(lat_sst), len(lon_sst)))
 p_sst78.fill(np.nan)
@@ -269,7 +269,7 @@ reg_waf_y, a1_waf_lon = add_cyclic_point(reg_waf_y, coord=lon_uvz)
 reg_z200, a1_z_lon = add_cyclic_point(reg_z200['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
 print('开始绘制地图1')
 ax1.set_title('(a)Reg 200WAF & 200Z', fontsize=28, loc='left')
-a1 = ax1.contourf(a1_z_lon, lat_uvz[:280], reg_z200[:280,], cmap=cmaps.MPL_BrBG_r[23:105], levels=level1, extend='both',
+a1 = ax1.contourf(a1_z_lon, lat_uvz[:], reg_z200[:,], cmap=cmaps.MPL_BrBG_r[23:105], levels=level1, extend='both',
                   transform=ccrs.PlateCarree(central_longitude=0))
 a1_waf = ax1.quiver(a1_waf_lon[::n], lat_uvz[:360:n], reg_waf_x[:360:n, ::n], reg_waf_y[:360:n, ::n],
                     scale=13, color='black', headlength=2, headaxislength=2, transform = ccrs.PlateCarree(central_longitude=0))
@@ -360,14 +360,13 @@ plt.clabel(a3_0, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
 plt.clabel(a3_high, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
 
 a3_p = ax3.quiver(a3_lon_ppre, lat_pre, p_pre, p_pre, scale=20, color='black', headlength=2, headaxislength=2, transform = ccrs.PlateCarree(central_longitude=0))
-DBATP = r"D:\CODES\Python\PythonProject\map\DBATP\DBATP_Polygon.shp"
+DBATP = r"D:\CODES\Python\PythonProject\map\DBATP\TP_2500m\TPBoundary_2500m.shp"
 provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
 ax3.add_feature(provinces, lw=0.5, zorder=2)
 
 ax3.text(57, 59.5, 'A', fontsize=28, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax3.text(78, 43, 'C', fontsize=28, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax3.text(122, 28, 'A', fontsize=28, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax3.text(117, 9, 'C', fontsize=28, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 
 ax3.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=.3)  # 添加海岸线
 ax3.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black',linewidth=2)

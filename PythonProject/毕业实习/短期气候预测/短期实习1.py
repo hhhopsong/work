@@ -42,13 +42,13 @@ def predict(X_hgt, X_sst, hgt1, hgt2, hgt3, sst1, sst2, hgt1_, hgt2_, hgt3_, sst
                 sst2_['sst'].values[i]] for i in range(len(hgt1_['hgt']))]
     pred = np.zeros((len(X_hgt['hgt']), 3, 2))
     for i in range(len(X_hgt['hgt'])):
-        hgt3560_150150 = X_hgt.sel(lat=slice(35, 60)).sel(lon=slice(150, 210)).sel(time=X_hgt.time[i].values)
-        hgt1030_150150 = X_hgt.sel(lat=slice(10, 30)).sel(lon=slice(150, 210)).sel(time=X_hgt.time[i].values)
-        hgt1030_100150 = X_hgt.sel(lat=slice(10, 30)).sel(lon=slice(100, 150)).sel(time=X_hgt.time[i].values)
-        hgt3060_100150 = X_hgt.sel(lat=slice(30, 60)).sel(lon=slice(100, 150)).sel(time=X_hgt.time[i].values)
-        hgt4060_70110 = X_hgt.sel(lat=slice(40, 60)).sel(lon=slice(70, 110)).sel(time=X_hgt.time[i].values)
-        sst4050_180140 = X_sst.sel(lat=slice(40, 50)).sel(lon=slice(180, 220)).sel(time=X_hgt.time[i].values)
-        sst1010_175150 = X_sst.sel(lat=slice(-10, 10)).sel(lon=slice(175, 210)).sel(time=X_hgt.time[i].values)
+        hgt3560_150150 = X_hgt.sel(lat=slice(35, 60)).sel(lon=slice(150, 210)).sel(time=X_hgt.time_data[i].values)
+        hgt1030_150150 = X_hgt.sel(lat=slice(10, 30)).sel(lon=slice(150, 210)).sel(time=X_hgt.time_data[i].values)
+        hgt1030_100150 = X_hgt.sel(lat=slice(10, 30)).sel(lon=slice(100, 150)).sel(time=X_hgt.time_data[i].values)
+        hgt3060_100150 = X_hgt.sel(lat=slice(30, 60)).sel(lon=slice(100, 150)).sel(time=X_hgt.time_data[i].values)
+        hgt4060_70110 = X_hgt.sel(lat=slice(40, 60)).sel(lon=slice(70, 110)).sel(time=X_hgt.time_data[i].values)
+        sst4050_180140 = X_sst.sel(lat=slice(40, 50)).sel(lon=slice(180, 220)).sel(time=X_hgt.time_data[i].values)
+        sst1010_175150 = X_sst.sel(lat=slice(-10, 10)).sel(lon=slice(175, 210)).sel(time=X_hgt.time_data[i].values)
         hgt1_p = (hgt3560_150150.mean("lat").mean("lon") - hgt3560_150150_.mean()) - (
                 hgt1030_150150.mean('lat').mean('lon') - hgt1030_150150_.mean())
         hgt1_p = (hgt1_p - hgt1.mean()) / hgt1.std()

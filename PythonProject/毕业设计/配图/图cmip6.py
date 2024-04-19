@@ -52,10 +52,12 @@ plt.rcParams['font.sans-serif'] = ['Arial']
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['axes.linewidth'] = 0.3    # 边框粗细
 #plt.tight_layout()
-plt.subplots_adjust(wspace=0.01, hspace=0.1)#wspace、hspace左右、上下的间距
-fig = plt.figure(dpi=500)
+#plt.subplots_adjust(wspace=0.045, hspace=0.001)#wspace、hspace左右、上下的间距
+wspce, hspce = 0.25, 0.001
+fig = plt.figure(dpi=1000, figsize=(6, 3))
 south_china_sea = False
 south_china_sea_shink = 0.4
+pic_shape = [4, 6]  # 子图行列数
 # 经纬度范围
 extent1 = [105, 128, 17, 33]  # 经度范围，纬度范围
 xticks1 = np.arange(extent1[0], extent1[1]+1, 20)
@@ -64,15 +66,15 @@ proj = ccrs.PlateCarree()
 # 等值线值
 level1 = [-1., -.8, -.6, -.4, -.2, .2, .4, .6, .8, 1.]
 # 主模态值
-pc = 1
+pc = 0
 # 字体大小
-font_title_size = 4 # 标题
+font_title_size = 3 # 标题
 font_title = {'family': 'Arial', 'weight': 'bold', 'size': font_title_size}
 pad_title = 0.5  # 标题与图的距离
-font_tick_size = 4  # 刻度
+font_tick_size = 3  # 刻度
 font_tick = {'family': 'Arial', 'weight': 'bold', 'size': font_tick_size}
 pad_tick = 0.5  # 刻度与轴的距离
-font_colorbar_size = 6  # colorbar
+font_colorbar_size = 5  # colorbar
 font_colorbar = {'family': 'Arial', 'weight': 'bold', 'size': font_colorbar_size}
 line_width = 0.1    # 省界、国界线宽
 tick_width = 0.3    # 刻度线宽
@@ -181,7 +183,7 @@ for iModle in range(len(Model_Name)):
         q_term_78_extreHighDays_eof = -q_term_78_extreHighDays_eof
         eof[iModle, :, :] = q_term_78_extreHighDays_eof
         zone_corr = spaCorr(eof[iModle, :, :], obs_78_eof[pc, :, :])
-    ax1 = fig.add_subplot(5, 5, iModle+1, projection=proj)
+    ax1 = fig.add_subplot(pic_shape[0], pic_shape[1], iModle+1, projection=proj)
     ax1.set_extent(extent1, crs=proj)
     ax1.set_title(ModelName+f"({s_78[pc]*100:.2f}%)", font=font_title, loc='left', pad=pad_title)
     ax1.set_title(f"{zone_corr:.2f}", font=font_title, loc='right', pad=pad_title)
@@ -232,7 +234,7 @@ china = get_adm_maps(level='国', record="first", only_polygon=True, wgs84=True)
 lons, lats = np.meshgrid(grids['lon'], grids['lat'])
 mme = china.maskout(lons, lats, mme)
 zone_corr = spaCorr(mme, obs_78_eof[pc, :, :])
-ax1 = fig.add_subplot(5, 5, 24, projection=proj)
+ax1 = fig.add_subplot(pic_shape[0], pic_shape[1], 23, projection=proj)
 ax1.set_extent(extent1, crs=proj)
 ax1.set_title(f"MME({varFra.mean()*100:.2f}%)", font=font_title, loc='left', pad=pad_title, color='r')
 ax1.set_title(f"{zone_corr:.2f}", font=font_title, loc='right', pad=pad_title,color='r')
@@ -280,7 +282,7 @@ if south_china_sea:
 
 # 绘制obs
 
-ax1 = fig.add_subplot(5, 5, 25, projection=proj)
+ax1 = fig.add_subplot(pic_shape[0], pic_shape[1], 24, projection=proj)
 
 ax1.set_extent(extent1, crs=proj)
 ax1.set_title(f"obs({obs_78_s[pc]*100:.2f}%)", font=font_title, loc='left', pad=pad_title, color='r')
@@ -329,12 +331,12 @@ if south_china_sea:
 #############
 # color bar位置
 # position = fig.add_axes([0.296, 0.08, 0.44, 0.011])#位置[左,下,右,上]
-cb1 = plt.colorbar(a1, cax=fig.add_axes([0.125, 0.06, 0.775, 0.016]), orientation='horizontal')#orientation为水平或垂直
+cb1 = plt.colorbar(a1, cax=fig.add_axes([0.125, 0.05, 0.775, 0.016]), orientation='horizontal')#orientation为水平或垂直
 cb1.ax.tick_params(length=0, labelsize=font_colorbar_size, color='lightgray', pad=2)#length为刻度线的长度
 # colorbar上的刻度值
 tick_locator = ticker.FixedLocator([-1.0, -0.8, -0.6, -0.4, -0.2, 0.2, 0.4, 0.6, 0.8, 1.0])
 cb1.locator = tick_locator
+plt.subplots_adjust(wspace=wspce, hspace=hspce)#wspace、hspace左右、上下的间距
 
-
-plt.savefig(fr'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\CMIP6_historical_{zone}_tamax_eof_{pc+1}.png', dpi=1500, bbox_inches='tight')
+plt.savefig(fr'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\CMIP6_historical_{zone}_tamax_eof_{pc+1}.png', dpi=1000, bbox_inches='tight')
 print('Finish')
