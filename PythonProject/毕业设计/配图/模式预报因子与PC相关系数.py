@@ -42,12 +42,12 @@ s_78 = eof_78.varianceFraction(neigs=2)  # 得到前neig个模态的方差贡献
 time = ['1979', '2014']
 # 地理范围
 tas_lonlat = [36, 62, 54, 70]
-tos_lonlat = [55, 100, -8, 5]
+tos_lonlat = [100, 165, -8, 5]
 # 数据路径
 mlp_T2m = xr.open_dataset(r"C:\Users\10574\OneDrive\File\Graduation Thesis\ThesisData\ERA5\ERA5_2mTemperature_MeanSlp.nc")
 sst = xr.open_dataset(r"C:\Users\10574\Desktop\data\sst.mnmean.nc")  # NetCDF-4文件路径不可含中文
 tas_dataurl = r"C:\Users\10574\OneDrive\File\Graduation Thesis\ThesisData\CMIP6\historical\CMIP6_historical_tas\amon"#数据路径
-tos_dataurl = r"D:/CODES/Python/PythonProject/cache/CMIP6_tos/interp"#数据路径
+tos_dataurl = r"D:/CODES/Python/PythonProject/cache/CMIP6_tos/interp_global"#数据路径
 Model_Name = os.listdir(tas_dataurl)
 Model_Name_tos = os.listdir(tos_dataurl)
 

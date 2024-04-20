@@ -41,18 +41,50 @@ for i in range(eval(time[0]), eval(time[1])+1):
         else:
             date.append(f"{i}-08-15")
 # 地理范围
-tos_lonlat = [0, 360, -89.5, 90]
+tos_lonlat_0 = [0, 360, -89.5, 90]
+tos_lonlat1_0 = [-180, 180, -89.5, 90]
 det_grid = 1
 # 数据路径
 tos_dataurl = r"C:\Users\10574\OneDrive\File\Graduation Thesis\ThesisData\CMIP6\historical\CMIP6_historical_tos\Omon"#数据路径
 Model_Name_tos = os.listdir(tos_dataurl)
 
 
-grids_lat, grids_lon = np.meshgrid(np.arange(tos_lonlat[2], tos_lonlat[3], 0.5), np.arange(tos_lonlat[0], tos_lonlat[1], 0.5))
 for iModle in range(len(Model_Name_tos)):
     ModelName_tos = Model_Name_tos[iModle]
     url = os.listdir(tos_dataurl + '/' + ModelName_tos)
     start_index = 0
+    tos_lonlat = tos_lonlat_0
+    tos_lonlat1 = tos_lonlat1_0
+    try:
+        q_grid = xr.open_dataset(tos_dataurl + '/' + ModelName_tos + '/' + url[0])['lon']
+        criterion = np.where(q_grid > 180, 1, 0)
+        if criterion.sum() != 0:
+            grids_lat, grids_lon = np.meshgrid(np.arange(tos_lonlat[2], tos_lonlat[3], 0.5), np.arange(tos_lonlat[0], tos_lonlat[1], 0.5))
+            tos_lonlat = tos_lonlat_0
+        else:
+            grids_lat, grids_lon = np.meshgrid(np.arange(tos_lonlat1[2], tos_lonlat1[3], 0.5), np.arange(tos_lonlat1[0], tos_lonlat1[1], 0.5))
+            tos_lonlat = tos_lonlat1_0
+    except:
+        try:
+            q_grid = xr.open_dataset(tos_dataurl + '/' + ModelName_tos + '/' + url[0])['longitude']
+            criterion = np.where(q_grid > 180, 1, 0)
+            if criterion.sum() != 0:
+                grids_lat, grids_lon = np.meshgrid(np.arange(tos_lonlat[2], tos_lonlat[3], 0.5),
+                                                   np.arange(tos_lonlat[0], tos_lonlat[1], 0.5))
+                tos_lonlat = tos_lonlat_0
+            else:
+                grids_lat, grids_lon = np.meshgrid(np.arange(tos_lonlat1[2], tos_lonlat1[3], 0.5),
+                                                   np.arange(tos_lonlat1[0], tos_lonlat1[1], 0.5))
+                tos_lonlat = tos_lonlat1_0
+        except:
+            q_grid = xr.open_dataset(tos_dataurl + '/' + ModelName_tos + '/' + url[0])['nav_lon']
+            criterion = np.where(q_grid > 180, 1, 0)
+            if criterion.sum() != 0:
+                grids_lat, grids_lon = np.meshgrid(np.arange(tos_lonlat[2], tos_lonlat[3], 0.5), np.arange(tos_lonlat[0], tos_lonlat[1], 0.5))
+                tos_lonlat = tos_lonlat_0
+            else:
+                grids_lat, grids_lon = np.meshgrid(np.arange(tos_lonlat1[2], tos_lonlat1[3], 0.5), np.arange(tos_lonlat1[0], tos_lonlat1[1], 0.5))
+                tos_lonlat = tos_lonlat1_0
     try:
         xr.open_dataset(rf'D:\CODES\Python\PythonProject\cache\CMIP6_tos\interp_global\{ModelName_tos}.nc')
     except:
