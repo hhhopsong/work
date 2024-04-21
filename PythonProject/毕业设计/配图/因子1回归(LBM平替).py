@@ -342,6 +342,14 @@ a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, reg_lbm_t2m_u850, reg_lbm_t2m_v850, sc
                    headaxislength=3, transform=ccrs.PlateCarree())
 ax3.quiverkey(a3_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font, linewidth=0.8)#linewidth=1为箭头的大小
+# 高度场
+a3_low = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5], linewidths=1.5, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_0 = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap='gray', levels=level_z[6], linewidths=1.5, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_high = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[17], levels=level_z[6:], linewidths=1.5, linestyles='-', alpha=1, transform=ccrs.PlateCarree())
+
+plt.clabel(a3_low, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
+plt.clabel(a3_0, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
+plt.clabel(a3_high, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
 
 # 显著性打点
 p_pre, a3_p_pre = add_cyclic_point(p_lbm_t2m_pre, coord=lon_pre)

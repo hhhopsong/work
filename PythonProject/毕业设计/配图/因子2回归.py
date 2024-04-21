@@ -264,11 +264,12 @@ reg_lbm_t2m_z200, a1_z_lon = add_cyclic_point(reg_lbm_t2m_z200['__xarray_dataarr
 print('开始绘制地图1')
 ax1.set_title('(a)Reg. 200ZUV onto IST', fontsize=20, loc='left')
 a1 = ax1.contourf(a1_z_lon, lat_uvz, reg_lbm_t2m_z200, cmap=cmaps.MPL_BrBG_r[23:105], levels=level1_z, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
-a1_waf = ax1.quiver(a1_uv200_lon, lat_uvz, reg_lbm_t2m_u200, reg_lbm_t2m_v200, regrid_shape=30,
-                    scale=70, color='black', headlength=2, headaxislength=2, transform = ccrs.PlateCarree(central_longitude=0))
-ax1.quiverkey(a1_waf,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
+a1_waf = ax1.quiver(a1_uv200_lon, lat_uvz, reg_lbm_t2m_u200, reg_lbm_t2m_v200, regrid_shape=32,
+                    scale=80, color='black', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
+ax1.quiverkey(a1_waf,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
-ax1.text(96, 36, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax1.text(125, 28, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax1.text(135, 40, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 
 # 显著性打点
 p_lbm_t2m_z200, a1_lon_p = add_cyclic_point(p_lbm_t2m_z200, coord=lon_uvz)
@@ -299,9 +300,9 @@ ax2.set_title('(b)Reg. 500ZUV onto IST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a2 = ax2.contourf(a2_z500_lon, lat_uvz, reg_lbm_t2m_z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z, extend='both', transform=ccrs.PlateCarree())
 
-a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, reg_lbm_t2m_u500, reg_lbm_t2m_v500, scale=30, color='black', headlength=3, regrid_shape=20,
+a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, reg_lbm_t2m_u500, reg_lbm_t2m_v500, scale=40, color='black', headlength=3, regrid_shape=25,
                    headaxislength=3, transform=ccrs.PlateCarree())
-ax2.quiverkey(a2_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
+ax2.quiverkey(a2_uv,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
 
 # 显著性打点
@@ -309,7 +310,8 @@ p_z500, a2_p_z500 = add_cyclic_point(p_lbm_t2m_z500, coord=lon_uvz)
 p_z500 = np.where(p_z500 == 1, 0, np.nan)
 a2_p = ax2.quiver(a2_p_z500, lat_uvz, p_z500, p_z500, scale=30, color='black', headlength=3,
                    regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
-ax2.text(109, 20, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax2.text(124, 22, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax2.text(140, 40, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 ax2.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black', linewidth=1)
 ax2.plot(lon_, lat_, color='blue', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
@@ -331,20 +333,27 @@ ax3.set_title('(c)Reg. 850ZUV&PRE onto IST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a3 = ax3.contourf(a3_pre_lon, lat_pre, reg_lbm_t2m_pre, cmap=cmaps.MPL_RdYlGn[32:56]+cmaps.CBR_wet[0]+cmaps.MPL_RdYlGn[72:96], levels=level_pre, extend='both', transform=ccrs.PlateCarree())
 
-a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, reg_lbm_t2m_u850, reg_lbm_t2m_v850, scale=30, color='black', headlength=3, regrid_shape=30,
+a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, reg_lbm_t2m_u850, reg_lbm_t2m_v850, scale=32, color='black', headlength=3, regrid_shape=30,
                    headaxislength=3, transform=ccrs.PlateCarree())
 ax3.quiverkey(a3_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font, linewidth=0.8)#linewidth=1为箭头的大小
+# 高度场
+a3_low = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5], linewidths=1.5, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_0 = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap='gray', levels=level_z[6], linewidths=1.5, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_high = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[17], levels=level_z[6:], linewidths=1.5, linestyles='-', alpha=1, transform=ccrs.PlateCarree())
+
+plt.clabel(a3_low, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
+plt.clabel(a3_0, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
+plt.clabel(a3_high, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
+
 
 # 显著性打点
 p_pre, a3_p_pre = add_cyclic_point(p_lbm_t2m_pre, coord=lon_pre)
 p_pre = np.where(p_pre == 1, 0, np.nan)
 a3_p = ax3.quiver(a3_p_pre, lat_pre, p_pre, p_pre, scale=30, color='black', headlength=3,
                    regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
-ax3.text(50, 55, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax3.text(86, 39, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax3.text(120, 22, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax3.text(145, 23, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax3.text(120, 23, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax3.text(140, 40, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax3.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 ax3.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black', linewidth=1)
 DBATP = r"D:\CODES\Python\PythonProject\map\DBATP\TP_2500m\TPBoundary_2500m.shp"
