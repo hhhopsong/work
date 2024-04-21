@@ -322,7 +322,7 @@ ax2.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none
 ax2.plot(lon_, lat_, color='blue', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
 
 # ax3 Reg 850ZUV onto AST
-level_z = [-8, -6, -4, -2, 0, 2, 4, 6, 8]
+level_z = [-5, -3, -1, 0, 1, 3, 5]
 level_pre = [-.6, -.45, -.3, -.15, .15, .3, .45, .6]
 print('开始绘制地图3')
 ax3 = fig.add_subplot(313, projection=ccrs.PlateCarree(central_longitude=180))
@@ -343,9 +343,10 @@ a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, reg_lbm_t2m_u850, reg_lbm_t2m_v850, sc
 ax3.quiverkey(a3_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font, linewidth=0.8)#linewidth=1为箭头的大小
 # 高度场
-a3_low = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5], linewidths=1.5, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
-a3_0 = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap='gray', levels=level_z[6], linewidths=1.5, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
-a3_high = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[17], levels=level_z[6:], linewidths=1.5, linestyles='-', alpha=1, transform=ccrs.PlateCarree())
+reg_lbm_t2m_z850 = filters.gaussian_filter(reg_lbm_t2m_z850, 4)
+a3_low = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_0 = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap='gray', levels=level_z[6], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_high = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[17], levels=level_z[6:], linewidths=1, linestyles='-', alpha=1, transform=ccrs.PlateCarree())
 
 plt.clabel(a3_low, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
 plt.clabel(a3_0, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
