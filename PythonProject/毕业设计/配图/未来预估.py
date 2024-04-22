@@ -17,6 +17,7 @@ import cmaps
 from matplotlib.ticker import MultipleLocator
 from tqdm import tqdm # 进度条
 from tools.TN_WaveActivityFlux import TN_WAF
+import seaborn as sns
 
 # 南海小地图
 def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0):
@@ -46,8 +47,8 @@ plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['axes.linewidth'] = 0.3    # 边框粗细
 #plt.tight_layout()
 #plt.subplots_adjust(wspace=0.045, hspace=0.001)#wspace、hspace左右、上下的间距
-wspce, hspce = 0.3, 0.05
-fig = plt.figure(dpi=1000, figsize=(6, 4.5))
+wspce, hspce = 0.3, 0.1
+fig = plt.figure(dpi=1000, figsize=(6, 4.7))
 south_china_sea = False
 south_china_sea_shink = 0.4
 pic_shape = [3, 3]  # 子图行列数
@@ -83,7 +84,7 @@ split_shp.crs = 'wgs84'
 # 获取站点网格
 grids = xr.open_dataset(r"C:\Users\10574\OneDrive\File\Graduation Thesis\ThesisData\CN05.1\CN05.1_Tmax_1961_2021_daily_025x025.nc")
 grids_lon, grids_lat = np.meshgrid(grids['lon'], grids['lat'])
-q_sort95 = grids['tmax'].sel(time=slice('1979-01-01', '2014-12-31')).quantile(0.95, dim='time')  # 95%分位数, 转换为摄氏度
+# 95%分位数, 转换为摄氏度
 # 时间范围
 time = ['2021', '2099']
 time1 = ['2021', '2040']
@@ -266,7 +267,7 @@ for i in range(len(ssp)):
 #############
 # color bar位置
 # position = fig.add_axes([0.296, 0.08, 0.44, 0.011])#位置[左,下,右,上]
-cb1 = plt.colorbar(a1, cax=fig.add_axes([0.125, 0.05, 0.775, 0.016]), orientation='horizontal')#orientation为水平或垂直
+cb1 = plt.colorbar(a1, cax=fig.add_axes([0.125, 0.05, 0.775, 0.02]), orientation='horizontal')#orientation为水平或垂直
 cb1.ax.tick_params(length=0, labelsize=font_colorbar_size, color='lightgray', pad=2)#length为刻度线的长度
 # colorbar上的刻度值
 tick_locator = ticker.FixedLocator(level1)
@@ -274,4 +275,44 @@ cb1.locator = tick_locator
 plt.subplots_adjust(wspace=wspce, hspace=hspce)#wspace、hspace左右、上下的间距
 
 plt.savefig(fr'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\未来预估.png', dpi=1000, bbox_inches='tight')
+plt.close()
+obs = grids['tmax'].salem.roi(shape=split_shp).sel(time=slice('1979-01-01', '2020-12-31'))
+q_obs_sort95 = grids['tmax'].salem.roi(shape=split_shp).sel(time=slice('1979-01-01', '2014-12-31')).quantile(0.95, dim='time')
+obs_78 = obs.sel(time=obs.time.dt.month.isin([7, 8]))
+obs_78_days = np.where((obs_78.to_numpy() - q_obs_sort95.to_numpy()) > 0, 1, 0)
+obs_78_days_gridnums = np.ones((len(obs['lat']), len(obs['lon'])))
+obs_78_days_gridnums = xr.DataArray(obs_78_days_gridnums, coords=[obs['lat'], obs['lon']], dims=['lat', 'lon'])
+obs_78_days_gridnums.name = 'gridnums'
+obs_78_days_gridnums = obs_78_days_gridnums.salem.roi(shape=split_shp).sum()
+obs_78_days_avg = [obs_78_days[i*62:i*62+62].sum()/obs_78_days_gridnums for i in range(42)]
+
+obs_78_days_avg = np.array(obs_78_days_avg)
+projections_126 = xr.open_dataset(r"D:\CODES\Python\PythonProject\cache\Graduation Thesis\ssp126_78_extreHighDays.nc")['days'].mean(['lat', 'lon'])
+projections_245 =xr.open_dataset(r"D:\CODES\Python\PythonProject\cache\Graduation Thesis\ssp245_78_extreHighDays.nc")['days'].mean(['lat', 'lon'])
+projections_585 = xr.open_dataset(r"D:\CODES\Python\PythonProject\cache\Graduation Thesis\ssp585_78_extreHighDays.nc")['days'].mean(['lat', 'lon'])
+projections = xr.concat([projections_126, projections_245, projections_585], dim='ssp')
+projections = xr.DataArray(projections, coords=[ssp, Model_Name, [str(i) for i in range(eval(time[0]), eval(time[1]) + 1)]], dims=['ssp', 'model', 'time'])
+palette = sns.xkcd_palette(["windows blue", "dusty purple", "red"])
+plt.figure(figsize=(10, 6))
+sns.set(style='ticks')
+fig_obs = sns.lineplot(x=[str(i) for i in range(1979, 2021)], y=obs_78_days_avg, color='gray', label='Observation')
+fig = sns.relplot(x="time", y="days", hue="ssp", kind="line", data=projections.to_dataframe(), palette=palette)
+
+ax = plt.gca()
+# 设置横坐标的刻度范围和标记
+ax.set_xlim(-1, 121)
+ax.set_xticks(range(0, 121, 5))
+ax.set_xticklabels(["1979"] + [f"{i}" for i in range(1985, 2096, 5)] + ["2099"])
+# 设置纵坐标的刻度范围和标记
+ax.set_ylim(0, 62)
+ax.set_yticks(range(0, 62, 5))
+ax.set_yticklabels([f"{i}" for i in range(0, 62, 5)])
+plt.axvline(x=41.5, color='orange', linestyle='-', linewidth=0.5)
+plt.axvline(x=20, color='gray', linestyle='--', linewidth=0.5)
+plt.axvline(x=40, color='gray', linestyle='--', linewidth=0.5)
+plt.axvline(x=60, color='gray', linestyle='--', linewidth=0.5)
+plt.axvline(x=80, color='gray', linestyle='--', linewidth=0.5)
+plt.xlabel('Year')
+plt.ylabel('EHDs')
+plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\未来预估折线图.png', dpi=1000, bbox_inches='tight')
 print('Finish')
