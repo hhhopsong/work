@@ -62,14 +62,14 @@ level1 = [-45, -40, -35, -30, -25, -20, -15, -10, -5, -2, 2, 5, 10, 15, 20, 25, 
 # 字体大小
 font_title_size = 10 # 标题
 font_title = {'family': 'Arial', 'weight': 'normal', 'size': font_title_size}
-pad_title = 0.5  # 标题与图的距离
+pad_title = 1  # 标题与图的距离
 font_tick_size = 10  # 刻度
 font_tick = {'family': 'Arial', 'weight': 'normal', 'size': font_tick_size}
-pad_tick = 0.5  # 刻度与轴的距离
+pad_tick = 1  # 刻度与轴的距离
 font_colorbar_size = 8  # colorbar
 font_colorbar = {'family': 'Arial', 'weight': 'normal', 'size': font_colorbar_size}
-line_width = 0.1    # 省界、国界线宽
-tick_width = 0.3    # 刻度线宽
+line_width = 0.2    # 省界、国界线宽
+tick_width = .5    # 刻度线宽
 tick_clolor = 'black'    # 刻度线颜色
 # 经纬度
 xmajorLocator = MultipleLocator(10)  # x轴最大刻度
@@ -293,16 +293,16 @@ projections_585 = xr.open_dataset(r"D:\CODES\Python\PythonProject\cache\Graduati
 projections = xr.concat([projections_126, projections_245, projections_585], dim='ssp')
 projections = xr.DataArray(projections, coords=[ssp, Model_Name, [str(i) for i in range(eval(time[0]), eval(time[1]) + 1)]], dims=['ssp', 'model', 'time'])
 palette = sns.xkcd_palette(["windows blue", "dusty purple", "red"])
-
 sns.set(style='ticks')
 fig = sns.relplot(x="time", y="days", hue="ssp", kind="line", data=projections.to_dataframe(), palette=palette, legend=False)
+sns.move_legend(fig, "center left")
 #fig_obs = sns.lineplot(x=[i for i in range(-42, 1)], y=obs_78_days_avg, color='gray', label='Observation')
 # 图像大小
 fig.fig.set_size_inches(6, 4.7)
 ax = plt.gca()
 # 设置横坐标的刻度范围和标记
 ax.set_xlim(0, 81)
-ax.set_xticks([1]+np.arange(5, 76, 5)+[79])
+ax.set_xticks([0]+np.arange(4, 75, 5).tolist()+[79])
 ax.set_xticklabels(["2021"] + [f"{i}" for i in range(2025, 2096, 5)] + ["2099"])
 # 设置纵坐标的刻度范围和标记
 ax.set_ylim(0, 62)
@@ -315,7 +315,6 @@ plt.axvline(x=60, color='gray', linestyle='--', linewidth=0.5)
 plt.axvline(x=80, color='gray', linestyle='--', linewidth=0.5)
 plt.xlabel('Year')
 plt.ylabel('EHDs')
-plt.legend(title='', loc='upper left', labels=['SSP126', 'SSP245', 'SSP585'])
 plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\未来预估折线图.png', dpi=1000, bbox_inches='tight')
 plt.show()
 print('Finish')
