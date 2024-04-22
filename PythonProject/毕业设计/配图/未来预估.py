@@ -276,7 +276,7 @@ plt.subplots_adjust(wspace=wspce, hspace=hspce)#wspace、hspace左右、上下�
 
 plt.savefig(fr'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\未来预估.png', dpi=1000, bbox_inches='tight')
 plt.close()
-obs = grids['tmax'].salem.roi(shape=split_shp).sel(time=slice('1979-01-01', '2020-12-31'))
+obs = grids['tmax'].salem.roi(shape=split_shp).sel(time=slice('1979-01-01', '2021-12-31'))
 q_obs_sort95 = grids['tmax'].salem.roi(shape=split_shp).sel(time=slice('1979-01-01', '2014-12-31')).quantile(0.95, dim='time')
 obs_78 = obs.sel(time=obs.time.dt.month.isin([7, 8]))
 obs_78_days = np.where((obs_78.to_numpy() - q_obs_sort95.to_numpy()) > 0, 1, 0)
@@ -284,7 +284,7 @@ obs_78_days_gridnums = np.ones((len(obs['lat']), len(obs['lon'])))
 obs_78_days_gridnums = xr.DataArray(obs_78_days_gridnums, coords=[obs['lat'], obs['lon']], dims=['lat', 'lon'])
 obs_78_days_gridnums.name = 'gridnums'
 obs_78_days_gridnums = obs_78_days_gridnums.salem.roi(shape=split_shp).sum()
-obs_78_days_avg = [obs_78_days[i*62:i*62+62].sum()/obs_78_days_gridnums for i in range(42)]
+obs_78_days_avg = [obs_78_days[i*62:i*62+62].sum()/obs_78_days_gridnums for i in range(43)]
 
 obs_78_days_avg = np.array(obs_78_days_avg)
 projections_126 = xr.open_dataset(r"D:\CODES\Python\PythonProject\cache\Graduation Thesis\ssp126_78_extreHighDays.nc")['days'].mean(['lat', 'lon'])
@@ -293,21 +293,21 @@ projections_585 = xr.open_dataset(r"D:\CODES\Python\PythonProject\cache\Graduati
 projections = xr.concat([projections_126, projections_245, projections_585], dim='ssp')
 projections = xr.DataArray(projections, coords=[ssp, Model_Name, [str(i) for i in range(eval(time[0]), eval(time[1]) + 1)]], dims=['ssp', 'model', 'time'])
 palette = sns.xkcd_palette(["windows blue", "dusty purple", "red"])
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(15, 6))
 sns.set(style='ticks')
-fig_obs = sns.lineplot(x=[str(i) for i in range(1979, 2021)], y=obs_78_days_avg, color='gray', label='Observation')
 fig = sns.relplot(x="time", y="days", hue="ssp", kind="line", data=projections.to_dataframe(), palette=palette)
+fig_obs = sns.lineplot(x=[i for i in range(-42, 1)], y=obs_78_days_avg, color='gray', label='Observation')
 
 ax = plt.gca()
 # 设置横坐标的刻度范围和标记
-ax.set_xlim(-1, 121)
-ax.set_xticks(range(0, 121, 5))
+ax.set_xlim(-42, 81)
+ax.set_xticks(range(-42, 81, 5))
 ax.set_xticklabels(["1979"] + [f"{i}" for i in range(1985, 2096, 5)] + ["2099"])
 # 设置纵坐标的刻度范围和标记
 ax.set_ylim(0, 62)
 ax.set_yticks(range(0, 62, 5))
 ax.set_yticklabels([f"{i}" for i in range(0, 62, 5)])
-plt.axvline(x=41.5, color='orange', linestyle='-', linewidth=0.5)
+plt.axvline(x=0, color='gray', linestyle='-', linewidth=1)
 plt.axvline(x=20, color='gray', linestyle='--', linewidth=0.5)
 plt.axvline(x=40, color='gray', linestyle='--', linewidth=0.5)
 plt.axvline(x=60, color='gray', linestyle='--', linewidth=0.5)
@@ -315,4 +315,5 @@ plt.axvline(x=80, color='gray', linestyle='--', linewidth=0.5)
 plt.xlabel('Year')
 plt.ylabel('EHDs')
 plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\未来预估折线图.png', dpi=1000, bbox_inches='tight')
+plt.show()
 print('Finish')
