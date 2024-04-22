@@ -58,7 +58,7 @@ xticks1 = np.arange(extent1[0], extent1[1]+1, 20)
 yticks1 = np.arange(extent1[2], extent1[3]+1, 10)
 proj = ccrs.PlateCarree()
 # 等值线值
-level1 = [-45, -40, -35, -30, -25, -20, -15, -10, -5, -2, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45]
+level1 = [-45, -40, -35, -30, -25, -20, -15, -10, -5, 5, 10, 15, 20, 25, 30, 35, 40, 45]
 # 字体大小
 font_title_size = 10 # 标题
 font_title = {'family': 'Arial', 'weight': 'normal', 'size': font_title_size}
@@ -294,11 +294,11 @@ projections = xr.concat([projections_126, projections_245, projections_585], dim
 projections = xr.DataArray(projections, coords=[ssp, Model_Name, [str(i) for i in range(eval(time[0]), eval(time[1]) + 1)]], dims=['ssp', 'model', 'time'])
 palette = sns.xkcd_palette(["windows blue", "dusty purple", "red"])
 sns.set(style='ticks')
-fig = sns.relplot(x="time", y="days", hue="ssp", kind="line", data=projections.to_dataframe(), palette=palette, legend=False)
+fig = sns.relplot(x="time", y="days", hue="ssp", kind="line", data=projections.to_dataframe(), palette=palette)
 sns.move_legend(fig, "center left")
 #fig_obs = sns.lineplot(x=[i for i in range(-42, 1)], y=obs_78_days_avg, color='gray', label='Observation')
 # 图像大小
-fig.fig.set_size_inches(6, 4.7)
+
 ax = plt.gca()
 # 设置横坐标的刻度范围和标记
 ax.set_xlim(0, 81)
