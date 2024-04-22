@@ -46,8 +46,8 @@ plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['axes.linewidth'] = 0.3    # 边框粗细
 #plt.tight_layout()
 #plt.subplots_adjust(wspace=0.045, hspace=0.001)#wspace、hspace左右、上下的间距
-wspce, hspce = 0.25, 0.1
-fig = plt.figure(dpi=1000, figsize=(6, 5))
+wspce, hspce = 0.3, 0.05
+fig = plt.figure(dpi=1000, figsize=(6, 4.5))
 south_china_sea = False
 south_china_sea_shink = 0.4
 pic_shape = [3, 3]  # 子图行列数
@@ -57,15 +57,15 @@ xticks1 = np.arange(extent1[0], extent1[1]+1, 20)
 yticks1 = np.arange(extent1[2], extent1[3]+1, 10)
 proj = ccrs.PlateCarree()
 # 等值线值
-level1 = [-.7, -.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5, .7]
+level1 = [-45, -40, -35, -30, -25, -20, -15, -10, -5, -2, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45]
 # 字体大小
-font_title_size = 3 # 标题
+font_title_size = 10 # 标题
 font_title = {'family': 'Arial', 'weight': 'normal', 'size': font_title_size}
 pad_title = 0.5  # 标题与图的距离
 font_tick_size = 10  # 刻度
 font_tick = {'family': 'Arial', 'weight': 'normal', 'size': font_tick_size}
 pad_tick = 0.5  # 刻度与轴的距离
-font_colorbar_size = 5  # colorbar
+font_colorbar_size = 8  # colorbar
 font_colorbar = {'family': 'Arial', 'weight': 'normal', 'size': font_colorbar_size}
 line_width = 0.1    # 省界、国界线宽
 tick_width = 0.3    # 刻度线宽
@@ -103,6 +103,7 @@ for i in range(len(ssp)):
     try:
         print(f'读取4MME缓存文件...')
         q_ssp_78_extreHighDays = xr.open_dataset(fr'D:\CODES\Python\PythonProject\cache\Graduation Thesis\MME_{ssp[i]}_78_extreHighDays.nc')['days']
+        day_ssp_78_extreHighDays_diffmodel = xr.open_dataset(fr'D:\CODES\Python\PythonProject\cache\Graduation Thesis\{ssp[i]}_78_extreHighDays.nc')['days']
     except:
         for iModle in range(len(Model_Name)):
             ModelName = Model_Name[iModle]
@@ -142,7 +143,10 @@ for i in range(len(ssp)):
         day_ssp_MME_datasaet.name = 'days'
         day_ssp_MME_datasaet.to_netcdf(fr'D:\CODES\Python\PythonProject\cache\Graduation Thesis\MME_{ssp[i]}_78_extreHighDays.nc')
         q_ssp_78_extreHighDays = xr.open_dataset(fr'D:\CODES\Python\PythonProject\cache\Graduation Thesis\MME_{ssp[i]}_78_extreHighDays.nc')['days']
-
+        day_ssp_datasaet = xr.DataArray(day_ssp, coords=[Model_Name, [str(i) for i in range(eval(time[0]), eval(time[1]) + 1)], grids['lat'], grids['lon']], dims=['Model', 'time', 'lat', 'lon'])
+        day_ssp_datasaet.name = 'days'
+        day_ssp_datasaet.to_netcdf(fr'D:\CODES\Python\PythonProject\cache\Graduation Thesis\{ssp[i]}_78_extreHighDays.nc')
+        day_ssp_78_extreHighDays_diffmodel = xr.open_dataset(fr'D:\CODES\Python\PythonProject\cache\Graduation Thesis\{ssp[i]}_78_extreHighDays.nc')['days']
 for i in range(len(ssp)):
     print(f'模拟{ssp[i]}情景')
     ######################################################################################
@@ -154,28 +158,41 @@ for i in range(len(ssp)):
     q_78_obs = q_7 + q_8
     # 绘图 Nearterm
     q_ssp_78_2140 = q_ssp_78_extreHighDays.sel(time=slice(time1[0], time1[1]))
-    reg_days_1 = [[np.polyfit(np.arange(eval(time1[0]), eval(time1[1])+1, 1), q_ssp_78_2140[:, ilat, ilon] - q_78_obs[ilat, ilon], 1)[0] for ilon in range(len(grids['lon']))] for ilat in tqdm(range(len(grids['lat'])), desc='计算Delta EHDs/year', position=0, leave=True)]
+    #reg_days_1 = [[np.polyfit(np.arange(eval(time1[0]), eval(time1[1])+1, 1), q_ssp_78_2140[:, ilat, ilon] - q_78_obs[ilat, ilon], 1)[0] for ilon in range(len(grids['lon']))] for ilat in tqdm(range(len(grids['lat'])), desc='计算Delta EHDs/year', position=0, leave=True)]
+    delta_2140 = q_ssp_78_2140.mean('time') - q_78_obs
     ax1 = fig.add_subplot(pic_shape[0], pic_shape[1], i*3+1, projection=proj)
     ax1.set_extent(extent1, crs=proj)
-    a1 = ax1.contourf(grids['lon'], grids['lat'], reg_days_1, cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='both', transform=proj)
+    if i == 0:
+        ax1.set_title('Nearterm\n', fontdict=font_title, pad=pad_title, loc='center')
+    a1 = ax1.contourf(grids['lon'], grids['lat'], delta_2140, cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='both', transform=proj)
     ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray', lw=line_width)# 添加陆地并且陆地部分全部填充成浅灰色
     ax1.add_geometries(Reader(r'D:\CODES\Python\PythonProject\map\cnriver\1级河流.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='b', linewidth=0.2)
     draw_maps(get_adm_maps(level='国'), linewidth=line_width)
     # 绘图 Midterm
     q_ssp_78_4160 = q_ssp_78_extreHighDays.sel(time=slice(time2[0], time2[1]))
-    reg_days_2 = [[np.polyfit(np.arange(eval(time2[0]), eval(time2[1]) + 1, 1),q_ssp_78_4160[:, ilat, ilon] - q_78_obs[ilat, ilon], 1)[0] for ilon in range(len(grids['lon']))] for ilat in tqdm(range(len(grids['lat'])), desc='计算Delta EHDs/year', position=0, leave=True)]
+    #reg_days_2 = [[np.polyfit(np.arange(eval(time2[0]), eval(time2[1]) + 1, 1),q_ssp_78_4160[:, ilat, ilon] - q_78_obs[ilat, ilon], 1)[0] for ilon in range(len(grids['lon']))] for ilat in tqdm(range(len(grids['lat'])), desc='计算Delta EHDs/year', position=0, leave=True)]
+    delta_4160 = q_ssp_78_4160.mean('time') - q_78_obs
     ax2 = fig.add_subplot(pic_shape[0], pic_shape[1], i*3+2, projection=proj)
     ax2.set_extent(extent1, crs=proj)
-    a2 = ax2.contourf(grids['lon'], grids['lat'], reg_days_2, cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='both', transform=proj)
+    if i == 0:
+        ax2.set_title('Midterm\n(a)SSP126', fontdict=font_title, pad=pad_title, loc='center')
+    elif i == 1:
+        ax2.set_title('(b)SSP245', fontdict=font_title, pad=pad_title, loc='center')
+    elif i == 2:
+        ax2.set_title('(c)SSP585', fontdict=font_title, pad=pad_title, loc='center')
+    a2 = ax2.contourf(grids['lon'], grids['lat'], delta_4160, cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='both', transform=proj)
     ax2.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray', lw=line_width)# 添加陆地并且陆地部分全部填充成浅灰色
     ax2.add_geometries(Reader(r'D:\CODES\Python\PythonProject\map\cnriver\1级河流.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='b', linewidth=0.2)
     draw_maps(get_adm_maps(level='国'), linewidth=line_width)
     # 绘图 Longterm
     q_ssp_78_8199 = q_ssp_78_extreHighDays.sel(time=slice(time3[0], time3[1]))
-    reg_days_3 = [[np.polyfit(np.arange(eval(time3[0]), eval(time3[1]) + 1, 1), q_ssp_78_8199[:, ilat, ilon] - q_78_obs[ilat, ilon], 1)[0] for ilon in range(len(grids['lon']))] for ilat in tqdm(range(len(grids['lat'])), desc='计算Delta EHDs/year', position=0, leave=True)]
+    #reg_days_3 = [[np.polyfit(np.arange(eval(time3[0]), eval(time3[1]) + 1, 1), q_ssp_78_8199[:, ilat, ilon] - q_78_obs[ilat, ilon], 1)[0] for ilon in range(len(grids['lon']))] for ilat in tqdm(range(len(grids['lat'])), desc='计算Delta EHDs/year', position=0, leave=True)]
+    delta_8199 = q_ssp_78_8199.mean('time') - q_78_obs
     ax3 = fig.add_subplot(pic_shape[0], pic_shape[1], i*3+3, projection=proj)
     ax3.set_extent(extent1, crs=proj)
-    a3 = ax3.contourf(grids['lon'], grids['lat'], reg_days_3, cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='both', transform=proj)
+    if i == 0:
+        ax3.set_title('Longterm\n', fontdict=font_title, pad=pad_title, loc='center')
+    a3 = ax3.contourf(grids['lon'], grids['lat'], delta_8199, cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='both', transform=proj)
     ax3.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray', lw=line_width)# 添加陆地并且陆地部分全部填充成浅灰色
     ax3.add_geometries(Reader(r'D:\CODES\Python\PythonProject\map\cnriver\1级河流.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='b', linewidth=0.2)
     draw_maps(get_adm_maps(level='国'), linewidth=line_width)
