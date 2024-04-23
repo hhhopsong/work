@@ -68,7 +68,7 @@ shp = fr"D:/CODES/Python/PythonProject/map/shp/south_china/中国南方.shp"
 split_shp = gpd.read_file(shp)
 split_shp.crs = 'wgs84'
 std_q78 = std_q78.salem.roi(shape=split_shp)
-DBATP = r"D:\CODES\Python\PythonProject\map\DBATP\DBATP_Polygon.shp"
+DBATP = r"D:\CODES\Python\PythonProject\map\DBATP\TP_2500m\TPBoundary_2500m.shp"
 provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
 
 eof_78 = Eof(std_q78['tmax'].to_numpy())   #进行eof分解
@@ -185,10 +185,10 @@ ax1.quiverkey(a1_uv,  X=0.946, Y=1.03, U=.5,angle = 0,  label='0.5m/s',
               labelpos='N', color='black',labelcolor = 'k', fontproperties = font,linewidth=0.8)#linewidth=1为箭头的大小
 ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray')# 添加陆地并且陆地部分全部填充成浅灰色
 ax1.text(127, 30.45, 'A', fontsize=20, fontweight='bold', color='blue', zorder=20)
-ax1.add_feature(provinces, lw=0.5, zorder=2)
 draw_maps(get_adm_maps(level='国'), linewidth=0.5)
+ax1.add_feature(provinces, lw=0.5, zorder=2)
 
-ax3 = fig.add_subplot(222, projection=proj)
+ax3 = fig.add_subplot(223, projection=proj)
 ax3.set_extent(extent1, crs=proj)
 ax3.set_title('(c)EOF2', fontsize=20, loc='left')
 a3 = ax3.contourf(lon, lat, EOF_78[1, :, :], cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='neither', transform=proj)
@@ -208,8 +208,8 @@ ax3.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray')# 添加陆�
 ax3.text(137.5, 51.6, 'A', fontsize=20, fontweight='bold', color='blue', zorder=20)
 ax3.text(130, 35, 'C', fontsize=20, fontweight='bold', color='red', zorder=20)
 ax3.text(115, 21, 'A', fontsize=20, fontweight='bold', color='blue', zorder=20)
-ax3.add_feature(provinces, lw=0.5, zorder=2)
 draw_maps(get_adm_maps(level='国'), linewidth=0.5)
+ax3.add_feature(provinces, lw=0.5, zorder=2)
 
 ax2 = fig.add_axes(ax1.get_position())
 ax2.set_title(f'(b)PC1', fontsize=20, loc='left')
@@ -224,7 +224,7 @@ ax2.set_ylim([-3, 3])
 ax2.set_xticks(np.arange(1979, 2015, 5))
 ax2.axhline(0, color='darkgray', linewidth=1)
 #设定子图ax2大小位置
-adjust_sub_axes(ax1, ax2, shrink=1, size=(16, 15), lr=1.0, ud=-.5)
+adjust_sub_axes(ax1, ax2, shrink=1, size=(16, 16), lr=-0.3, ud=1.0)
 
 
 ax4 = fig.add_axes(ax3.get_position())
@@ -239,7 +239,7 @@ ax4.set_xlim([1978, 2015])
 ax4.set_ylim([-3.0, 3.0])
 ax4.set_xticks(np.arange(1979, 2015, 5))
 ax4.axhline(0, color='darkgray', linewidth=1)
-adjust_sub_axes(ax3, ax4, shrink=1, size=(16, 15), lr=1.0, ud=-.5)
+adjust_sub_axes(ax3, ax4, shrink=1, size=(16, 16), lr=-0.3, ud=1.0)
 
 # 画图设置
 # 刻度线设置
@@ -306,7 +306,7 @@ ax4.tick_params(which='minor', length=5,width=1,color='darkgray')#最小刻度�
 ax4.tick_params(which='both',bottom=True,top=False,left=True,labelbottom=True,labeltop=False)
 plt.rcParams['xtick.direction'] = 'out' #将x轴的刻度线方向设置向内或者外
 # color bar位置
-position = fig.add_axes([0.92, 0.605, 0.01, 0.2])#位置[x,y,width,height][0.296, 0.05, 0.44, 0.015]
+position = fig.add_axes([0.5, 0.605, 0.01, 0.2])#位置[x,y,width,height][0.296, 0.05, 0.44, 0.015]
 #竖向colorbar,无尖角
 cb1 = plt.colorbar(a1, cax=position, orientation='vertical')#orientation为水平或垂直
 cb1.ax.tick_params(color='black')#length为刻度线的长度

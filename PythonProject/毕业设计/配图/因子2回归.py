@@ -193,10 +193,11 @@ St_lbm_t2m_pre = np.sum((pre_78 - np.mean(pre_78, axis=0)) ** 2, axis=0)
 t_lbm_t2m_pre = reg_lbm_t2m_pre * np.sqrt(Lxx) / σ_lbm_t2m_pre
 # 计算临界值
 t_critical = t.ppf(0.95, n - 2)
+t_critical_95 = t.ppf(0.975, n - 2)
 # 进行显著性检验
 p_lbm_t2m_z200 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_z200.fill(np.nan)
-p_lbm_t2m_z200[np.abs(t_lbm_t2m_z200['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+p_lbm_t2m_z200[np.abs(t_lbm_t2m_z200['__xarray_dataarray_variable__'].to_numpy()) > t_critical_95] = 1
 
 p_lbm_t2m_u200 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_u200.fill(0)
@@ -208,7 +209,7 @@ p_uv200 = np.where((p_lbm_t2m_u200 + p_lbm_t2m_v200) < 1, 0, 1)
 
 p_lbm_t2m_z500 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_z500.fill(np.nan)
-p_lbm_t2m_z500[np.abs(t_lbm_t2m_z500['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+p_lbm_t2m_z500[np.abs(t_lbm_t2m_z500['__xarray_dataarray_variable__'].to_numpy()) > t_critical_95] = 1
 
 p_lbm_t2m_u500 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_u500.fill(0)
@@ -286,7 +287,7 @@ ax1.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none
 ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 
 # ax2 Reg 500ZUV onto AST
-level_z = [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12]
+level_z = [-20, -16, -12, -8, -4, 4, 8, 12, 16, 20]
 print('开始绘制地图2')
 ax2 = fig.add_subplot(312, projection=ccrs.PlateCarree(central_longitude=180))
 ax2.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -318,7 +319,7 @@ ax2.plot(lon_, lat_, color='blue', linewidth=1, linestyle='--', transform=ccrs.P
 
 # ax3 Reg 850ZUV onto AST
 level_z = [-7, -5, -3, -1, 0, 1, 3, 5, 7]
-level_pre = [-.6, -.45, -.3, -.15, .15, .3, .45, .6]
+level_pre = [-.6, -.4, -.2, -.1, .1, .2, .4, .6]
 print('开始绘制地图3')
 ax3 = fig.add_subplot(313, projection=ccrs.PlateCarree(central_longitude=180))
 ax3.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -431,12 +432,12 @@ cb1.locator = ticker.FixedLocator([-24, -20, -16, -12, -8, -4, 4, 8, 12, 16, 20,
 position2 = fig.add_axes([0.296, 0.37, 0.44, 0.011])
 cb2 = plt.colorbar(a2, cax=position2, orientation='horizontal')
 cb2.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb2.locator = ticker.FixedLocator([-12, -10, -8, -6, -4, -3, 3, 4, 6, 8, 10, 12]) # colorbar上的刻度值个数
+cb2.locator = ticker.FixedLocator([-20, -16, -12, -8, -4, 4, 8, 12, 16, 20]) # colorbar上的刻度值个数
 
 position3 = fig.add_axes([0.296, 0.10, 0.44, 0.011])
 cb3 = plt.colorbar(a3, cax=position3, orientation='horizontal')
 cb3.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb3.locator = ticker.FixedLocator([-.6, -.45, -.3, -.15, .15, .3, .45, .6]) # colorbar上的刻度值个数
+cb3.locator = ticker.FixedLocator([-.6, -.4, -.2, -.1, .1, .2, .4, .6]) # colorbar上的刻度值个数
 
 plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\LBM平替2.png', dpi=1000, bbox_inches='tight')
 plt.show()
