@@ -189,7 +189,7 @@ St_lbm_t2m_pre = np.sum((pre_78 - np.mean(pre_78, axis=0)) ** 2, axis=0)
 t_lbm_t2m_pre = reg_lbm_t2m_pre * np.sqrt(Lxx) / σ_lbm_t2m_pre
 # 计算临界值
 t_critical = t.ppf(0.95, n - 2)
-t_critical_95 = t.ppf(0.975, n - 2)
+t_critical_95 = t.ppf(0.95, n - 2)
 # 进行显著性检验
 p_lbm_t2m_z200 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_z200.fill(np.nan)
