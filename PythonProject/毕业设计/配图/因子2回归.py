@@ -287,7 +287,7 @@ ax1.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none
 ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 
 # ax2 Reg 500ZUV onto AST
-level_z = [-20, -16, -12, -8, -4, 4, 8, 12, 16, 20]
+level_z = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]
 print('开始绘制地图2')
 ax2 = fig.add_subplot(312, projection=ccrs.PlateCarree(central_longitude=180))
 ax2.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -432,7 +432,7 @@ cb1.locator = ticker.FixedLocator([-24, -20, -16, -12, -8, -4, 4, 8, 12, 16, 20,
 position2 = fig.add_axes([0.296, 0.37, 0.44, 0.011])
 cb2 = plt.colorbar(a2, cax=position2, orientation='horizontal')
 cb2.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb2.locator = ticker.FixedLocator([-20, -16, -12, -8, -4, 4, 8, 12, 16, 20]) # colorbar上的刻度值个数
+cb2.locator = ticker.FixedLocator([-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]) # colorbar上的刻度值个数
 
 position3 = fig.add_axes([0.296, 0.10, 0.44, 0.011])
 cb3 = plt.colorbar(a3, cax=position3, orientation='horizontal')
