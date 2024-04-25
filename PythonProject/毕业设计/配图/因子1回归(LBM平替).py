@@ -251,7 +251,7 @@ split_shp = gpd.read_file(shp)
 split_shp.crs = 'wgs84'
 # ##ax1 Corr. PC1 & JA SST,2mT
 level1 = [-1, -.7, -.4, -.1, -.05, .05, .1, .4, .7, 1]
-level1_z = [-24, -20, -16, -12, -8, -4, 4, 8, 12, 16, 20, 24]
+level1_z = [-16, -12, -10, -8, 6, -4, -2, 2, 4, 6, 8, 10, 12, 16]
 ax1 = fig.add_subplot(311, projection=ccrs.PlateCarree(central_longitude=180))
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 # WAF
@@ -260,8 +260,8 @@ reg_waf_x = np.where(reg_waf_x.m is np.nan, 0, reg_waf_x)
 reg_waf_y = np.where(reg_waf_y.m is np.nan, 0, reg_waf_y)
 reg_waf_x = filters.gaussian_filter(reg_waf_x, 3)
 reg_waf_y = filters.gaussian_filter(reg_waf_y, 3)
-reg_waf_x = np.where(np.abs(reg_waf_x) > .05, reg_waf_x, np.nan)
-reg_waf_y = np.where(np.abs(reg_waf_y) > .05, reg_waf_y, np.nan)
+reg_waf_x = np.where(np.abs(reg_waf_x) > .02, reg_waf_x, np.nan)
+reg_waf_y = np.where(np.abs(reg_waf_y) > .02, reg_waf_y, np.nan)
 # 去除180白线
 reg_waf_x, a1_waf_lon = add_cyclic_point(reg_waf_x, coord=lon_uvz)
 reg_waf_y, a1_waf_lon = add_cyclic_point(reg_waf_y, coord=lon_uvz)
@@ -294,6 +294,8 @@ ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加�
 
 # ax2 Reg 500ZUV onto AST
 level_z = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]
+size_uv = 40
+reshape_uv = 20
 print('开始绘制地图2')
 ax2 = fig.add_subplot(312, projection=ccrs.PlateCarree(central_longitude=180))
 ax2.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -303,6 +305,10 @@ u500 = np.where(p_uv500 == 1, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].
 v500 = np.where(p_uv500 == 1, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
 u500_np = np.where(p_uv500 == 0, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 非显著风场
 v500_np = np.where(p_uv500 == 0, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 非显著风场
+u500 = np.where(np.abs(u500) > 0.1, u500, np.nan)
+v500 = np.where(np.abs(v500) > 0.1, v500, np.nan)
+u500_np = np.where(np.abs(u500_np) > 0.1, u500_np, np.nan)
+v500_np = np.where(np.abs(v500_np) > 0.1, v500_np, np.nan)
 u500, a2_uv500_lon = add_cyclic_point(u500, coord=lon_uvz)
 v500, a2_uv500_lon = add_cyclic_point(v500, coord=lon_uvz)
 u500_np, a2_uv500_lon = add_cyclic_point(u500_np, coord=lon_uvz)
@@ -311,9 +317,9 @@ ax2.set_title('(b)Reg. 500ZUV onto AST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z, extend='both', transform=ccrs.PlateCarree())
 
-a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, u500, v500, scale=30, color='black', headlength=3, regrid_shape=20,
+a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, u500, v500, scale=size_uv, color='black', headlength=3, regrid_shape=reshape_uv,
                    headaxislength=3, transform=ccrs.PlateCarree())
-a2_uv_np = ax2.quiver(a2_uv500_lon, lat_uvz, u500_np, v500_np, scale=30, color='gray', headlength=3, regrid_shape=20,
+a2_uv_np = ax2.quiver(a2_uv500_lon, lat_uvz, u500_np, v500_np, scale=size_uv, color='gray', headlength=3, regrid_shape=reshape_uv,
                      headaxislength=3, transform=ccrs.PlateCarree())
 ax2.quiverkey(a2_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
@@ -334,6 +340,8 @@ ax2.plot(lon_, lat_, color='blue', linewidth=1, linestyle='--', transform=ccrs.P
 # ax3 Reg 850ZUV onto AST
 level_z = [-7, -5, -3, -1, 0, 1, 3, 5, 7]
 level_pre = [-.6, -.4, -.2, -.1, .1, .2, .4, .6]
+size_uv = 30
+reshape_uv = 20
 print('开始绘制地图3')
 ax3 = fig.add_subplot(313, projection=ccrs.PlateCarree(central_longitude=180))
 ax3.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -344,6 +352,10 @@ u850 = np.where(p_uv850 == 1, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].
 v850 = np.where(p_uv850 == 1, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan)
 u850_np = np.where(p_uv850 == 0, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 非显著风场
 v850_np = np.where(p_uv850 == 0, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 非显著风场
+u850 = np.where(np.abs(u850) > 0.1, u850, np.nan)
+v850 = np.where(np.abs(v850) > 0.1, v850, np.nan)
+u850_np = np.where(np.abs(u850_np) > 0.1, u850_np, np.nan)
+v850_np = np.where(np.abs(v850_np) > 0.1, v850_np, np.nan)
 u850, a3_uv850_lon = add_cyclic_point(u850, coord=lon_uvz)
 v850, a3_uv850_lon = add_cyclic_point(v850, coord=lon_uvz)
 u850_np, a3_uv850_lon = add_cyclic_point(u850_np, coord=lon_uvz)
@@ -352,9 +364,9 @@ ax3.set_title('(c)Reg. 850ZUV&PRE onto AST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a3 = ax3.contourf(a3_pre_lon, lat_pre, pre, cmap=cmaps.MPL_RdYlGn[32:56]+cmaps.CBR_wet[0]+cmaps.MPL_RdYlGn[72:96], levels=level_pre, extend='both', transform=ccrs.PlateCarree())
 
-a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, u850, v850, scale=30, color='black', headlength=3, regrid_shape=30,
+a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, u850, v850, scale=size_uv, color='black', headlength=3, regrid_shape=reshape_uv,
                    headaxislength=3, transform=ccrs.PlateCarree())
-a3_uv_np = ax3.quiver(a3_uv850_lon, lat_uvz, u850_np, v850_np, scale=30, color='gray', headlength=3, regrid_shape=20,
+a3_uv_np = ax3.quiver(a3_uv850_lon, lat_uvz, u850_np, v850_np, scale=size_uv, color='gray', headlength=3, regrid_shape=reshape_uv,
                      headaxislength=3, transform=ccrs.PlateCarree())
 ax3.quiverkey(a3_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font, linewidth=0.8)#linewidth=1为箭头的大小
@@ -448,17 +460,17 @@ labels = ax1.get_xticklabels() + ax1.get_yticklabels()
 position1 = fig.add_axes([0.296, 0.64, 0.44, 0.011])
 cb1 = plt.colorbar(a1, cax=position1, orientation='horizontal')  # orientation为水平或垂直
 cb1.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb1.locator = ticker.FixedLocator([-24, -20, -16, -12, -8, -4, 4, 8, 12, 16, 20, 24]) # colorbar上的刻度值个数
+cb1.locator = ticker.FixedLocator(level1_z) # colorbar上的刻度值个数
 49
 position2 = fig.add_axes([0.296, 0.37, 0.44, 0.011])
 cb2 = plt.colorbar(a2, cax=position2, orientation='horizontal')
 cb2.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb2.locator = ticker.FixedLocator([-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]) # colorbar上的刻度值个数
+cb2.locator = ticker.FixedLocator(level_z) # colorbar上的刻度值个数
 
 position3 = fig.add_axes([0.296, 0.10, 0.44, 0.011])
 cb3 = plt.colorbar(a3, cax=position3, orientation='horizontal')
 cb3.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb3.locator = ticker.FixedLocator([-.6, -.4, -.2, -.1, .1, .2, .4, .6]) # colorbar上的刻度值个数
+cb3.locator = ticker.FixedLocator(level_pre) # colorbar上的刻度值个数
 
 plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\LBM平替.png', dpi=1000, bbox_inches='tight')
 plt.show()

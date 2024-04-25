@@ -253,6 +253,8 @@ split_shp.crs = 'wgs84'
 # ##ax1 Corr. PC1 & JA SST,2mT
 level1 = [-1, -.7, -.4, -.1, -.05, .05, .1, .4, .7, 1]
 level1_z = [-24, -20, -16, -12, -8, -4, 4, 8, 12, 16, 20, 24]
+size_uv = 30
+reshape_uv = 32
 ax1 = fig.add_subplot(311, projection=ccrs.PlateCarree(central_longitude=180))
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 # 风场显著性筛选
@@ -260,6 +262,10 @@ u200 = np.where(p_uv200 == 1, reg_lbm_t2m_u200['__xarray_dataarray_variable__'].
 v200 = np.where(p_uv200 == 1, reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
 u200_np = np.where(p_uv200 == 0, reg_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
 v200_np = np.where(p_uv200 == 0, reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
+u200 = np.where(np.abs(u200) > 0.1, u200, np.nan)
+v200 = np.where(np.abs(v200) > 0.1, v200, np.nan)
+u200_np = np.where(np.abs(u200_np) > 0.1, u200_np, np.nan)
+v200_np = np.where(np.abs(v200_np) > 0.1, v200_np, np.nan)
 # 去除180白线
 u200, a1_uv200_lon = add_cyclic_point(u200, coord=lon_uvz)
 v200, a1_uv200_lon = add_cyclic_point(v200, coord=lon_uvz)
@@ -269,11 +275,11 @@ z200, a1_z_lon = add_cyclic_point(reg_lbm_t2m_z200['__xarray_dataarray_variable_
 print('开始绘制地图1')
 ax1.set_title('(a)Reg. 200ZUV onto IST', fontsize=20, loc='left')
 a1 = ax1.contourf(a1_z_lon, lat_uvz, z200, cmap=cmaps.MPL_BrBG_r[23:105], levels=level1_z, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
-a1_waf = ax1.quiver(a1_uv200_lon, lat_uvz, u200, v200, regrid_shape=32,
-                    scale=80, color='black', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
-a1_uv_p = ax1.quiver(a1_uv200_lon, lat_uvz, u200_np, v200_np, regrid_shape=32,
-                    scale=80, color='gray', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
-ax1.quiverkey(a1_waf,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
+a1_uv = ax1.quiver(a1_uv200_lon, lat_uvz, u200, v200, regrid_shape=reshape_uv,
+                    scale=size_uv, color='black', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
+a1_uv_p = ax1.quiver(a1_uv200_lon, lat_uvz, u200_np, v200_np, regrid_shape=reshape_uv,
+                    scale=size_uv, color='gray', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
+ax1.quiverkey(a1_uv,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
 ax1.text(125, 28, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax1.text(135, 42, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
@@ -294,6 +300,8 @@ ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加�
 
 # ax2 Reg 500ZUV onto AST
 level_z = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]
+size_uv = 30
+reshape_uv = 25
 print('开始绘制地图2')
 ax2 = fig.add_subplot(312, projection=ccrs.PlateCarree(central_longitude=180))
 ax2.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -303,6 +311,10 @@ u500 = np.where(p_uv500 == 1, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].
 v500 = np.where(p_uv500 == 1, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
 u500_np = np.where(p_uv500 == 0, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
 v500_np = np.where(p_uv500 == 0, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
+u500 = np.where(np.abs(u500) > 0.1, u500, np.nan)
+v500 = np.where(np.abs(v500) > 0.1, v500, np.nan)
+u500_np = np.where(np.abs(u500_np) > 0.1, u500_np, np.nan)
+v500_np = np.where(np.abs(v500_np) > 0.1, v500_np, np.nan)
 u500, a2_uv500_lon = add_cyclic_point(u500, coord=lon_uvz)
 v500, a2_uv500_lon = add_cyclic_point(v500, coord=lon_uvz)
 u500_np, a2_uv500_lon = add_cyclic_point(u500_np, coord=lon_uvz)
@@ -311,9 +323,9 @@ ax2.set_title('(b)Reg. 500ZUV onto IST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z, extend='both', transform=ccrs.PlateCarree())
 
-a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, u500, v500, scale=40, color='black', headlength=3, regrid_shape=25,
+a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, u500, v500, scale=size_uv, color='black', headlength=3, regrid_shape=reshape_uv,
                    headaxislength=3, transform=ccrs.PlateCarree())
-a2_uv_p = ax2.quiver(a2_uv500_lon, lat_uvz, u500_np, v500_np, scale=40, color='gray', headlength=3, regrid_shape=25,
+a2_uv_p = ax2.quiver(a2_uv500_lon, lat_uvz, u500_np, v500_np, scale=size_uv, color='gray', headlength=3, regrid_shape=reshape_uv,
                      headaxislength=3, transform=ccrs.PlateCarree())
 ax2.quiverkey(a2_uv,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
@@ -332,6 +344,8 @@ ax2.plot(lon_, lat_, color='blue', linewidth=1, linestyle='--', transform=ccrs.P
 # ax3 Reg 850ZUV onto AST
 level_z = [-7, -5, -3, -1, 0, 1, 3, 5, 7]
 level_pre = [-.6, -.4, -.2, -.1, .1, .2, .4, .6]
+size_uv = 30
+reshape_uv = 20
 print('开始绘制地图3')
 ax3 = fig.add_subplot(313, projection=ccrs.PlateCarree(central_longitude=180))
 ax3.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -342,6 +356,10 @@ u850 = np.where(p_uv850 == 1, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].
 v850 = np.where(p_uv850 == 1, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
 u850_np = np.where(p_uv850 == 0, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
 v850_np = np.where(p_uv850 == 0, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
+u850 = np.where(np.abs(u850) > 0.1, u850, np.nan)
+v850 = np.where(np.abs(v850) > 0.1, v850, np.nan)
+u850_np = np.where(np.abs(u850_np) > 0.1, u850_np, np.nan)
+v850_np = np.where(np.abs(v850_np) > 0.1, v850_np, np.nan)
 u850, a3_uv850_lon = add_cyclic_point(u850, coord=lon_uvz)
 v850, a3_uv850_lon = add_cyclic_point(v850, coord=lon_uvz)
 u850_np, a3_uv850_lon = add_cyclic_point(u850_np, coord=lon_uvz)
@@ -350,9 +368,9 @@ ax3.set_title('(c)Reg. 850ZUV&PRE onto IST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a3 = ax3.contourf(a3_pre_lon, lat_pre, pre, cmap=cmaps.MPL_RdYlGn[32:56]+cmaps.CBR_wet[0]+cmaps.MPL_RdYlGn[72:96], levels=level_pre, extend='both', transform=ccrs.PlateCarree())
 
-a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, u850, v850, scale=32, color='black', headlength=3, regrid_shape=30,
+a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, u850, v850, scale=size_uv, color='black', headlength=3, regrid_shape=reshape_uv,
                    headaxislength=3, transform=ccrs.PlateCarree())
-a3_uv_p = ax3.quiver(a3_uv850_lon, lat_uvz, u850_np, v850_np, scale=32, color='gray', headlength=3, regrid_shape=30,
+a3_uv_p = ax3.quiver(a3_uv850_lon, lat_uvz, u850_np, v850_np, scale=size_uv, color='gray', headlength=3, regrid_shape=reshape_uv,
                         headaxislength=3, transform=ccrs.PlateCarree())
 ax3.quiverkey(a3_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font, linewidth=0.8)#linewidth=1为箭头的大小
