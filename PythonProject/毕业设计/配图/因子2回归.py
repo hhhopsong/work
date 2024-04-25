@@ -102,25 +102,25 @@ try:
     reg_lbm_t2m_pre = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_pre.nc')
 except:
     # 将数据回归到PC上
-    reg_z200 = [[np.polyfit(sst_78[:]*5, z200_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z200', position=0, leave=True)]
+    reg_z200 = [[np.polyfit(sst_78[:], z200_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z200', position=0, leave=True)]
     xr.DataArray(reg_z200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z200.nc')
-    reg_u200 = [[np.polyfit(sst_78[:]*5, u200_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U200', position=0, leave=True)]
+    reg_u200 = [[np.polyfit(sst_78[:], u200_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U200', position=0, leave=True)]
     xr.DataArray(reg_u200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u200.nc')
-    reg_v200 = [[np.polyfit(sst_78[:]*5, v200_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V200', position=0, leave=True)]
+    reg_v200 = [[np.polyfit(sst_78[:], v200_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V200', position=0, leave=True)]
     xr.DataArray(reg_v200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v200.nc')
-    reg_z500 = [[np.polyfit(sst_78[:]*5, z500_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z500', position=0, leave=True)]
+    reg_z500 = [[np.polyfit(sst_78[:], z500_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z500', position=0, leave=True)]
     xr.DataArray(reg_z500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z500.nc')
-    reg_u500 = [[np.polyfit(sst_78[:]*5, u500_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U500', position=0, leave=True)]
+    reg_u500 = [[np.polyfit(sst_78[:], u500_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U500', position=0, leave=True)]
     xr.DataArray(reg_u500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u500.nc')
-    reg_v500 = [[np.polyfit(sst_78[:]*5, v500_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V500', position=0, leave=True)]
+    reg_v500 = [[np.polyfit(sst_78[:], v500_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V500', position=0, leave=True)]
     xr.DataArray(reg_v500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v500.nc')
-    reg_z850 = [[np.polyfit(sst_78[:]*5, z850_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z850', position=0, leave=True)]
+    reg_z850 = [[np.polyfit(sst_78[:], z850_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z850', position=0, leave=True)]
     xr.DataArray(reg_z850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z850.nc')
-    reg_u850 = [[np.polyfit(sst_78[:]*5, u850_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U850', position=0, leave=True)]
+    reg_u850 = [[np.polyfit(sst_78[:], u850_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U850', position=0, leave=True)]
     xr.DataArray(reg_u850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u850.nc')
-    reg_v850 = [[np.polyfit(sst_78[:]*5, v850_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V850', position=0, leave=True)]
+    reg_v850 = [[np.polyfit(sst_78[:], v850_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V850', position=0, leave=True)]
     xr.DataArray(reg_v850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v850.nc')
-    reg_pre = [[np.polyfit(sst_78[:]*5, pre_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_pre))] for ilat in tqdm(range(len(lat_pre)), desc='计算LBM sst pre', position=0, leave=True)]
+    reg_pre = [[np.polyfit(sst_78[:], pre_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_pre))] for ilat in tqdm(range(len(lat_pre)), desc='计算LBM sst pre', position=0, leave=True)]
     xr.DataArray(reg_pre, coords=[lat_pre, lon_pre], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_pre.nc')
     ###数据再读取
     reg_lbm_t2m_z200 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z200.nc')
@@ -140,7 +140,7 @@ from scipy.stats import t
 n = len(sst_78[:])
 # 使用t检验计算回归系数的的显著性
 # 计算t值
-Lxx = np.sum((sst_78[:] * 5 - np.mean(sst_78[:] * 5)) ** 2)
+Lxx = np.sum((sst_78[:] - np.mean(sst_78[:])) ** 2)
 # lbm_t2m_z200
 Sr_lbm_t2m_z200 = reg_lbm_t2m_z200**2 * Lxx
 St_lbm_t2m_z200 = np.sum((z200_78/9.8 - np.mean(z200_78/9.8, axis=0)) ** 2, axis=0)
@@ -256,17 +256,23 @@ level1_z = [-24, -20, -16, -12, -8, -4, 4, 8, 12, 16, 20, 24]
 ax1 = fig.add_subplot(311, projection=ccrs.PlateCarree(central_longitude=180))
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 # 风场显著性筛选
-reg_lbm_t2m_u200 = np.where(p_uv200 == 1, reg_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
-reg_lbm_t2m_v200 = np.where(p_uv200 == 1, reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
+u200 = np.where(p_uv200 == 1, reg_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
+v200 = np.where(p_uv200 == 1, reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
+u200_np = np.where(p_uv200 == 0, reg_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
+v200_np = np.where(p_uv200 == 0, reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
 # 去除180白线
-reg_lbm_t2m_u200, a1_uv200_lon = add_cyclic_point(reg_lbm_t2m_u200, coord=lon_uvz)
-reg_lbm_t2m_v200, a1_uv200_lon = add_cyclic_point(reg_lbm_t2m_v200, coord=lon_uvz)
-reg_lbm_t2m_z200, a1_z_lon = add_cyclic_point(reg_lbm_t2m_z200['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
+u200, a1_uv200_lon = add_cyclic_point(u200, coord=lon_uvz)
+v200, a1_uv200_lon = add_cyclic_point(v200, coord=lon_uvz)
+u200_np, a1_uv200_lon = add_cyclic_point(u200_np, coord=lon_uvz)
+v200_np, a1_uv200_lon = add_cyclic_point(v200_np, coord=lon_uvz)
+z200, a1_z_lon = add_cyclic_point(reg_lbm_t2m_z200['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
 print('开始绘制地图1')
 ax1.set_title('(a)Reg. 200ZUV onto IST', fontsize=20, loc='left')
-a1 = ax1.contourf(a1_z_lon, lat_uvz, reg_lbm_t2m_z200, cmap=cmaps.MPL_BrBG_r[23:105], levels=level1_z, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
-a1_waf = ax1.quiver(a1_uv200_lon, lat_uvz, reg_lbm_t2m_u200, reg_lbm_t2m_v200, regrid_shape=32,
+a1 = ax1.contourf(a1_z_lon, lat_uvz, z200, cmap=cmaps.MPL_BrBG_r[23:105], levels=level1_z, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
+a1_waf = ax1.quiver(a1_uv200_lon, lat_uvz, u200, v200, regrid_shape=32,
                     scale=80, color='black', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
+a1_uv_p = ax1.quiver(a1_uv200_lon, lat_uvz, u200_np, v200_np, regrid_shape=32,
+                    scale=80, color='gray', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
 ax1.quiverkey(a1_waf,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
 ax1.text(125, 28, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
@@ -292,22 +298,28 @@ print('开始绘制地图2')
 ax2 = fig.add_subplot(312, projection=ccrs.PlateCarree(central_longitude=180))
 ax2.set_extent(extent1, crs=ccrs.PlateCarree())
 # 去除180白线
-reg_lbm_t2m_z500, a2_z500_lon = add_cyclic_point(reg_lbm_t2m_z500['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
-reg_lbm_t2m_u500 = np.where(p_uv500 == 1, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy(), np.nan)
-reg_lbm_t2m_v500 = np.where(p_uv500 == 1, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan)
-reg_lbm_t2m_u500, a2_uv500_lon = add_cyclic_point(reg_lbm_t2m_u500, coord=lon_uvz)
-reg_lbm_t2m_v500, a2_uv500_lon = add_cyclic_point(reg_lbm_t2m_v500, coord=lon_uvz)
+z500, a2_z500_lon = add_cyclic_point(reg_lbm_t2m_z500['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
+u500 = np.where(p_uv500 == 1, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
+v500 = np.where(p_uv500 == 1, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
+u500_np = np.where(p_uv500 == 0, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
+v500_np = np.where(p_uv500 == 0, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
+u500, a2_uv500_lon = add_cyclic_point(u500, coord=lon_uvz)
+v500, a2_uv500_lon = add_cyclic_point(v500, coord=lon_uvz)
+u500_np, a2_uv500_lon = add_cyclic_point(u500_np, coord=lon_uvz)
+v500_np, a2_uv500_lon = add_cyclic_point(v500_np, coord=lon_uvz)
 ax2.set_title('(b)Reg. 500ZUV onto IST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
-a2 = ax2.contourf(a2_z500_lon, lat_uvz, reg_lbm_t2m_z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z, extend='both', transform=ccrs.PlateCarree())
+a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z, extend='both', transform=ccrs.PlateCarree())
 
-a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, reg_lbm_t2m_u500, reg_lbm_t2m_v500, scale=40, color='black', headlength=3, regrid_shape=25,
+a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, u500, v500, scale=40, color='black', headlength=3, regrid_shape=25,
                    headaxislength=3, transform=ccrs.PlateCarree())
+a2_uv_p = ax2.quiver(a2_uv500_lon, lat_uvz, u500_np, v500_np, scale=40, color='gray', headlength=3, regrid_shape=25,
+                     headaxislength=3, transform=ccrs.PlateCarree())
 ax2.quiverkey(a2_uv,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
 
 # 显著性打点
-p_z500, a2_p_z500 = add_cyclic_point(p_lbm_t2m_z500, coord=lon_uvz)
+p_z500, a2_p_z500 = add_cyclic_point(reg_lbm_t2m_z500['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
 p_z500 = np.where(p_z500 == 1, 0, np.nan)
 a2_p = ax2.quiver(a2_p_z500, lat_uvz, p_z500, p_z500, scale=30, color='black', headlength=3,
                    regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
@@ -324,25 +336,31 @@ print('开始绘制地图3')
 ax3 = fig.add_subplot(313, projection=ccrs.PlateCarree(central_longitude=180))
 ax3.set_extent(extent1, crs=ccrs.PlateCarree())
 # 去除180白线
-reg_lbm_t2m_pre, a3_pre_lon = add_cyclic_point(reg_lbm_t2m_pre['__xarray_dataarray_variable__'].to_numpy(), coord=lon_pre)
-reg_lbm_t2m_z850, a3_z850_lon = add_cyclic_point(reg_lbm_t2m_z850['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
-reg_lbm_t2m_u850 = np.where(p_uv500 == 1, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy(), np.nan)
-reg_lbm_t2m_v850 = np.where(p_uv500 == 1, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan)
-reg_lbm_t2m_u850, a3_uv850_lon = add_cyclic_point(reg_lbm_t2m_u850, coord=lon_uvz)
-reg_lbm_t2m_v850, a3_uv850_lon = add_cyclic_point(reg_lbm_t2m_v850, coord=lon_uvz)
+pre, a3_pre_lon = add_cyclic_point(reg_lbm_t2m_pre['__xarray_dataarray_variable__'].to_numpy(), coord=lon_pre)
+z850, a3_z850_lon = add_cyclic_point(reg_lbm_t2m_z850['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
+u850 = np.where(p_uv850 == 1, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
+v850 = np.where(p_uv850 == 1, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
+u850_np = np.where(p_uv850 == 0, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
+v850_np = np.where(p_uv850 == 0, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
+u850, a3_uv850_lon = add_cyclic_point(u850, coord=lon_uvz)
+v850, a3_uv850_lon = add_cyclic_point(v850, coord=lon_uvz)
+u850_np, a3_uv850_lon = add_cyclic_point(u850_np, coord=lon_uvz)
+v850_np, a3_uv850_lon = add_cyclic_point(v850_np, coord=lon_uvz)
 ax3.set_title('(c)Reg. 850ZUV&PRE onto IST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
-a3 = ax3.contourf(a3_pre_lon, lat_pre, reg_lbm_t2m_pre, cmap=cmaps.MPL_RdYlGn[32:56]+cmaps.CBR_wet[0]+cmaps.MPL_RdYlGn[72:96], levels=level_pre, extend='both', transform=ccrs.PlateCarree())
+a3 = ax3.contourf(a3_pre_lon, lat_pre, pre, cmap=cmaps.MPL_RdYlGn[32:56]+cmaps.CBR_wet[0]+cmaps.MPL_RdYlGn[72:96], levels=level_pre, extend='both', transform=ccrs.PlateCarree())
 
-a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, reg_lbm_t2m_u850, reg_lbm_t2m_v850, scale=32, color='black', headlength=3, regrid_shape=30,
+a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, u850, v850, scale=32, color='black', headlength=3, regrid_shape=30,
                    headaxislength=3, transform=ccrs.PlateCarree())
+a3_uv_p = ax3.quiver(a3_uv850_lon, lat_uvz, u850_np, v850_np, scale=32, color='gray', headlength=3, regrid_shape=30,
+                        headaxislength=3, transform=ccrs.PlateCarree())
 ax3.quiverkey(a3_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font, linewidth=0.8)#linewidth=1为箭头的大小
 # 高度场
-reg_lbm_t2m_z850 = filters.gaussian_filter(reg_lbm_t2m_z850, 4)
-a3_low = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
-a3_0 = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap='gray', levels=level_z[6], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
-a3_high = ax3.contour(a3_z850_lon, lat_uvz, reg_lbm_t2m_z850, cmap=cmaps.BlueDarkRed18[17], levels=level_z[6:], linewidths=1, linestyles='-', alpha=1, transform=ccrs.PlateCarree())
+z850 = filters.gaussian_filter(z850, 4)
+a3_low = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_0 = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap='gray', levels=level_z[6], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_high = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap=cmaps.BlueDarkRed18[17], levels=level_z[6:], linewidths=1, linestyles='-', alpha=1, transform=ccrs.PlateCarree())
 
 plt.clabel(a3_low, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
 plt.clabel(a3_0, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
