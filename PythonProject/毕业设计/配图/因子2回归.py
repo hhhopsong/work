@@ -193,7 +193,8 @@ St_lbm_t2m_pre = np.sum((pre_78 - np.mean(pre_78, axis=0)) ** 2, axis=0)
 t_lbm_t2m_pre = reg_lbm_t2m_pre * np.sqrt(Lxx) / σ_lbm_t2m_pre
 # 计算临界值
 t_critical = t.ppf(0.95, n - 2)
-t_critical_95 = t.ppf(0.95, n - 2)
+t_critical_95 = t.ppf(0.9995, n - 2)
+t_critical_wind = t.ppf(0.95, n - 2)
 # 进行显著性检验
 p_lbm_t2m_z200 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_z200.fill(np.nan)
@@ -201,10 +202,10 @@ p_lbm_t2m_z200[np.abs(t_lbm_t2m_z200['__xarray_dataarray_variable__'].to_numpy()
 
 p_lbm_t2m_u200 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_u200.fill(0)
-p_lbm_t2m_u200[np.abs(t_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+p_lbm_t2m_u200[np.abs(t_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy()) > t_critical_wind] = 1
 p_lbm_t2m_v200 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_v200.fill(0)
-p_lbm_t2m_v200[np.abs(t_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+p_lbm_t2m_v200[np.abs(t_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy()) > t_critical_wind] = 1
 p_uv200 = np.where((p_lbm_t2m_u200 + p_lbm_t2m_v200) < 1, 0, 1)
 
 p_lbm_t2m_z500 = np.zeros((len(lat_uvz), len(lon_uvz)))
@@ -213,10 +214,10 @@ p_lbm_t2m_z500[np.abs(t_lbm_t2m_z500['__xarray_dataarray_variable__'].to_numpy()
 
 p_lbm_t2m_u500 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_u500.fill(0)
-p_lbm_t2m_u500[np.abs(t_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+p_lbm_t2m_u500[np.abs(t_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy()) > t_critical_wind] = 1
 p_lbm_t2m_v500 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_v500.fill(0)
-p_lbm_t2m_v500[np.abs(t_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+p_lbm_t2m_v500[np.abs(t_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy()) > t_critical_wind] = 1
 p_uv500 = np.where((p_lbm_t2m_u500 + p_lbm_t2m_v500) < 1, 0, 1)
 
 p_lbm_t2m_z850 = np.zeros((len(lat_uvz), len(lon_uvz)))
@@ -225,10 +226,10 @@ p_lbm_t2m_z850[np.abs(t_lbm_t2m_z850['__xarray_dataarray_variable__'].to_numpy()
 
 p_lbm_t2m_u850 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_u850.fill(0)
-p_lbm_t2m_u850[np.abs(t_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+p_lbm_t2m_u850[np.abs(t_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy()) > t_critical_wind] = 1
 p_lbm_t2m_v850 = np.zeros((len(lat_uvz), len(lon_uvz)))
 p_lbm_t2m_v850.fill(0)
-p_lbm_t2m_v850[np.abs(t_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy()) > t_critical] = 1
+p_lbm_t2m_v850[np.abs(t_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy()) > t_critical_wind] = 1
 p_uv850 = np.where((p_lbm_t2m_u850 + p_lbm_t2m_v850) < 1, 0, 1)
 
 p_lbm_t2m_pre = np.zeros((len(lat_pre), len(lon_pre)))
@@ -245,16 +246,18 @@ extent1 = [-180, 180, -30, 80]  # 经度范围，纬度范围
 xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
 yticks1 = np.arange(extent1[2], extent1[3] + 1, 10)
 fig = plt.figure(figsize=(9, 13))
-
+tick_size = 12
 #
 shp = fr"D:/CODES/Python/PythonProject/map/shp/south_china/中国南方.shp"
 split_shp = gpd.read_file(shp)
 split_shp.crs = 'wgs84'
 # ##ax1 Corr. PC1 & JA SST,2mT
 level1 = [-1, -.7, -.4, -.1, -.05, .05, .1, .4, .7, 1]
-level1_z = [-24, -20, -16, -12, -8, -4, 4, 8, 12, 16, 20, 24]
-size_uv = 30
-reshape_uv = 32
+level1_z = [-120, -100, -80, -60, -40, -20, 20, 40, 60, 80, 100, 120]
+size_uv = 300
+reshape_uv = 25
+reshape_p = 40 #显著性打点密度
+uv_min = 0.35
 ax1 = fig.add_subplot(311, projection=ccrs.PlateCarree(central_longitude=180))
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 # 风场显著性筛选
@@ -262,10 +265,10 @@ u200 = np.where(p_uv200 == 1, reg_lbm_t2m_u200['__xarray_dataarray_variable__'].
 v200 = np.where(p_uv200 == 1, reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
 u200_np = np.where(p_uv200 == 0, reg_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
 v200_np = np.where(p_uv200 == 0, reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy(), np.nan)
-u200 = np.where(np.abs(u200) > 0.1, u200, np.nan)
-v200 = np.where(np.abs(v200) > 0.1, v200, np.nan)
-u200_np = np.where(np.abs(u200_np) > 0.1, u200_np, np.nan)
-v200_np = np.where(np.abs(v200_np) > 0.1, v200_np, np.nan)
+u200 = np.where(np.abs(u200) > uv_min, u200, np.nan)
+v200 = np.where(np.abs(v200) > uv_min, v200, np.nan)
+u200_np = np.where(np.abs(u200_np) > uv_min, u200_np, np.nan)
+v200_np = np.where(np.abs(v200_np) > uv_min, v200_np, np.nan)
 # 去除180白线
 u200, a1_uv200_lon = add_cyclic_point(u200, coord=lon_uvz)
 v200, a1_uv200_lon = add_cyclic_point(v200, coord=lon_uvz)
@@ -279,16 +282,16 @@ a1_uv = ax1.quiver(a1_uv200_lon, lat_uvz, u200, v200, regrid_shape=reshape_uv,
                     scale=size_uv, color='black', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
 a1_uv_p = ax1.quiver(a1_uv200_lon, lat_uvz, u200_np, v200_np, regrid_shape=reshape_uv,
                     scale=size_uv, color='gray', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
-ax1.quiverkey(a1_uv,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
+ax1.quiverkey(a1_uv,  X=0.946, Y=1.03, U=5, angle=0,  label='5 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
 ax1.text(125, 28, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax1.text(135, 42, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+#ax1.text(135, 42, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 
 # 显著性打点
-p_lbm_t2m_z200, a1_lon_p = add_cyclic_point(p_lbm_t2m_z200, coord=lon_uvz)
-p_lbm_t2m_z200 = np.where(p_lbm_t2m_z200 == 1, 0, np.nan)
-p_uv = ax1.quiver(a1_lon_p, lat_uvz, p_lbm_t2m_z200, p_lbm_t2m_z200, scale=20, color='black', headlength=3,
-                   regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(central_longitude=0), width=0.002)
+p_z200, a1_lon_p = add_cyclic_point(p_lbm_t2m_z200, coord=lon_uvz)
+p_z200 = np.where(p_z200 == 1, 0, np.nan)
+p_uv = ax1.quiver(a1_lon_p, lat_uvz, p_z200, p_z200, scale=20, color='black', headlength=3,
+                   regrid_shape=reshape_p, headaxislength=3, transform=ccrs.PlateCarree(central_longitude=0), width=0.002)
 
 
 smoonth = 100
@@ -299,9 +302,10 @@ ax1.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none
 ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 
 # ax2 Reg 500ZUV onto AST
-level_z = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]
-size_uv = 30
+level_z500 = [-60, -45, -30, -15, -10, -5, 0, 5, 10, 15, 30, 45, 60]
+size_uv = 150
 reshape_uv = 25
+uv_min = 0.25
 print('开始绘制地图2')
 ax2 = fig.add_subplot(312, projection=ccrs.PlateCarree(central_longitude=180))
 ax2.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -311,41 +315,42 @@ u500 = np.where(p_uv500 == 1, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].
 v500 = np.where(p_uv500 == 1, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
 u500_np = np.where(p_uv500 == 0, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
 v500_np = np.where(p_uv500 == 0, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
-u500 = np.where(np.abs(u500) > 0.1, u500, np.nan)
-v500 = np.where(np.abs(v500) > 0.1, v500, np.nan)
-u500_np = np.where(np.abs(u500_np) > 0.1, u500_np, np.nan)
-v500_np = np.where(np.abs(v500_np) > 0.1, v500_np, np.nan)
+u500 = np.where(np.abs(u500) > uv_min, u500, np.nan)
+v500 = np.where(np.abs(v500) > uv_min, v500, np.nan)
+u500_np = np.where(np.abs(u500_np) > uv_min, u500_np, np.nan)
+v500_np = np.where(np.abs(v500_np) > uv_min, v500_np, np.nan)
 u500, a2_uv500_lon = add_cyclic_point(u500, coord=lon_uvz)
 v500, a2_uv500_lon = add_cyclic_point(v500, coord=lon_uvz)
 u500_np, a2_uv500_lon = add_cyclic_point(u500_np, coord=lon_uvz)
 v500_np, a2_uv500_lon = add_cyclic_point(v500_np, coord=lon_uvz)
 ax2.set_title('(b)Reg. 500ZUV onto IST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
-a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z, extend='both', transform=ccrs.PlateCarree())
+a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z500, extend='both', transform=ccrs.PlateCarree())
 
 a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, u500, v500, scale=size_uv, color='black', headlength=3, regrid_shape=reshape_uv,
                    headaxislength=3, transform=ccrs.PlateCarree())
 a2_uv_p = ax2.quiver(a2_uv500_lon, lat_uvz, u500_np, v500_np, scale=size_uv, color='gray', headlength=3, regrid_shape=reshape_uv,
                      headaxislength=3, transform=ccrs.PlateCarree())
-ax2.quiverkey(a2_uv,  X=0.946, Y=1.03, U=2, angle=0,  label='2 m/s',
+ax2.quiverkey(a2_uv,  X=0.946, Y=1.03, U=5, angle=0,  label='5 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
 
 # 显著性打点
-p_z500, a2_p_z500 = add_cyclic_point(reg_lbm_t2m_z500['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)
+p_z500, a2_p_z500 = add_cyclic_point(p_lbm_t2m_z500, coord=lon_uvz)
 p_z500 = np.where(p_z500 == 1, 0, np.nan)
 a2_p = ax2.quiver(a2_p_z500, lat_uvz, p_z500, p_z500, scale=30, color='black', headlength=3,
-                   regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
+                   regrid_shape=reshape_p, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
 ax2.text(124, 22, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax2.text(140, 40, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+#ax2.text(140, 40, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 ax2.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black', linewidth=1)
 ax2.plot(lon_, lat_, color='blue', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
 
 # ax3 Reg 850ZUV onto AST
-level_z = [-7, -5, -3, -1, 0, 1, 3, 5, 7]
-level_pre = [-.6, -.4, -.2, -.1, .1, .2, .4, .6]
-size_uv = 30
+level_z = [-20, -10, 0, 10, 20]
+level_pre = [-4, -3,  -2, -1, -0.5, 0.5, 1, 2, 3, 4]
+size_uv = 100
 reshape_uv = 20
+uv_min = 0.2
 print('开始绘制地图3')
 ax3 = fig.add_subplot(313, projection=ccrs.PlateCarree(central_longitude=180))
 ax3.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -356,10 +361,10 @@ u850 = np.where(p_uv850 == 1, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].
 v850 = np.where(p_uv850 == 1, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
 u850_np = np.where(p_uv850 == 0, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
 v850_np = np.where(p_uv850 == 0, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 不显著风场
-u850 = np.where(np.abs(u850) > 0.1, u850, np.nan)
-v850 = np.where(np.abs(v850) > 0.1, v850, np.nan)
-u850_np = np.where(np.abs(u850_np) > 0.1, u850_np, np.nan)
-v850_np = np.where(np.abs(v850_np) > 0.1, v850_np, np.nan)
+u850 = np.where(np.abs(u850) > uv_min, u850, np.nan)
+v850 = np.where(np.abs(v850) > uv_min, v850, np.nan)
+u850_np = np.where(np.abs(u850_np) > uv_min, u850_np, np.nan)
+v850_np = np.where(np.abs(v850_np) > uv_min, v850_np, np.nan)
 u850, a3_uv850_lon = add_cyclic_point(u850, coord=lon_uvz)
 v850, a3_uv850_lon = add_cyclic_point(v850, coord=lon_uvz)
 u850_np, a3_uv850_lon = add_cyclic_point(u850_np, coord=lon_uvz)
@@ -372,13 +377,13 @@ a3_uv = ax3.quiver(a3_uv850_lon, lat_uvz, u850, v850, scale=size_uv, color='blac
                    headaxislength=3, transform=ccrs.PlateCarree())
 a3_uv_p = ax3.quiver(a3_uv850_lon, lat_uvz, u850_np, v850_np, scale=size_uv, color='gray', headlength=3, regrid_shape=reshape_uv,
                         headaxislength=3, transform=ccrs.PlateCarree())
-ax3.quiverkey(a3_uv,  X=0.946, Y=1.03, U=1, angle=0,  label='1 m/s',
+ax3.quiverkey(a3_uv,  X=0.946, Y=1.03, U=5, angle=0,  label='5 m/s',
               labelpos='N', color='black', labelcolor='k', fontproperties=font, linewidth=0.8)#linewidth=1为箭头的大小
 # 高度场
 z850 = filters.gaussian_filter(z850, 4)
-a3_low = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
-a3_0 = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap='gray', levels=level_z[6], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
-a3_high = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap=cmaps.BlueDarkRed18[17], levels=level_z[6:], linewidths=1, linestyles='-', alpha=1, transform=ccrs.PlateCarree())
+a3_low = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:2], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_0 = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap='gray', levels=level_z[2], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
+a3_high = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap=cmaps.BlueDarkRed18[17], levels=level_z[3:], linewidths=1, linestyles='-', alpha=1, transform=ccrs.PlateCarree())
 
 plt.clabel(a3_low, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
 plt.clabel(a3_0, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
@@ -389,9 +394,9 @@ plt.clabel(a3_high, inline=True, fontsize=10, fmt='%d', inline_spacing=5)
 p_pre, a3_p_pre = add_cyclic_point(p_lbm_t2m_pre, coord=lon_pre)
 p_pre = np.where(p_pre == 1, 0, np.nan)
 a3_p = ax3.quiver(a3_p_pre, lat_pre, p_pre, p_pre, scale=30, color='black', headlength=3,
-                   regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
+                   regrid_shape=reshape_p, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
 ax3.text(125, 23, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax3.text(140, 38, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+#ax3.text(140, 38, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax3.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 ax3.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black', linewidth=1)
 DBATP = r"D:\CODES\Python\PythonProject\map\DBATP\TP_2500m\TPBoundary_2500m.shp"
@@ -462,18 +467,19 @@ labels = ax1.get_xticklabels() + ax1.get_yticklabels()
 # position = fig.add_axes([0.296, 0.08, 0.44, 0.011])#位置[左,下,右,上]
 position1 = fig.add_axes([0.296, 0.64, 0.44, 0.011])
 cb1 = plt.colorbar(a1, cax=position1, orientation='horizontal')  # orientation为水平或垂直
-cb1.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb1.locator = ticker.FixedLocator([-24, -20, -16, -12, -8, -4, 4, 8, 12, 16, 20, 24]) # colorbar上的刻度值个数
+cb1.ax.tick_params(length=1, labelsize=tick_size)  # length为刻度线的长度
+cb1.locator = ticker.FixedLocator(level1_z) # colorbar上的刻度值个数
 
 position2 = fig.add_axes([0.296, 0.37, 0.44, 0.011])
 cb2 = plt.colorbar(a2, cax=position2, orientation='horizontal')
-cb2.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb2.locator = ticker.FixedLocator([-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]) # colorbar上的刻度值个数
+cb2.ax.tick_params(length=1, labelsize=tick_size)  # length为刻度线的长度
+cb2.locator = ticker.FixedLocator(level_z500) # colorbar上的刻度值个数
 
 position3 = fig.add_axes([0.296, 0.10, 0.44, 0.011])
 cb3 = plt.colorbar(a3, cax=position3, orientation='horizontal')
-cb3.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb3.locator = ticker.FixedLocator([-.6, -.4, -.2, -.1, .1, .2, .4, .6]) # colorbar上的刻度值个数
+cb3.ax.tick_params(length=1, labelsize=tick_size)  # length为刻度线的长度
+cb3.locator = ticker.FixedLocator(level_pre) # colorbar上的刻度值个数
 
-plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\LBM平替2.png', dpi=1000, bbox_inches='tight')
+plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\LBM平替2_Z999_PRE90_UV90.png', dpi=1000, bbox_inches='tight')
 plt.show()
+pass
