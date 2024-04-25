@@ -251,7 +251,7 @@ split_shp = gpd.read_file(shp)
 split_shp.crs = 'wgs84'
 # ##ax1 Corr. PC1 & JA SST,2mT
 level1 = [-1, -.7, -.4, -.1, -.05, .05, .1, .4, .7, 1]
-level1_z = [-16, -12, -10, -8, 6, -4, -2, 2, 4, 6, 8, 10, 12, 16]
+level1_z = [-16, -12, -10, -8, -6, -4, -2, 2, 4, 6, 8, 10, 12, 16]
 ax1 = fig.add_subplot(311, projection=ccrs.PlateCarree(central_longitude=180))
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 # WAF
@@ -273,9 +273,9 @@ a1_waf = ax1.quiver(a1_waf_lon[:], lat_uvz[:360], reg_waf_x[:360, :], reg_waf_y[
                     scale=13, color='black', headlength=2, headaxislength=2, transform = ccrs.PlateCarree(central_longitude=0))
 ax1.quiverkey(a1_waf,  X=0.946, Y=1.03, U=.5, angle=0,  label='0.5 m$^2$/s$^2$',
               labelpos='N', color='black', labelcolor='k', fontproperties=font,linewidth=0.8)#linewidth=1为箭头的大小
-ax1.text(34, 52, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax1.text(66, 40, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax1.text(96, 36, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax1.text(50, 58, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax1.text(62, 39, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax1.text(112, 35, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 
 # 显著性打点
 p_lbm_t2m_z200, a1_lon_p = add_cyclic_point(p_lbm_t2m_z200, coord=lon_uvz)
@@ -293,9 +293,10 @@ ax1.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none
 ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 
 # ax2 Reg 500ZUV onto AST
-level_z = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]
+level_z500 = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]
 size_uv = 40
 reshape_uv = 20
+uv_min = 0.05
 print('开始绘制地图2')
 ax2 = fig.add_subplot(312, projection=ccrs.PlateCarree(central_longitude=180))
 ax2.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -305,17 +306,17 @@ u500 = np.where(p_uv500 == 1, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].
 v500 = np.where(p_uv500 == 1, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 显著风场
 u500_np = np.where(p_uv500 == 0, reg_lbm_t2m_u500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 非显著风场
 v500_np = np.where(p_uv500 == 0, reg_lbm_t2m_v500['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 非显著风场
-u500 = np.where(np.abs(u500) > 0.1, u500, np.nan)
-v500 = np.where(np.abs(v500) > 0.1, v500, np.nan)
-u500_np = np.where(np.abs(u500_np) > 0.1, u500_np, np.nan)
-v500_np = np.where(np.abs(v500_np) > 0.1, v500_np, np.nan)
+u500 = np.where(np.abs(u500) > uv_min, u500, np.nan)
+v500 = np.where(np.abs(v500) > uv_min, v500, np.nan)
+u500_np = np.where(np.abs(u500_np) > uv_min, u500_np, np.nan)
+v500_np = np.where(np.abs(v500_np) > uv_min, v500_np, np.nan)
 u500, a2_uv500_lon = add_cyclic_point(u500, coord=lon_uvz)
 v500, a2_uv500_lon = add_cyclic_point(v500, coord=lon_uvz)
 u500_np, a2_uv500_lon = add_cyclic_point(u500_np, coord=lon_uvz)
 v500_np, a2_uv500_lon = add_cyclic_point(v500_np, coord=lon_uvz)
 ax2.set_title('(b)Reg. 500ZUV onto AST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
-a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z, extend='both', transform=ccrs.PlateCarree())
+a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.MPL_BrBG_r[23:105], levels=level_z500, extend='both', transform=ccrs.PlateCarree())
 
 a2_uv = ax2.quiver(a2_uv500_lon, lat_uvz, u500, v500, scale=size_uv, color='black', headlength=3, regrid_shape=reshape_uv,
                    headaxislength=3, transform=ccrs.PlateCarree())
@@ -329,10 +330,10 @@ p_z500, a2_p_z500 = add_cyclic_point(p_lbm_t2m_z500, coord=lon_uvz)
 p_z500 = np.where(p_z500 == 1, 0, np.nan)
 a2_p = ax2.quiver(a2_p_z500, lat_uvz, p_z500, p_z500, scale=30, color='black', headlength=3,
                    regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
-ax2.text(50, 56, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax2.text(55, 57, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax2.text(60, 37, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax2.text(110, 18, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax2.text(140, 30, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax2.text(120, 31, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax2.text(140, 22, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 ax2.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black', linewidth=1)
 ax2.plot(lon_, lat_, color='blue', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
@@ -342,6 +343,7 @@ level_z = [-7, -5, -3, -1, 0, 1, 3, 5, 7]
 level_pre = [-.6, -.4, -.2, -.1, .1, .2, .4, .6]
 size_uv = 30
 reshape_uv = 20
+uv_min = 0.05
 print('开始绘制地图3')
 ax3 = fig.add_subplot(313, projection=ccrs.PlateCarree(central_longitude=180))
 ax3.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -352,10 +354,10 @@ u850 = np.where(p_uv850 == 1, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].
 v850 = np.where(p_uv850 == 1, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan)
 u850_np = np.where(p_uv850 == 0, reg_lbm_t2m_u850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 非显著风场
 v850_np = np.where(p_uv850 == 0, reg_lbm_t2m_v850['__xarray_dataarray_variable__'].to_numpy(), np.nan) # 非显著风场
-u850 = np.where(np.abs(u850) > 0.1, u850, np.nan)
-v850 = np.where(np.abs(v850) > 0.1, v850, np.nan)
-u850_np = np.where(np.abs(u850_np) > 0.1, u850_np, np.nan)
-v850_np = np.where(np.abs(v850_np) > 0.1, v850_np, np.nan)
+u850 = np.where(np.abs(u850) > uv_min, u850, np.nan)
+v850 = np.where(np.abs(v850) > uv_min, v850, np.nan)
+u850_np = np.where(np.abs(u850_np) > uv_min, u850_np, np.nan)
+v850_np = np.where(np.abs(v850_np) > uv_min, v850_np, np.nan)
 u850, a3_uv850_lon = add_cyclic_point(u850, coord=lon_uvz)
 v850, a3_uv850_lon = add_cyclic_point(v850, coord=lon_uvz)
 u850_np, a3_uv850_lon = add_cyclic_point(u850_np, coord=lon_uvz)
@@ -385,10 +387,10 @@ p_pre, a3_p_pre = add_cyclic_point(reg_lbm_t2m_pre['__xarray_dataarray_variable_
 p_pre = np.where(p_pre == 1, 0, np.nan)
 a3_p = ax3.quiver(a3_p_pre, lat_pre, p_pre, p_pre, scale=30, color='black', headlength=3,
                    regrid_shape=60, headaxislength=3, transform=ccrs.PlateCarree(), width=0.002)
-ax3.text(50, 55, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax3.text(59, 56, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax3.text(86, 39, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax3.text(115, 21, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
-ax3.text(135, 30, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax3.text(120, 28, 'A', fontsize=16, fontweight='bold', color='blue', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
+ax3.text(138, 25, 'C', fontsize=16, fontweight='bold', color='red', zorder=20, transform=ccrs.PlateCarree(central_longitude=0))
 ax3.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 ax3.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black', linewidth=1)
 DBATP = r"D:\CODES\Python\PythonProject\map\DBATP\TP_2500m\TPBoundary_2500m.shp"
@@ -465,7 +467,7 @@ cb1.locator = ticker.FixedLocator(level1_z) # colorbar上的刻度值个数
 position2 = fig.add_axes([0.296, 0.37, 0.44, 0.011])
 cb2 = plt.colorbar(a2, cax=position2, orientation='horizontal')
 cb2.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
-cb2.locator = ticker.FixedLocator(level_z) # colorbar上的刻度值个数
+cb2.locator = ticker.FixedLocator(level_z500) # colorbar上的刻度值个数
 
 position3 = fig.add_axes([0.296, 0.10, 0.44, 0.011])
 cb3 = plt.colorbar(a3, cax=position3, orientation='horizontal')
