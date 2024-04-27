@@ -84,7 +84,7 @@ St_sat = np.sum((sat_78 - np.mean(sat_78, axis=0)) ** 2, axis=0)
 t_sat = reg_sat * np.sqrt(Lxx) / σ_sat
 
 # 计算临界值
-t_critical = t.ppf(0.975, n - 2)
+t_critical = t.ppf(0.95, n - 2)
 # 进行显著性检验
 p_sat78 = np.zeros((len(lat_sat), len(lon_sat)))
 p_sat78.fill(np.nan)
@@ -106,7 +106,7 @@ extent1 = [0, 360, 50, 90]  # 经度范围，纬度范围
 fig = plt.figure(figsize=(17, 9))
 
 # ##ax1 Corr. PC1 & JA SST,2mT
-level1 = [-1, -.7, -.4, -.1, -.05, .05, .1, .4, .7, 1]
+level1 = [-1, -.7, -.4, -.1, .1, .4, .7, 1]
 ax1 = fig.add_subplot(121, projection=ccrs.NorthPolarStereo(central_longitude=90))
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 # 去除fill_value 1e+20
@@ -144,7 +144,7 @@ ax1.set_boundary(circle, transform=ax1.transAxes)
 
 # ax2 Corr. PC2 & JA PRE,850UV
 proj = ccrs.PlateCarree(central_longitude=180)
-extent2 = [-180, -30, -30, 80]
+extent2 = [-150, -60, -30, 60]
 xticks1 = np.arange(extent2[0], extent2[1] + 1, 10)
 yticks1 = np.arange(extent2[2], extent2[3] + 1, 10)
 level_sst = [-.3, -.25, -.2, -.15, -.1, -.05, .05, .1, .15, .2, .25, .3]
@@ -158,7 +158,7 @@ p_sst, a2_lon_sst = add_cyclic_point(p_sst78, coord=lon_sst)
 p_sst = np.where(p_sst == 1, 0, np.nan)
 
 ax2.set_title('(b)Reg SST', fontsize=20, loc='left')
-a2 = ax2.contourf(a2_sst_lon, lat_sst, reg_sst, cmap=cmaps.GMT_polar[4:10]+cmaps.CBR_wet[0]+cmaps.GMT_polar[10:16], levels=level_sst, extend='both',
+a2 = ax2.contourf(a2_sst_lon, lat_sst, reg_sst, cmap=cmaps.CBR_coldhot, levels=level_sst, extend='both',
                   transform=ccrs.PlateCarree())
 
 a2_p = ax2.quiver(a2_lon_sst, lat_sst, p_sst, p_sst, scale=20, color='black',
@@ -184,7 +184,7 @@ ax2.xaxis.set_major_formatter(lon_formatter)
 ax2.yaxis.set_major_formatter(lat_formatter)
 font = {'family': 'Arial', 'weight': 'bold', 'size': 16}
 
-xmajorLocator = MultipleLocator(60)  # 先定义xmajorLocator，再进行调用
+xmajorLocator = MultipleLocator(30)  # 先定义xmajorLocator，再进行调用
 ax2.xaxis.set_major_locator(xmajorLocator)  # x轴最大刻度
 xminorLocator = MultipleLocator(10)
 ax2.xaxis.set_minor_locator(xminorLocator)  # x轴最小刻度
@@ -208,12 +208,12 @@ font2 = {'family': 'Arial', 'weight': 'bold', 'size': 16}
 
 # color bar位置
 # position = fig.add_axes([0.296, 0.08, 0.44, 0.011])#位置[左,下,右,上]
-position1 = fig.add_axes([0.15, 0.05, 0.3, 0.03])
+position1 = fig.add_axes([0.15, 0.05, 0.3, 0.02])
 cb1 = plt.colorbar(a1, cax=position1, orientation='horizontal')  # orientation为水平或垂直
 cb1.ax.tick_params(length=0, labelsize=14)  # length为刻度线的长度
-cb1.locator = ticker.FixedLocator([-1, -.7, -.4, -.1, 0, .1, .4, .7, 1]) # colorbar上的刻度值个数
+cb1.locator = ticker.FixedLocator([-1, -.7, -.4, -.1, .1, .4, .7, 1]) # colorbar上的刻度值个数
 
-position2 = fig.add_axes([0.576, 0.15, 0.3, 0.03])
+position2 = fig.add_axes([0.576, 0.05, 0.3, 0.02])
 cb2 = plt.colorbar(a2, cax=position2, orientation='horizontal')  # orientation为水平或垂直
 cb2.ax.tick_params(length=0, labelsize=14)  # length为刻度线的长度
 cb2.locator = ticker.FixedLocator([-.3, -.2, -.1, .1, .2, .3]) # colorbar上的刻度值个数
