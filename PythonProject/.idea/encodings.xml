@@ -4,6 +4,7 @@
     <file url="file://$APPLICATION_CONFIG_DIR$/scratches/123.py" charset="UTF-8" />
     <file url="file://$APPLICATION_CONFIG_DIR$/scratches/scratch.py" charset="UTF-8" />
     <file url="file://$APPLICATION_CONFIG_DIR$/scratches/？？？.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/LBM/LBM.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../PyQT6/Application/数据预处理/DataUrl.txt" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../PyQT6/Application/数据预处理/add_data.py" charset="GBK" />
     <file url="file://$PROJECT_DIR$/../PyQT6/Application/数据预处理/task.py" charset="UTF-8" />
@@ -88,6 +89,7 @@
     <file url="file://$PROJECT_DIR$/毕业设计/文献图表复现/缓存文件/q_78.npy" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/配图/LBM.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/配图/LBM强迫场.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/毕业设计/配图/test.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/配图/tos数据预处理.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/配图/两因子相关系数.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/配图/北极海温观测场回归.py" charset="UTF-8" />

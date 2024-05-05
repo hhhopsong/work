@@ -90,49 +90,49 @@ u200_c = u200.mean('time')
 v200_c = v200.mean('time')
 try:
     # 读取相关系数
-    reg_lbm_t2m_z200 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z200.nc')
-    reg_lbm_t2m_u200 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u200.nc')
-    reg_lbm_t2m_v200 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v200.nc')
-    reg_lbm_t2m_z500 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z500.nc')
-    reg_lbm_t2m_u500 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u500.nc')
-    reg_lbm_t2m_v500 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v500.nc')
-    reg_lbm_t2m_z850 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z850.nc')
-    reg_lbm_t2m_u850 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u850.nc')
-    reg_lbm_t2m_v850 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v850.nc')
-    reg_lbm_t2m_pre = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_pre.nc')
+    reg_lbm_t2m_z200 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_z200.nc')
+    reg_lbm_t2m_u200 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_u200.nc')
+    reg_lbm_t2m_v200 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_v200.nc')
+    reg_lbm_t2m_z500 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_z500.nc')
+    reg_lbm_t2m_u500 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_u500.nc')
+    reg_lbm_t2m_v500 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_v500.nc')
+    reg_lbm_t2m_z850 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_z850.nc')
+    reg_lbm_t2m_u850 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_u850.nc')
+    reg_lbm_t2m_v850 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_v850.nc')
+    reg_lbm_t2m_pre = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_pre.nc')
 except:
     # 将数据回归到PC上
     reg_z200 = [[np.polyfit(sst_78[:], z200_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z200', position=0, leave=True)]
-    xr.DataArray(reg_z200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z200.nc')
+    xr.DataArray(reg_z200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_z200.nc')
     reg_u200 = [[np.polyfit(sst_78[:], u200_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U200', position=0, leave=True)]
-    xr.DataArray(reg_u200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u200.nc')
+    xr.DataArray(reg_u200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_u200.nc')
     reg_v200 = [[np.polyfit(sst_78[:], v200_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V200', position=0, leave=True)]
-    xr.DataArray(reg_v200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v200.nc')
+    xr.DataArray(reg_v200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_v200.nc')
     reg_z500 = [[np.polyfit(sst_78[:], z500_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z500', position=0, leave=True)]
-    xr.DataArray(reg_z500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z500.nc')
+    xr.DataArray(reg_z500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_z500.nc')
     reg_u500 = [[np.polyfit(sst_78[:], u500_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U500', position=0, leave=True)]
-    xr.DataArray(reg_u500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u500.nc')
+    xr.DataArray(reg_u500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_u500.nc')
     reg_v500 = [[np.polyfit(sst_78[:], v500_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V500', position=0, leave=True)]
-    xr.DataArray(reg_v500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v500.nc')
+    xr.DataArray(reg_v500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_v500.nc')
     reg_z850 = [[np.polyfit(sst_78[:], z850_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst Z850', position=0, leave=True)]
-    xr.DataArray(reg_z850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z850.nc')
+    xr.DataArray(reg_z850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_z850.nc')
     reg_u850 = [[np.polyfit(sst_78[:], u850_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst U850', position=0, leave=True)]
-    xr.DataArray(reg_u850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u850.nc')
+    xr.DataArray(reg_u850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_u850.nc')
     reg_v850 = [[np.polyfit(sst_78[:], v850_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM sst V850', position=0, leave=True)]
-    xr.DataArray(reg_v850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v850.nc')
+    xr.DataArray(reg_v850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_v850.nc')
     reg_pre = [[np.polyfit(sst_78[:], pre_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_pre))] for ilat in tqdm(range(len(lat_pre)), desc='计算LBM sst pre', position=0, leave=True)]
-    xr.DataArray(reg_pre, coords=[lat_pre, lon_pre], dims=['lat', 'lon']).to_netcdf(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_pre.nc')
+    xr.DataArray(reg_pre, coords=[lat_pre, lon_pre], dims=['lat', 'lon']).to_netcdf(r'D:\cache\Graduation Thesis\reg_lbm_sst_pre.nc')
     ###数据再读取
-    reg_lbm_t2m_z200 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z200.nc')
-    reg_lbm_t2m_u200 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u200.nc')
-    reg_lbm_t2m_v200 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v200.nc')
-    reg_lbm_t2m_z500 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z500.nc')
-    reg_lbm_t2m_u500 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u500.nc')
-    reg_lbm_t2m_v500 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v500.nc')
-    reg_lbm_t2m_z850 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_z850.nc')
-    reg_lbm_t2m_u850 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_u850.nc')
-    reg_lbm_t2m_v850 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_v850.nc')
-    reg_lbm_t2m_pre = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\reg_lbm_sst_pre.nc')
+    reg_lbm_t2m_z200 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_z200.nc')
+    reg_lbm_t2m_u200 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_u200.nc')
+    reg_lbm_t2m_v200 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_v200.nc')
+    reg_lbm_t2m_z500 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_z500.nc')
+    reg_lbm_t2m_u500 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_u500.nc')
+    reg_lbm_t2m_v500 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_v500.nc')
+    reg_lbm_t2m_z850 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_z850.nc')
+    reg_lbm_t2m_u850 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_u850.nc')
+    reg_lbm_t2m_v850 = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_v850.nc')
+    reg_lbm_t2m_pre = xr.open_dataset(r'D:\cache\Graduation Thesis\reg_lbm_sst_pre.nc')
 # 进行显著性0.05检验
 from scipy.stats import t
 
