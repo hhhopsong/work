@@ -25,6 +25,7 @@ level_sig = [0.99500, 0.97999, 0.94995, 0.89988, 0.82977, 0.74468, 0.64954, 0.54
          0.22953, 0.17457, 0.12440, 0.0846830, 0.0598005, 0.0449337, 0.0349146, 0.0248800, 0.00829901]
 level_sigp = [isig * (1000 - 1) + 1 for isig in level_sig]
 level_p = [1000, 950, 900, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10, 7, 5]
+S2D = 86400.
 
 """:param address: str, 强迫场文件地址"""
 
@@ -32,7 +33,7 @@ def read_force_file(address=force_file_address):
     lbm = xg.open_mfdataset(f'{address}/draw.ctl')
     return lbm, level_sigp
 
-""":param element: str, 强迫要素(涡度:ovor, 散度:odiv, 温度：otmp, 海平面气压/地形试验:ops=f, 湿度:osph=f)"""
+
 def vertical_structure(element='t', show=False):
     """
     Show the vertical structure of the element.
@@ -76,7 +77,7 @@ def interp_to_lbm(data=None):
         data_interp = np.where(np.isnan(data_interp), 0, data_interp)
         return data_interp
 
-def vertical_profile(data=None, K=20, kvpr=2, vamp=8., vdil=20., vcnt=0.45, show=True):
+def vertical_profile(data=None, K=20, kvpr=2, vamp=8., vdil=20., vcnt=0.45, show=False):
     """
     生成强迫场的理想化垂直结构.
     :param data: xr.DataArray, 自定义垂直结构数据
@@ -189,9 +190,40 @@ def horizontal_profile(data=None, khpr=1, hamp=0.25, xdil=23., ydil=6.5, xcnt=77
     return hor_structure
 
 
-def mk_frc(K=20, hor_structure=None, )
+def mk_frc(K=20, data=None, hor_structure=None, ver_structure=None, ovor=False, odiv=False, otmp=False, ops=False, osh=False):
+    """
+    生成强迫场
+    :param K:   int, 垂直层数
+    :param data:    xr.DataArray, 自定义强迫场数据
+    :param hor_structure:   np.array, 水平结构
+    :param ver_structure:   np.array, 垂直结构
+    :param ovor:    bool, 涡度强迫
+    :param odiv:    bool, 散度强迫
+    :param otmp:    bool, 温度强迫
+    :param ops:    bool, 海平面气压强迫(地形试验)
+    :param osh:   bool, 水汽强迫
+    :return: np.array, 强迫场
+    """
+    Kv = K
+    if ops:
+        Kv = 1
+    GFrct = np.zeros((Kv, len(lbm_lat), len(lbm_lon)))
+    if data is not None:
+        if ops and len(data['lev']) > 1:
+            raise ValueError('date为多层数据时不能进行地形试验')
+        for i in range(Kv):
+            GFrct[i, :, :] = data.loc[i, :, :].to_numpy() / S2D
+        return GFrct
+    if hor_structure is None or ver_structure is None:
+        raise ValueError('hor_structure和ver_structure不能为空')
+    for k in range(Kv):
+        for i in range(len(lbm_lat)):
+            for j in range(len(lbm_lon)):
+                GFrct[k, i, j] = hor_structure[i, j] * ver_structure[k] / S2D
+    return np.array(GFrct)
 
 if __name__ == '__main__':
-    #vertical_structure('t', show=True)
-    vertical_profile(kvpr=2, vamp=8., vdil=20., vcnt=0.45)
+    v = vertical_profile(kvpr=2, vamp=8., vdil=20., vcnt=0.45)  # 生成强迫场的理想化垂直结构
+    h = horizontal_profile(khpr=1, hamp=0.25, xdil=23., ydil=6.5, xcnt=77., ycnt=-1.5)  # 生成强迫场的理想化水平结构
+    frc = mk_frc(K=20, hor_structure=h, ver_structure=v, ovor=False, odiv=False, otmp=True, ops=False, osh=False)  # 生成强迫场
 pass
