@@ -46,10 +46,10 @@ def grid2wave(data=None, lat=64, N=128, M=42, re=False):
     """
     if data is None:
         raise ValueError('data参数不能为空')
-    Z = np.zeros((lat * M, len(data)))
+    Z = np.zeros((lat * M, len(data)), dtype=complex)
     Z.fill(complex(0, 0))
     if not re:
-        for K in range(len(data)):
+        for K in tqdm(range(len(data)), desc='Grid to Wave:', unit='层', position=0, colour='green'):
             for ilat in range(lat):
                 for k in range(M):
                     for j in range(N):
@@ -313,11 +313,11 @@ def SetNMO2(Mmax, Lmax, Nmax, Mint):
             else:
                 NMO[0, m, l] = 2 * Nmh - 1
                 NMO[1, m, l] = 2 * Nmh
-    return NMO
+    return NMO.astype(int)
 
 
 #PWM 的强迫向量被重新排序，由 owall=f 定义的边界条件控制。在这种情况下，强迫向量的顺序是：v, d, t, p, q。
-def mk_wave(Gfrct, Mmax=None, Lmax=20, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=False, ops=False, osh=False, owall=True, oclassic=True):
+def mk_wave(Gfrct, Mmax=None, Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=False, ops=False, osh=False, owall=True, oclassic=True):
     """
     生成谱资料
     :param Gfrct: np.array, 强迫场
@@ -347,17 +347,17 @@ def mk_wave(Gfrct, Mmax=None, Lmax=20, Nmax=42, Mint=1, ovor=False, odiv=False, 
     for i in range(-Mmax, Mmax + 1):
         Ntr += Mmax - np.abs(i) + 1  # 三角形截断谱分量个数
     Jw = np.zeros((Ntr+1))
-    Wfrcf = np.zeros((Nmax, K_))
-    Wxvor = np.zeros((Nmax, K_, Ntr + 1))
-    Wxdiv = np.zeros((Nmax, K_, Ntr + 1))
-    Wxtemp = np.zeros((Nmax, K_, Ntr + 1))
-    Wxps = np.zeros((Nmax, Ntr + 1))
-    Wxsph = np.zeros((Nmax, K_, Ntr + 1))
+    Wfrcf = np.zeros(((Lmax+1) * (Nmax+1), K_), dtype=complex)
+    Wxvor = np.zeros((Nmax, K_, Ntr + 1), dtype=complex)
+    Wxdiv = np.zeros((Nmax, K_, Ntr + 1), dtype=complex)
+    Wxtemp = np.zeros((Nmax, K_, Ntr + 1), dtype=complex)
+    Wxps = np.zeros((Nmax, Ntr + 1), dtype=complex)
+    Wxsph = np.zeros((Nmax, K_, Ntr + 1), dtype=complex)
     NMO = SetNMO2(Mmax, Lmax, Nmax, Mint)
     iW = -1
     result = []
     for m in range(Ntr + 1):
-        Lend = np.min(Lmax, Nmax - m)
+        Lend = np.min([Lmax, Nmax - m])
         for iK in range(K_):
             iW = -1
             for l in range(Lend + 1):
@@ -443,5 +443,5 @@ if __name__ == '__main__':
     v = vertical_profile(kvpr=2, vamp=8., vdil=20., vcnt=0.45)  # 生成强迫场的理想化垂直结构
     h = horizontal_profile(khpr=1, hamp=0.25, xdil=23., ydil=6.5, xcnt=77., ycnt=-1.5)  # 生成强迫场的理想化水平结构
     frc = mk_grads(hor_structure=h, ver_structure=v, ovor=0, odiv=0, otmp=1, ops=0, osh=0)  # 生成强迫场
-    frc_mat = mk_wave(frc, Lmax=20, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=True, ops=False, osh=False, owall=True, oclassic=True)  # 生成谱资料
+    frc_mat = mk_wave(frc, Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=True, ops=False, osh=False, owall=True, oclassic=True)  # 生成谱资料
 pass
