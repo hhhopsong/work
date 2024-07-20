@@ -53,7 +53,7 @@ plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['axes.linewidth'] = 0.3    # 边框粗细
 #plt.tight_layout()
 #plt.subplots_adjust(wspace=0.045, hspace=0.001)#wspace、hspace左右、上下的间距
-wspce, hspce = 0.25, 0.001
+wspce, hspce = 0.35, 0.003
 fig = plt.figure(dpi=1000, figsize=(6, 3))
 south_china_sea = False
 south_china_sea_shink = 0.4
@@ -68,11 +68,11 @@ level1 = [-1., -.8, -.6, -.4, -.2, .2, .4, .6, .8, 1.]
 # 主模态值
 pc = 0
 # 字体大小
-font_title_size = 3 # 标题
+font_title_size = 5 # 标题
 font_title = {'family': 'Arial', 'weight': 'bold', 'size': font_title_size}
 pad_title = 0.5  # 标题与图的距离
-font_tick_size = 3  # 刻度
-font_tick = {'family': 'Arial', 'weight': 'bold', 'size': font_tick_size}
+font_tick_size = 5  # 刻度
+font_tick = {'family': 'Arial', 'weight': 'normal', 'size': font_tick_size}
 pad_tick = 0.5  # 刻度与轴的距离
 font_colorbar_size = 5  # colorbar
 font_colorbar = {'family': 'Arial', 'weight': 'bold', 'size': font_colorbar_size}
@@ -185,8 +185,12 @@ for iModle in range(len(Model_Name)):
         zone_corr = spaCorr(eof[iModle, :, :], obs_78_eof[pc, :, :])
     ax1 = fig.add_subplot(pic_shape[0], pic_shape[1], iModle+1, projection=proj)
     ax1.set_extent(extent1, crs=proj)
-    ax1.set_title(ModelName+f"({s_78[pc]*100:.2f}%)", font=font_title, loc='left', pad=pad_title)
-    ax1.set_title(f"{zone_corr:.2f}", font=font_title, loc='right', pad=pad_title)
+    ax1.set_title(ModelName, font=font_title, loc='left', pad=pad_title)
+    #ax1.set_title(f"{zone_corr:.2f}", font=font_title, loc='right', pad=pad_title)
+    ax1.text(119, 17.5, f'{s_78[pc]*100:.2f}%', fontsize=5, fontweight='bold', color='black', zorder=20,
+             transform=ccrs.PlateCarree(central_longitude=0))
+    ax1.text(122.5, 30.5, f'{zone_corr:.2f}', fontsize=5, fontweight='bold', color='black', zorder=20,
+             transform=ccrs.PlateCarree(central_longitude=0))
     a1 = ax1.contourf(grids['lon'], grids['lat'], q_term_78_extreHighDays_eof, cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='both', transform=proj)
     ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray', lw=line_width)# 添加陆地并且陆地部分全部填充成浅灰色
     ax1.add_geometries(Reader(r'D:\CODES\Python\PythonProject\map\cnriver\1级河流.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='b', linewidth=0.2)
@@ -216,7 +220,7 @@ for iModle in range(len(Model_Name)):
     plt.tick_params(labelsize=font_tick_size)
     labels = ax1.get_xticklabels() + ax1.get_yticklabels()
     [label.set_fontname(fontfamily) for label in labels]
-    [label.set_fontweight('bold') for label in labels]
+    [label.set_fontweight('normal') for label in labels]
 
     # 南海小地图
     if south_china_sea:
@@ -236,8 +240,12 @@ mme = china.maskout(lons, lats, mme)
 zone_corr = spaCorr(mme, obs_78_eof[pc, :, :])
 ax1 = fig.add_subplot(pic_shape[0], pic_shape[1], 23, projection=proj)
 ax1.set_extent(extent1, crs=proj)
-ax1.set_title(f"MME({varFra.mean()*100:.2f}%)", font=font_title, loc='left', pad=pad_title, color='r')
-ax1.set_title(f"{zone_corr:.2f}", font=font_title, loc='right', pad=pad_title,color='r')
+ax1.set_title(f"MME", font=font_title, loc='left', pad=pad_title, color='r')
+#ax1.set_title(f"{zone_corr:.2f}", font=font_title, loc='right', pad=pad_title,color='r')
+ax1.text(119, 17.5, f'{varFra.mean()*100:.2f}%', fontsize=5, fontweight='bold', color='red', zorder=20,
+         transform=ccrs.PlateCarree(central_longitude=0))
+ax1.text(122.5, 30.5, f'{zone_corr:.2f}', fontsize=5, fontweight='bold', color='red', zorder=20,
+         transform=ccrs.PlateCarree(central_longitude=0))
 a1 = ax1.contourf(grids['lon'], grids['lat'], mme, cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='both', transform=proj)
 ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray', lw=line_width)# 添加陆地并且陆地部分全部填充成浅灰色
 ax1.add_geometries(Reader(r'D:\CODES\Python\PythonProject\map\cnriver\1级河流.shp').geometries(), ccrs.PlateCarree(),
@@ -268,7 +276,7 @@ plt.rcParams['xtick.direction'] = 'out' #将x轴的刻度线方向设置向内�
 plt.tick_params(labelsize=font_tick_size)
 labels = ax1.get_xticklabels() + ax1.get_yticklabels()
 [label.set_fontname(fontfamily) for label in labels]
-[label.set_fontweight('bold') for label in labels]
+[label.set_fontweight('normal') for label in labels]
 
 # 南海小地图
 if south_china_sea:
@@ -285,7 +293,9 @@ if south_china_sea:
 ax1 = fig.add_subplot(pic_shape[0], pic_shape[1], 24, projection=proj)
 
 ax1.set_extent(extent1, crs=proj)
-ax1.set_title(f"obs({obs_78_s[pc]*100:.2f}%)", font=font_title, loc='left', pad=pad_title, color='r')
+ax1.set_title(f"obs", font=font_title, loc='left', pad=pad_title, color='r')
+ax1.text(119, 17.5, f'{obs_78_s[pc]*100:.2f}%', fontsize=5, fontweight='bold', color='red', zorder=20,
+         transform=ccrs.PlateCarree(central_longitude=0))
 a1 = ax1.contourf(grids['lon'], grids['lat'], obs_78_eof[pc, :, :], cmap=cmaps.BlueWhiteOrangeRed, levels=level1, extend='neither', transform=proj)
 ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray', lw=line_width)# 添加陆地并且陆地部分全部填充成浅灰色
 ax1.add_geometries(Reader(r'D:\CODES\Python\PythonProject\map\cnriver\1级河流.shp').geometries(), ccrs.PlateCarree(),
@@ -316,7 +326,7 @@ plt.rcParams['xtick.direction'] = 'out' #将x轴的刻度线方向设置向内�
 plt.tick_params(labelsize=font_tick_size)
 labels = ax1.get_xticklabels() + ax1.get_yticklabels()
 [label.set_fontname(fontfamily) for label in labels]
-[label.set_fontweight('bold') for label in labels]
+[label.set_fontweight('normal') for label in labels]
 
 # 南海小地图
 if south_china_sea:

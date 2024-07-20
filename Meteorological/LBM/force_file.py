@@ -36,7 +36,7 @@ def read_force_file(address=force_file_address):
     return lbm, level_sigp
 
 
-def grid2wave(data=None, lat=64, N=128, M=42, re=False):
+def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False):
     """
     格点数据转谱系数
     :param lat: int, 纬向格点数
@@ -48,17 +48,29 @@ def grid2wave(data=None, lat=64, N=128, M=42, re=False):
         raise ValueError('data参数不能为空')
     Z = np.zeros((lat * M, len(data)), dtype=complex)
     Z.fill(complex(0, 0))
-    if not re:
-        for K in tqdm(range(len(data)), desc='Grid to Wave:', unit='层', position=0, colour='green'):
-            for ilat in range(lat):
-                for k in range(M):
-                    for j in range(N):
-                        λ = 2 * np.pi * j / N
-                        Z[ilat*M+k, K] += data[K, ilat, j] * (np.cos(k * λ) * complex(1, 0) - np.sin(k * λ) * complex(0, 1))
-        Z = Z / N
-        return Z
-    if re:
-        raise ValueError('逆向功能尚未开发')
+    try:
+        one = np.load(f'D:\CODES\Python\Meteorological\LBM\g2w.npy')
+    except:
+        if not re:
+            one = np.ones((K_, lat, N), dtype=complex)
+            for K in tqdm(range(len(data)), desc='Grid to Wave(PRE):', unit='层', position=0, colour='green'):
+                for ilat in range(lat):
+                    for k in range(M):
+                        for j in range(N):
+                            λ = 2 * np.pi * j / N
+                            one[K, ilat, j] = one[K, ilat, j] * (np.cos(k * λ) * complex(1, 0) - np.sin(k * λ) * complex(0, 1))
+            np.save(f'D:\CODES\Python\Meteorological\LBM\g2w.npy', one)
+            one = np.load(f'D:\CODES\Python\Meteorological\LBM\g2w.npy')
+        if re:
+            raise ValueError('逆向功能尚未开发')
+    for K in range(len(data)):
+        for ilat in range(lat):
+            for k in range(M):
+                for j in range(N):
+                    Z[ilat * M + k, K] += data[K, ilat, j] * one[K, ilat, j]
+    Z = Z / N
+    return Z
+
 
 
 def vertical_structure(data=force_file_address, element='t', show=False):
@@ -356,7 +368,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, 
     NMO = SetNMO2(Mmax, Lmax, Nmax, Mint)
     iW = -1
     result = []
-    for m in range(Ntr + 1):
+    for m in tqdm(range(Ntr + 1), desc='Grid to Wave:', unit='波', position=0, colour='green'):
         Lend = np.min([Lmax, Nmax - m])
         for iK in range(K_):
             iW = -1
@@ -418,7 +430,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, 
             if oclassic:
                 for im in range(Ntr + 1):
                     bridge.append([
-                        Wxvor[0:Jw[im], :K_, im].tolist(),
+                        Wxvor[0:Jw[im], :K_, im].tolist(),TypeError: slice indices must be integers or None or have an __index__ method
                         Wxdiv[0:Jw[im], :K_, im].tolist(),
                         Wxtemp[0:Jw[im], :K_, im].tolist(),
                         Wxps[0:Jw[im], im].tolist()])
