@@ -24,4 +24,20 @@ if eval(input("是否计算全国极端高温95分位相对阈值(0/1)?")):
     del Tmax_sort95     # 释放Tmax_sort95占用内存,优化代码性能
 Tmax_sort95 = xr.open_dataset(r"cache\NationalHighTemp_95threshold.nc")     # 读取缓存
 Tmax_sort95 = masked(Tmax_sort95, r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")
+
+
+# 绘图
+# ##地图要素设置
+plt.rcParams['font.sans-serif'] = ['Arial']
+plt.rcParams['axes.unicode_minus'] = False
+extent_CN = [70, 140, 15, 55]  # 中国大陆经度范围，纬度范围
+proj = ccrs.PlateCarree()   # 投影方式
+fig = plt.figure(figsize=(16, 9))   # 创建画布
+ax1 = fig.add_subplot(111, projection=proj)  # 添加子图
+ax1.set_extent(extent_CN, crs=proj) # 设置地图范围
+a1 = ax1.contourf(Tmax_sort95['lon'], Tmax_sort95['lat'], Tmax_sort95['tmax'], cmap=cmaps.WhiteBlueGreenYellowRed, levels=15, extend='both', transform=proj)
+ax1.add_feature(cfeature.LAND.with_scale('10m'),color='lightgray')# 添加陆地并且陆地部分全部填充成浅灰色
+ax1.add_geometries(Reader(r'C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=0.4)
+plt.savefig(r'C:\Users\10574\desktop\图2.png', dpi=1500, bbox_inches='tight')
+plt.show()
 pass
