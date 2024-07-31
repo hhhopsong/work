@@ -20,9 +20,14 @@ import seaborn as sns
 EHDstations_zone = xr.open_dataset(r"cache\EHDstations_zone.nc")  # 读取缓存
 # 绘图
 sns.set(style='ticks')
-palette = sns.xkcd_palette(["windows blue"])
-sns.relplot(x="day", y="__xarray_dataarray_variable__", kind="line", data=EHDstations_zone.to_dataframe(), palette=palette)
-sns.despine(top=False, right=False, left=False, bottom=False)   # 加上边框
+fig = plt.figure()
+ax1 = sns.heatmap(EHDstations_zone["__xarray_dataarray_variable__"].to_numpy().T, ax=fig.add_subplot(223))  # 长江流域极端高温格点逐日占比热力图
+ax1.invert_yaxis()  # 热力图y轴反向
+ax2 = sns.lineplot(data=EHDstations_zone.to_dataframe(), x="day", y="__xarray_dataarray_variable__", ax=fig.add_subplot(221))  # 长江流域极端高温格点逐日占比折线图
+# 交换ax2的xy轴
+ax2.invert_xaxis()
+plt.show()
+
 # 设置横坐标的刻度范围和标记
 ax = plt.gca()
 # 设置横坐标的刻度范围和标记
