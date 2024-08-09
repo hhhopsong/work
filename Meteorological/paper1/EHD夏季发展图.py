@@ -29,7 +29,7 @@ ax2.invert_xaxis()
 plt.show()
 
 # 设置横坐标的刻度范围和标记
-ax = plt.gca()
+ax = plt.gca() 
 # 设置横坐标的刻度范围和标记
 x = np.arange(0, 121, 1)
 ax.set_xlim(0, 121)
