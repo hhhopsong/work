@@ -26,8 +26,6 @@ fig = plt.figure(figsize=(16, 9))
 # ##修正前
 level1 = [14+i*2 for i in range(11)]
 ax1 = fig.add_subplot(111, projection=proj)
-#ax1.set_title(f'Fig. 1 The distribution of the 95th percentile thresholds (shading; °C)\n'
-#              f'defined for extreme high temperature over China during 1980–2009', color='black', fontsize=15)
 ax1.set_extent(extent1, crs=proj)
 a1 = ax1.contourf(q['lon'], q['lat'], q_sort95, cmap=cmaps.WhiteBlueGreenYellowRed, levels=level1, extend='both', transform=proj)
 ax1.add_feature(cfeature.LAND.with_scale('10m'),color='lightgray')# 添加陆地并且陆地部分全部填充成浅灰色
