@@ -95,11 +95,12 @@ ax.spines['left'].set_visible(False)  # 显示左边框
 
 # 正态化每日数据
 ax3 = sns.barplot(data=EHDstations_zone.to_dataframe()*100, x='__xarray_dataarray_variable__', y='day', orient='h', ax=fig.add_subplot(spec[1, 1]), errorbar=('ci', 0), width=0, color='None', edgecolor='#756BB1')  # 长江流域极端高温格点逐年占比
-S = EHDstations_zone.std(ddof=1)*100  # 样本标准差(ddof=1代表自由度减1)
+'''S = EHDstations_zone.std(ddof=1)*100  # 样本标准差(ddof=1代表自由度减1)
 μ = EHDstations_zone.mean()*100  # 样本均值
 ax3_80line = plt.axvline(x=30.2347816, color='#74C476', linestyle='--')  # 添加80%置信度分割线
 ax3_65line = plt.axvline(x=21.34604268, color='#74C476', linestyle='--')  # 添加65%置信度分割线
-ax3_50line = plt.axvline(x=13.84, color='#74C476', linestyle='--')  # 添加50%置信度分割线
+ax3_50line = plt.axvline(x=13.84, color='#74C476', linestyle='--')  # 添加50%置信度分割线'''
+ax3_line = plt.axvline(x=0.2*100, color='#74C476', linestyle='--')
 ##设置ax3坐标##
 ax3.yaxis.set_visible(False)  # ax3隐藏y轴标签
 ax = plt.gca()
