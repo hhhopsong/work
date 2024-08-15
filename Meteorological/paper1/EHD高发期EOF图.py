@@ -44,11 +44,37 @@ plt.rcParams['axes.unicode_minus'] = False
 extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
 proj = ccrs.PlateCarree()   # 投影方式
 fig = plt.figure(figsize=(16, 9))   # 创建画布
-ax1 = fig.add_subplot(111, projection=proj)  # 添加子图
+ax1 = fig.add_subplot(121, projection=proj)  # 添加子图
 ax1.set_extent(extent_CN, crs=proj) # 设置地图范围
 a1 = ax1.contourf(EHD['lon'], EHD['lat'], Modality[0], cmap=cmaps.WhiteBlueGreenYellowRed, levels=15, extend='both', transform=proj)
+cbar = plt.colorbar(a1, ax=ax1, orientation='horizontal', pad=0.05, aspect=50, shrink=0.8)
 ax1.add_feature(cfeature.LAND.with_scale('10m'),color='lightgray')# 添加陆地并且陆地部分全部填充成浅灰色
 ax1.add_geometries(Reader(r'C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=0.4)
 ax1.add_geometries(Reader(r'D:\CODES\Python\Meteorological\maps\cnriver\长江\长江.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='blue', linewidth=0.2)
+
+sns.set(style='ticks')
+ax1_pc = fig.add_subplot(122)
+# 画条形图,正值为红色，负值为蓝色
+a1_pc = sns.barplot(x=[str(i) for i in range(1979, 2023)], y=PC[:, 0], ax=ax1_pc)
+for i in range(44):
+    if PC[i, 0] >= 2:
+        a1_pc.get_children()[i].set_color('#D85F4F')
+    elif PC[i, 0] >= 1.5:
+        a1_pc.get_children()[i].set_color('#D65F4F')
+    elif PC[i, 0] >= 1:
+        a1_pc.get_children()[i].set_color('#F5A584')
+    elif PC[i, 0] >= 0.5:
+        a1_pc.get_children()[i].set_color('#FEDBC6')
+    elif PC[i, 0] == 0:
+        a1_pc.get_children()[i].set_color('#F7F7F7')
+    elif PC[i, 0] >= -0.5:
+        a1_pc.get_children()[i].set_color('#CFE6EE')
+    elif PC[i, 0] >= -1:
+        a1_pc.get_children()[i].set_color('#93C5DC')
+    elif PC[i, 0] >= -1.5:
+        a1_pc.get_children()[i].set_color('#4394C3')
+    else:
+        a1_pc.get_children()[i].set_color('#1F6AA0')
+
 plt.savefig(r'C:\Users\10574\desktop\EHD高发期EOF.png', dpi=1500, bbox_inches='tight')
 plt.show()
