@@ -50,5 +50,5 @@ a1 = ax1.contourf(EHD['lon'], EHD['lat'], Modality[0], cmap=cmaps.WhiteBlueGreen
 ax1.add_feature(cfeature.LAND.with_scale('10m'),color='lightgray')# 添加陆地并且陆地部分全部填充成浅灰色
 ax1.add_geometries(Reader(r'C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=0.4)
 ax1.add_geometries(Reader(r'D:\CODES\Python\Meteorological\maps\cnriver\长江\长江.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='blue', linewidth=0.2)
-plt.show()
 plt.savefig(r'C:\Users\10574\desktop\EHD高发期EOF.png', dpi=1500, bbox_inches='tight')
+plt.show()
