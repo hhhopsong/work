@@ -23,11 +23,11 @@ import seaborn as sns
 EHD = xr.open_dataset(r"cache\EHD.nc")  # 读取缓存
 EHD = masked(EHD,
              r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
-# 截取7月16日-8月15日数据
+# 截取7月16日-8月19日数据
 EHD_7 = EHD.sel(time=EHD['time.month'].isin([7]))
 EHD_7 = EHD_7.sel(time=EHD_7['time.day'].isin(range(16, 32)))
 EHD_8 = EHD.sel(time=EHD['time.month'].isin([8]))
-EHD_8 = EHD_8.sel(time=EHD_8['time.day'].isin(range(1, 16)))
+EHD_8 = EHD_8.sel(time=EHD_8['time.day'].isin(range(1, 20)))
 # 合并数据,并按时间排序
 EHD_concat = xr.concat([EHD_7, EHD_8], dim='time').sortby('time')
 EHD_concat.fillna(0)  # 数据二值化处理(1:极端高温,0:非极端高温)
