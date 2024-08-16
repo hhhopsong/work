@@ -83,7 +83,7 @@ plt.ylabel('Annual mean')
 ax2_reg = ax2.twinx()
 ax2_reg = sns.regplot(data=EHDstations_zone.mean('day')*100, x=[i for i in range(44)], y="__xarray_dataarray_variable__", ax=ax2_reg, scatter=False, color='#74C476')  # 长江流域极端高温格点逐年占比
 ##设置ax2_reg坐标##
-ax2_reg.yaxis.set_visible(False)  # ax2隐藏x轴标签
+ax2_reg.yaxis.set_visible(False)  # ax2隐藏y轴标签
 ax = plt.gca()
 ax.set_ylim(0, 0.5*100)
 ax.spines['top'].set_visible(False)  # 隐藏上边框
@@ -93,7 +93,6 @@ ax.spines['left'].set_visible(False)  # 显示左边框
 
 ##设置ax2_reg坐标结束##
 
-# 正态化每日数据
 ax3 = sns.barplot(data=EHDstations_zone.to_dataframe()*100, x='__xarray_dataarray_variable__', y='day', orient='h', ax=fig.add_subplot(spec[1, 1]), errorbar=('ci', 0), width=0, color='None', edgecolor='#756BB1')  # 长江流域极端高温格点逐年占比
 '''S = EHDstations_zone.std(ddof=1)*100  # 样本标准差(ddof=1代表自由度减1)
 μ = EHDstations_zone.mean()*100  # 样本均值
