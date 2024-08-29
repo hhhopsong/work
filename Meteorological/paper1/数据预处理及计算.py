@@ -92,13 +92,13 @@ if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
                 if M_cross == 0:
                     sst_output = sst.sel(time=slice(str(eval(data_year[0]))+'-01-01', str(eval(data_year[1]))+'-12-31'))
                     sst_output = sst_output.sel(time=sst_output['time.month'].isin([M]))
-                    sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}.nc")
+                    sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{M}.nc")
                     times += 1
                     del sst_output
                 elif M_cross == 1:
                     sst_output = sst.sel(time=slice(str(eval(data_year[0]) - 1)+'-01-01', str(eval(data_year[1]) - 1)+'-12-31'))
                     sst_output = sst_output.sel(time=sst_output['time.month'].isin([M]))
-                    sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}.nc")
+                    sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{M}.nc")
                     times += 1
                     del sst_output
             else:
