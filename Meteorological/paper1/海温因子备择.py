@@ -17,6 +17,7 @@ from toolbar.masked import masked  # 气象工具函数
 from toolbar.sub_adjust import adjust_sub_axes
 from toolbar.pre_whitening import ws2001
 import seaborn as sns
+import tqdm
 
 
 # 数据读取
@@ -30,19 +31,22 @@ fig = plt.figure(figsize=(16, 9))  # 创建画布
 spec = gridspec.GridSpec(nrows=12, ncols=12)  # 设置子图比例
 num = 0
 M = 6  # 临界月
+lev = [i*.1 for i in range(-10, 11, 1)]
 for x in range(11, -1, -1):
     m1 = M + x + 1
     if m1 > 12:
         m1 -= 12
-    for y in range(11 - x, 12):
+    for y in tqdm.trange(11 - x, 12):
         num += 1
         m2 = M - y
         if m2 <= 0:
             m2 += 12
-        sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_{num}_{m1}_{m2}.nc")  # 读取缓存
-        corr = np.corrcoef(np.array([[ols for j in range(180)] for i in range(89)]), sst_diff['sst'].transpose('lat','lon','time'))[0, 1]
+        sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_{num}_{m1}_{m2}.nc")['sst'].transpose('lat','lon','time')  # 读取缓存
+        corr = np.array([[np.corrcoef(ols, sst_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in sst_diff['lon']] for ilat in sst_diff['lat']])
         ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
+        相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], corr, levels=lev, cmap=cmaps.WhiteBlueGreenYellowRed, extend='both', transform=ccrs.PlateCarree())
         ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
         ax.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray')
         draw_maps(get_adm_maps(level='国'), linewidth=0.4)
-
+plt.show()
+plt.savefig(r"C:\Users\10574\Desktop\OLS_SST_corr.png", dpi=1000, bbox_inches='tight')

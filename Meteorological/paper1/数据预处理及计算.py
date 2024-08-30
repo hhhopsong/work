@@ -112,11 +112,10 @@ if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
                 sst_backfore = sst.sel(time=slice(str(eval(data_year[0]) - m_cross)+'-01-01', str(eval(data_year[1]) - m_cross)+'-12-31'))
                 sst_backfore = sst_backfore.sel(time=sst_backfore['time.month'].isin([m]))
                 sst_output = sst_forward.to_numpy() - sst_backfore.to_numpy()
-                sst_output = xr.DataArray(sst_output.data, coords=[('year', sst_forward['time.year'].data),
+                sst_output = xr.DataArray(sst_output.data, coords=[('time', sst_forward['time.year'].data),
                                                               ('lat', sst_forward['lat'].data),
                                                               ('lon', sst_forward['lon'].data)]).to_dataset(name='sst')
                 sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{m}.nc")
                 times += 1
                 del sst_output, sst_forward, sst_backfore
 print("数据处理完成")
-print(111)
