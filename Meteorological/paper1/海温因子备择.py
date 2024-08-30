@@ -43,16 +43,21 @@ for x in range(11, -1, -1):
             m2 += 12
         sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_{num}_{m1}_{m2}.nc")['sst'].transpose('lat','lon','time')  # 读取缓存
         try:
-            corr = np.load(fr"cache\corr_sst_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+            corr_1 = np.load(fr"cache\corr_sst_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
         except:
-            corr = np.array([[np.corrcoef(ols, sst_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in sst_diff['lon']] for ilat in sst_diff['lat']])
-            np.save(fr"cache\corr_sst_1\corr_{num}_{m1}_{m2}.npy", corr)  # 保存缓存
+            corr_1 = np.array([[np.corrcoef(ols, sst_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in sst_diff['lon']] for ilat in sst_diff['lat']])
+            np.save(fr"cache\corr_sst_1\corr_{num}_{m1}_{m2}.npy", corr_1)  # 保存缓存
+        try:
+            corr_2 = np.load(fr"cache\corr_sst_2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+        except:
+            corr_2 = np.array([[np.corrcoef(sen, sst_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in sst_diff['lon']] for ilat in sst_diff['lat']])
+            np.save(fr"cache\corr_sst_2\corr_{num}_{m1}_{m2}.npy", corr_2)
         ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
-        相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], corr, levels=lev, cmap=cmaps.WhiteBlueGreenYellowRed, extend='both', transform=ccrs.PlateCarree())
+        相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], corr_2, levels=lev, cmap=cmaps.WhiteBlueGreenYellowRed, extend='both', transform=ccrs.PlateCarree())
         ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
         ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
         draw_maps(get_adm_maps(level='国'), linewidth=0.15)
 
-plt.savefig(r"C:\Users\10574\Desktop\OLS_SST_corr.png", dpi=2000, bbox_inches='tight')
+plt.savefig(r"C:\Users\10574\Desktop\SEN_SST_corr.png", dpi=2000, bbox_inches='tight')
 plt.show()
 
