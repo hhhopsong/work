@@ -31,7 +31,7 @@ fig = plt.figure(figsize=(16, 9))  # 创建画布
 spec = gridspec.GridSpec(nrows=12, ncols=12)  # 设置子图比例
 num = 0
 M = 6  # 临界月
-lev = [i*.1 for i in range(-10, 11, 1)]
+lev = [i*.05 for i in range(-10, 11, 1)]
 for x in range(11, -1, -1):
     m1 = M + x + 1
     if m1 > 12:
@@ -50,8 +50,8 @@ for x in range(11, -1, -1):
         ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
         相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], corr, levels=lev, cmap=cmaps.WhiteBlueGreenYellowRed, extend='both', transform=ccrs.PlateCarree())
         ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
-        ax.add_feature(cfeature.COASTLINE.with_scale('10m'))
-        draw_maps(get_adm_maps(level='国'), linewidth=0.4)
+        ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+        draw_maps(get_adm_maps(level='国'), linewidth=0.15)
 
 plt.savefig(r"C:\Users\10574\Desktop\OLS_SST_corr.png", dpi=2000, bbox_inches='tight')
 plt.show()
