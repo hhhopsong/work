@@ -33,6 +33,7 @@ spec = gridspec.GridSpec(nrows=12, ncols=12)  # 设置子图比例
 num = 0
 M = 6  # 临界月
 lev = [i*.05 for i in range(-10, 11, 1)]
+select = eval(input("选择回归方案(1OLS 2SEN):"))
 for x in range(11, -1, -1):
     m1 = M + x + 1
     if m1 > 12:
@@ -53,13 +54,18 @@ for x in range(11, -1, -1):
         except:
             corr_2 = np.array([[np.corrcoef(sen, sst_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in sst_diff['lon']] for ilat in sst_diff['lat']])
             np.save(fr"cache\corr_sst_2\corr_{num}_{m1}_{m2}.npy", corr_2)
-        显著性检验结果 = t_test(ols, sst_diff, p=0.95)
+        if select == 1:
+            corr = corr_1
+            显著性检验结果 = corr_test(ols, corr, alpha=0.05)
+        elif select == 2:
+            corr = corr_2
+            显著性检验结果 = corr_test(sen, corr, alpha=0.05)
         ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
-        相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], corr_2, levels=lev, cmap=cmaps.WhiteBlueGreenYellowRed, extend='both', transform=ccrs.PlateCarree())
+        相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], corr, levels=lev, cmap=cmaps.WhiteBlueGreenYellowRed, extend='both', transform=ccrs.PlateCarree())
         ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
         ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
         draw_maps(get_adm_maps(level='国'), linewidth=0.15)
 
-plt.savefig(r"C:\Users\10574\Desktop\SEN_SST_corr.png", dpi=2000, bbox_inches='tight')
+plt.savefig(fr"C:\Users\10574\Desktop\SST_corr{select}.png", dpi=2000, bbox_inches='tight')
 plt.show()
 
