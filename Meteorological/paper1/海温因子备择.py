@@ -62,6 +62,8 @@ for x in range(11, -1, -1):
             显著性检验结果 = corr_test(sen, corr, alpha=0.05)
         ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
         相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], corr, levels=lev, cmap=cmaps.WhiteBlueGreenYellowRed, extend='both', transform=ccrs.PlateCarree())
+        显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
+        显著性检验图层 = ax.quiver(sst_diff['lon'], sst_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20, color='black', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
         ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
         ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
         draw_maps(get_adm_maps(level='国'), linewidth=0.15)
