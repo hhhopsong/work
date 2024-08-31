@@ -53,7 +53,7 @@ for x in range(11, -1, -1):
         except:
             corr_2 = np.array([[np.corrcoef(sen, sst_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in sst_diff['lon']] for ilat in sst_diff['lat']])
             np.save(fr"cache\corr_sst_2\corr_{num}_{m1}_{m2}.npy", corr_2)
-        显著性检验结果 = t_test(len(ols), np.arange(ols.size), sst_diff, 'sst', p=0.95)
+        显著性检验结果 = t_test(ols, sst_diff, p=0.95)
         ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
         相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], corr_2, levels=lev, cmap=cmaps.WhiteBlueGreenYellowRed, extend='both', transform=ccrs.PlateCarree())
         ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))

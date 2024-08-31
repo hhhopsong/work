@@ -2,10 +2,10 @@ import numpy as np
 from scipy.stats import t
 
 
-def t_test(pc, data, p=0.95):
+def ols_test(pc, data, p=0.95):
     """
     :param pc: 时间序列
-    :param data: 数据
+    :param data: 线性回归数据(lat, lon)
     :param p: 置信度
     :return: 显著性检验结果
     """
