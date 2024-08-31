@@ -17,20 +17,24 @@ def ols_test(pc, data, p=0.95):
     t_value = data * np.sqrt(Lxx) / sigma
     t_critical = t.ppf(p, n - 2)
     # 进行显著性检验
-    test_results = np.zeros((len(data['lat']), len(data['lon'])))
+    test_results = np.zeros(data.shape)
     test_results.fill(np.nan)
     test_results[np.abs(t_value.to_numpy()) > t_critical] = 1
     return test_results
 
 
-def corr_test(pc, alpha=0.05):
+def corr_test(pc, data, alpha=0.05):
     """
     :param pc: 时间序列
-    :param data: 相关系数数据(lat, lon)
+    :param data: np.array 相关系数数据
     :param p: 置信度
     :return: 显著性检验结果
     """
     n = len(pc)
     t_critical = (alpha / 2, n - 2)  # 双边t检验
-    r = np.sqrt(t_critical**2 / (t_critical**2 + n - 2))
-    return r
+    r_critical = np.sqrt(t_critical**2 / (t_critical**2 + n - 2))
+    # 进行显著性检验
+    test_results = np.zeros(data.shape)
+    test_results.fill(np.nan)
+    test_results[np.abs(data) > r_critical] = 1
+    return test_results
