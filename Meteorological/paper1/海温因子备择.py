@@ -16,7 +16,7 @@ import cmaps
 from toolbar.masked import masked  # 气象工具函数
 from toolbar.sub_adjust import adjust_sub_axes
 from toolbar.pre_whitening import ws2001
-from toolbar.significance_test import t_test
+from toolbar.significance_test import corr_test
 import seaborn as sns
 import tqdm
 
