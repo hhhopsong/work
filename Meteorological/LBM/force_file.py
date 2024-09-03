@@ -8,6 +8,8 @@ import cartopy.crs as ccrs
 from cartopy.util import add_cyclic_point
 from scipy.interpolate import interpolate
 from tqdm import tqdm
+import tqdm as tq
+
 
 force_file_address = '//wsl.localhost/Ubuntu-20.04/home/hopsong/lbm/data/frc'
 
@@ -370,7 +372,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, 
     result = []
     for m in tqdm(range(Ntr + 1), desc='Grid to Wave:', unit='波', position=0, colour='green'):
         Lend = np.min([Lmax, Nmax - m])
-        for iK in range(K_):
+        for iK in tq.trange(K_):
             iW = -1
             for l in range(Lend + 1):
                 if m == 0 and l == 0:
@@ -425,24 +427,24 @@ def mk_wave(Gfrct, Mmax=None, Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, 
                 result.append(Wxsph[0:iW, :K_, m].tolist())
         else:
             Jw[m] = iW
-        if owall:
-            bridge = []
-            if oclassic:
-                for im in range(Ntr + 1):
-                    bridge.append([
-                        Wxvor[0:Jw[im], :K_, im].tolist(),TypeError: slice indices must be integers or None or have an __index__ method
-                        Wxdiv[0:Jw[im], :K_, im].tolist(),
-                        Wxtemp[0:Jw[im], :K_, im].tolist(),
-                        Wxps[0:Jw[im], im].tolist()])
-            else:
-                for im in range(Ntr + 1):
-                    bridge.append([
-                        Wxvor[0:Jw[im], :K_, im].tolist(),
-                        Wxdiv[0:Jw[im], :K_, im].tolist(),
-                        Wxtemp[0:Jw[im], :K_, im].tolist(),
-                        Wxps[0:Jw[im], im].tolist(),
-                        Wxsph[0:Jw[im], :K_, im].tolist()])
-            result.append(bridge)
+    if owall:
+        bridge = []
+        if oclassic:
+            for im in range(Ntr + 1):
+                bridge.append([
+                    Wxvor[0:Jw[im], :K_, im].tolist(),
+                    Wxdiv[0:Jw[im], :K_, im].tolist(),
+                    Wxtemp[0:Jw[im], :K_, im].tolist(),
+                    Wxps[0:Jw[im], im].tolist()])
+        else:
+            for im in range(Ntr + 1):
+                bridge.append([
+                    Wxvor[0:Jw[im], :K_, im].tolist(),
+                    Wxdiv[0:Jw[im], :K_, im].tolist(),
+                    Wxtemp[0:Jw[im], :K_, im].tolist(),
+                    Wxps[0:Jw[im], im].tolist(),
+                    Wxsph[0:Jw[im], :K_, im].tolist()])
+        result.append(bridge)
     if owall:
         print('Get matrix file (all)')
     else:
