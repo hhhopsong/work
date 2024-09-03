@@ -77,8 +77,8 @@ if eval(input("4)是否计算长江流域极端高温日数高发期去趋势变
     del EHD_concat, eof, Modality, PC, s, slope, intercept, r_value, p_value, std_err, k, b  # 释放占用内存,优化代码性能
 if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
     key_month = 6  # 关键月份(临期月份),距离研究时段最近的前向月份
-    sst = xr.open_dataset(r"E:\data\NOAA\ERSSTv5\sst.mnmean.nc")['sst']
-    sst = sst.sel(time=slice(str(eval(data_year[0]) - 1)+'-01-01', str(eval(data_year[1]) + 1)+'-12-31'))
+    pre = xr.open_dataset(r"E:\data\NOAA\ERSSTv5\sst.mnmean.nc")['sst']
+    pre = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'))
     times = 0
     # 研究月份外时间滚动差值(不含同期!!)
     for m1 in range(0, 12):
@@ -90,13 +90,13 @@ if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
         for m2 in range(0, 12-m1):
             if m2 == 0:
                 if M_cross == 0:
-                    sst_output = sst.sel(time=slice(str(eval(data_year[0]))+'-01-01', str(eval(data_year[1]))+'-12-31'))
+                    sst_output = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
                     sst_output = sst_output.sel(time=sst_output['time.month'].isin([M]))
                     sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{M}.nc")
                     times += 1
                     del sst_output
                 elif M_cross == 1:
-                    sst_output = sst.sel(time=slice(str(eval(data_year[0]) - 1)+'-01-01', str(eval(data_year[1]) - 1)+'-12-31'))
+                    sst_output = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
                     sst_output = sst_output.sel(time=sst_output['time.month'].isin([M]))
                     sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{M}.nc")
                     times += 1
@@ -107,9 +107,9 @@ if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
                 if m <= 0:
                     m += 12
                     m_cross = 1
-                sst_forward = sst.sel(time=slice(str(eval(data_year[0]) - M_cross)+'-01-01', str(eval(data_year[1]) - M_cross)+'-12-31'))
+                sst_forward = pre.sel(time=slice(str(eval(data_year[0]) - M_cross) + '-01-01', str(eval(data_year[1]) - M_cross) + '-12-31'))
                 sst_forward = sst_forward.sel(time=sst_forward['time.month'].isin([M]))
-                sst_backfore = sst.sel(time=slice(str(eval(data_year[0]) - m_cross)+'-01-01', str(eval(data_year[1]) - m_cross)+'-12-31'))
+                sst_backfore = pre.sel(time=slice(str(eval(data_year[0]) - m_cross) + '-01-01', str(eval(data_year[1]) - m_cross) + '-12-31'))
                 sst_backfore = sst_backfore.sel(time=sst_backfore['time.month'].isin([m]))
                 sst_output = sst_forward.to_numpy() - sst_backfore.to_numpy()
                 sst_output = xr.DataArray(sst_output.data, coords=[('time', sst_forward['time.year'].data),
@@ -118,4 +118,47 @@ if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
                 sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{m}.nc")
                 times += 1
                 del sst_output, sst_forward, sst_backfore
+if eval(input("6)是否计算降水时间滚动差值(0/1)?\n")):
+    key_month = 6  # 关键月份(临期月份),距离研究时段最近的前向月份
+    pre = xr.open_dataset(r"E:\data\CRU\grid\pre\cru_ts4.08.1901.2023.pre.dat.nc")['pre']
+    pre = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'))
+    times = 0
+    # 研究月份外时间滚动差值(不含同期!!)
+    for m1 in range(0, 12):
+        M = key_month - m1  # 前向月份
+        M_cross = 0  # 前向月份跨年标志
+        if M <= 0:  # 向前跨年
+            M += 12
+            M_cross = 1
+        for m2 in range(0, 12-m1):
+            if m2 == 0:
+                if M_cross == 0:
+                    output = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+                    output = output.sel(time=output['time.month'].isin([M]))
+                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\pre_diff\pre_{times+1}_{M}_{M}.nc")
+                    times += 1
+                    del output
+                elif M_cross == 1:
+                    output = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
+                    output = output.sel(time=output['time.month'].isin([M]))
+                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\pre_diff\pre_{times+1}_{M}_{M}.nc")
+                    times += 1
+                    del output
+            else:
+                m = M - m2  # 后向月份
+                m_cross = M_cross  # 后向月份跨年标志(为何直接用=M_cross? 因为前向月份已跨年,后向月份必跨年)
+                if m <= 0:
+                    m += 12
+                    m_cross = 1
+                forward = pre.sel(time=slice(str(eval(data_year[0]) - M_cross) + '-01-01', str(eval(data_year[1]) - M_cross) + '-12-31'))
+                forward = forward.sel(time=forward['time.month'].isin([M]))
+                backfore = pre.sel(time=slice(str(eval(data_year[0]) - m_cross) + '-01-01', str(eval(data_year[1]) - m_cross) + '-12-31'))
+                backfore = backfore.sel(time=backfore['time.month'].isin([m]))
+                output = forward.to_numpy() - backfore.to_numpy()
+                output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
+                                                              ('lat', forward['lat'].data),
+                                                              ('lon', forward['lon'].data)]).to_dataset(name='sst')
+                output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\pre_diff\pre_{times+1}_{M}_{m}.nc")
+                times += 1
+                del output, forward, backfore
 print("数据处理完成")
