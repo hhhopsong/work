@@ -94,7 +94,7 @@ if __name__ == '__main__':
                 显著性检验结果 = corr_test(sen, corr, alpha=0.05)
             ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
             相关系数图层 = ax.contourf(pre_diff['lon'], pre_diff['lat'], corr, levels=lev,
-                                       cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
+                                       cmap=cmaps.WhiteBlueGreenYellowRed,
                                        extend='both',
                                        transform=ccrs.PlateCarree())
             显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
