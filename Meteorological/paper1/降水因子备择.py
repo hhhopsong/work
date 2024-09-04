@@ -70,7 +70,7 @@ if __name__ == '__main__':
     fig = plt.figure(figsize=(16, 9))  # 创建画布
     spec = gridspec.GridSpec(nrows=12, ncols=12)  # 设置子图比例
     lev = [i*.05 for i in range(-15, 16, 1)]
-    select = eval(input("选择回归方案(1OLS 2SEN):"))
+    select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     num = 0
     for x in range(11, -1, -1):
         m1 = M + x + 1
