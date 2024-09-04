@@ -243,7 +243,7 @@ if eval(input("8)是否计算2m气温时间滚动差值(0/1)?\n")):
                 forward = forward.sel(time=forward['time.month'].isin([M]))
                 backfore = pre.sel(time=slice(str(eval(data_year[0]) - m_cross) + '-01-01', str(eval(data_year[1]) - m_cross) + '-12-31'))
                 backfore = backfore.sel(time=backfore['time.month'].isin([m]))
-                output = forward.to_numpy() - backfore.to_numpy()
+                output = forward['t2m'].to_numpy() - backfore['t2m'].to_numpy()
                 output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
                                                               ('lat', forward['lat'].data),
                                                               ('lon', forward['lon'].data)]).to_dataset(name='t2m')
