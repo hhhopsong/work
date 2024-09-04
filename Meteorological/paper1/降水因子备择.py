@@ -39,7 +39,6 @@ def multi_core(num, m1, m2, ols, sen):
     print(f"第{num}个相关系数完成。")
 
 
-
 if __name__ == '__main__':
     # 数据读取
     ols = np.load(r"cache\OLS_detrended.npy")  # 读取缓存
@@ -94,7 +93,7 @@ if __name__ == '__main__':
                 corr = corr_2
                 显著性检验结果 = corr_test(sen, corr, alpha=0.05)
             ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
-            相关系数图层 = ax.contourf(pre_diff['lon'][::10], pre_diff['lat'][::10], corr[::10, ::10], levels=lev,
+            相关系数图层 = ax.contourf(pre_diff['lon'][::20], pre_diff['lat'][::20], corr[::20, ::20], levels=lev,
                                        cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
                                        extend='both',
                                        transform=ccrs.PlateCarree())
