@@ -204,4 +204,47 @@ if eval(input("7)是否计算全球降水时间滚动差值(0/1)?\n")):
                 output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\glopre_diff\pre_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
+if eval(input("8)是否计算2m气温时间滚动差值(0/1)?\n")):
+    key_month = 6  # 关键月份(临期月份),距离研究时段最近的前向月份
+    pre = xr.open_dataset(r"E:\data\ERA5\ERA5_singleLev\ERA5_sgLEv.nc")['2mT']
+    pre = pre.sel(date=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'))
+    times = 0
+    # 研究月份外时间滚动差值(不含同期!!)
+    for m1 in range(0, 12):
+        M = key_month - m1  # 前向月份
+        M_cross = 0  # 前向月份跨年标志
+        if M <= 0:  # 向前跨年
+            M += 12
+            M_cross = 1
+        for m2 in range(0, 12-m1):
+            if m2 == 0:
+                if M_cross == 0:
+                    output = pre.sel(date=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+                    output = output.sel(date=output['time.month'].isin([M]))
+                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{M}.nc")
+                    times += 1
+                    del output
+                elif M_cross == 1:
+                    output = pre.sel(date=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
+                    output = output.sel(date=output['time.month'].isin([M]))
+                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{M}.nc")
+                    times += 1
+                    del output
+            else:
+                m = M - m2  # 后向月份
+                m_cross = M_cross  # 后向月份跨年标志(为何直接用=M_cross? 因为前向月份已跨年,后向月份必跨年)
+                if m <= 0:
+                    m += 12
+                    m_cross = 1
+                forward = pre.sel(date=slice(str(eval(data_year[0]) - M_cross) + '-01-01', str(eval(data_year[1]) - M_cross) + '-12-31'))
+                forward = forward.sel(date=forward['time.month'].isin([M]))
+                backfore = pre.sel(date=slice(str(eval(data_year[0]) - m_cross) + '-01-01', str(eval(data_year[1]) - m_cross) + '-12-31'))
+                backfore = backfore.sel(date=backfore['time.month'].isin([m]))
+                output = forward.to_numpy() - backfore.to_numpy()
+                output = xr.DataArray(output.data, coords=[('date', forward['time.year'].data),
+                                                              ('lat', forward['lat'].data),
+                                                              ('lon', forward['lon'].data)]).to_dataset(name='precip')
+                output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{m}.nc")
+                times += 1
+                del output, forward, backfore
 print("数据处理完成")
