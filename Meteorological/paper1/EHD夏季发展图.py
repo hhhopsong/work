@@ -118,5 +118,5 @@ plt.xlabel('Daily average')
 
 # 保存为1:1
 plt.gcf().set_size_inches(10, 10)
-plt.savefig(r'C:\Users\10574\desktop\图3.png', dpi=1500, bbox_inches='tight')
+plt.savefig(r'C:\Users\10574\desktop\pic\图3.png', dpi=1500, bbox_inches='tight')
 plt.show()

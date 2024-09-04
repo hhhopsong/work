@@ -105,5 +105,5 @@ if __name__ == '__main__':
             ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
             draw_maps(get_adm_maps(level='国'), linewidth=0.15)
 
-    plt.savefig(fr"C:\Users\10574\Desktop\pre_corr{select}.png", dpi=2000, bbox_inches='tight')
+    plt.savefig(fr"C:\Users\10574\Desktop\pic\pre_corr{select}.png", dpi=2000, bbox_inches='tight')
     plt.show()

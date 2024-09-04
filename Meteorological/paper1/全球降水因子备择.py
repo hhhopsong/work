@@ -70,7 +70,7 @@ if __name__ == '__main__':
     plt.rcParams['axes.unicode_minus'] = False
     fig = plt.figure(figsize=(16, 9))  # 创建画布
     spec = gridspec.GridSpec(nrows=12, ncols=12)  # 设置子图比例
-    lev = [i*.05 for i in range(-15, 16, 1)]
+    lev = [-.8, -.6, -.4, -.2, .2, .4, .6, .8]
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     num = 0
     draw_pool = []
@@ -105,5 +105,5 @@ if __name__ == '__main__':
             ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
             draw_maps(get_adm_maps(level='国'), linewidth=0.15)
 
-    plt.savefig(fr"C:\Users\10574\Desktop\glopre_corr{select}.png", dpi=2000, bbox_inches='tight')
+    plt.savefig(fr"C:\Users\10574\Desktop\pic\glopre_corr{select}.png", dpi=2000, bbox_inches='tight')
     plt.show()

@@ -122,5 +122,5 @@ ax1_pc_reg.spines['left'].set_visible(False)  # 显示左边框
 #  pd.Series(PC[:, 0]).autocorr(2)  自相关计算=0.26
 
 
-plt.savefig(r'C:\Users\10574\desktop\EHD高发期EOF.png', dpi=1500, bbox_inches='tight')
+plt.savefig(r'C:\Users\10574\desktop\pic\EHD高发期EOF.png', dpi=1500, bbox_inches='tight')
 plt.show()
