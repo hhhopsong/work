@@ -25,7 +25,7 @@ import multiprocessing
 # 多核计算部分函数
 def multi_core(num, m1, m2, ols, sen):
     print(f"第{num}个相关系数计算中...")
-    pre_diff = xr.open_dataset(fr"cache\2mT\diff\2mT_{num}_{m1}_{m2}.nc")['precip'].transpose('lat', 'lon', 'date')  # 读取缓存
+    pre_diff = xr.open_dataset(fr"cache\2mT\diff\2mT_{num}_{m1}_{m2}.nc")['precip'].transpose('lat', 'lon', 'time')  # 读取缓存
     try:
         corr_1 = np.load(fr"cache\2mT\corr1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
     except:
@@ -83,7 +83,7 @@ if __name__ == '__main__':
             m2 = M - y
             if m2 <= 0:
                 m2 += 12
-            pre_diff = xr.open_dataset(fr"cache\2mT\diff\2mT_{num}_{m1}_{m2}.nc")['t2m'].transpose('lat', 'lon', 'date')
+            pre_diff = xr.open_dataset(fr"cache\2mT\diff\2mT_{num}_{m1}_{m2}.nc")['t2m'].transpose('lat', 'lon', 'time')
             corr_1 = np.load(fr"cache\2mT\corr1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
             corr_2 = np.load(fr"cache\2mT\corr2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
             if select == 1:
