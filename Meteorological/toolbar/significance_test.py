@@ -19,7 +19,7 @@ def ols_test(pc, data, alpha=0.05):
     # 进行显著性检验
     test_results = np.zeros(data.shape)
     test_results.fill(np.nan)
-    test_results[np.abs(t_value.to_numpy()) > t_critical] = 1
+    test_results[np.abs(t_value.to_numpy()) >= t_critical] = 1
     return test_results
 
 
@@ -36,5 +36,5 @@ def corr_test(pc, data, alpha=0.05):
     # 进行显著性检验
     test_results = np.zeros(data.shape)
     test_results.fill(np.nan)
-    test_results[np.abs(data) > r_critical] = 1
+    test_results[np.abs(data) >= r_critical] = 1
     return test_results

@@ -93,7 +93,7 @@ if __name__ == '__main__':
                 corr = corr_2
                 显著性检验结果 = corr_test(sen, corr, alpha=0.05)
             ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
-            相关系数图层 = ax.contourf(pre_diff['lon'][::20], pre_diff['lat'][::20], corr[::20, ::20], levels=lev,
+            相关系数图层 = ax.contourf(pre_diff['lon'], pre_diff['lat'], corr, levels=lev,
                                        cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
                                        extend='both',
                                        transform=ccrs.PlateCarree())
