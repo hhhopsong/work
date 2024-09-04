@@ -208,6 +208,9 @@ if eval(input("8)是否计算2m气温时间滚动差值(0/1)?\n")):
     key_month = 6  # 关键月份(临期月份),距离研究时段最近的前向月份
     pre = xr.open_dataset(r"E:\data\ERA5\ERA5_singleLev\ERA5_sgLEv.nc")['t2m']
     pre = pre.sel(date=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'))
+    pre = xr.DataArray(pre.data, coords=[('time', pd.to_datetime(pre['date'], format="%Y%m%d")),
+                                            ('lat', pre['latitude'].data),
+                                            ('lon', pre['longitude'].data)]).to_dataset(name='t2m')
     times = 0
     # 研究月份外时间滚动差值(不含同期!!)
     for m1 in range(0, 12):
@@ -219,14 +222,14 @@ if eval(input("8)是否计算2m气温时间滚动差值(0/1)?\n")):
         for m2 in range(0, 12-m1):
             if m2 == 0:
                 if M_cross == 0:
-                    output = pre.sel(date=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
-                    output = output.sel(date=output['date.month'].isin([M]))
+                    output = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+                    output = output.sel(time=output['time.month'].isin([M]))
                     output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
                 elif M_cross == 1:
-                    output = pre.sel(date=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
-                    output = output.sel(date=output['date.month'].isin([M]))
+                    output = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
+                    output = output.sel(time=output['time.month'].isin([M]))
                     output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
@@ -236,14 +239,14 @@ if eval(input("8)是否计算2m气温时间滚动差值(0/1)?\n")):
                 if m <= 0:
                     m += 12
                     m_cross = 1
-                forward = pre.sel(date=slice(str(eval(data_year[0]) - M_cross) + '-01-01', str(eval(data_year[1]) - M_cross) + '-12-31'))
-                forward = forward.sel(date=forward['date.month'].isin([M]))
-                backfore = pre.sel(date=slice(str(eval(data_year[0]) - m_cross) + '-01-01', str(eval(data_year[1]) - m_cross) + '-12-31'))
-                backfore = backfore.sel(date=backfore['date.month'].isin([m]))
+                forward = pre.sel(time=slice(str(eval(data_year[0]) - M_cross) + '-01-01', str(eval(data_year[1]) - M_cross) + '-12-31'))
+                forward = forward.sel(time=forward['time.month'].isin([M]))
+                backfore = pre.sel(time=slice(str(eval(data_year[0]) - m_cross) + '-01-01', str(eval(data_year[1]) - m_cross) + '-12-31'))
+                backfore = backfore.sel(time=backfore['time.month'].isin([m]))
                 output = forward.to_numpy() - backfore.to_numpy()
-                output = xr.DataArray(output.data, coords=[('date', forward['date.year'].data),
+                output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
                                                               ('lat', forward['lat'].data),
-                                                              ('lon', forward['lon'].data)]).to_dataset(name='precip')
+                                                              ('lon', forward['lon'].data)]).to_dataset(name='t2m')
                 output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
