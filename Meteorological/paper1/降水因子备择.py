@@ -38,6 +38,32 @@ def multi_core(num, m1, m2, ols, sen):
         np.save(fr"cache\corr_pre_2\corr_{num}_{m1}_{m2}.npy", corr_2)
     print(f"第{num}个相关系数完成。")
 
+
+# 绘图部分函数
+def draw(x, y, num, m1, m2, select, fig, spec, lev, ols, sen):
+    print(f"第{num}个图层绘制中...")
+    pre_diff = xr.open_dataset(fr"cache\pre_diff\pre_{num}_{m1}_{m2}.nc")['pre'].transpose('lat', 'lon', 'time')
+    corr_1 = np.load(fr"cache\corr_pre_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+    corr_2 = np.load(fr"cache\corr_pre_2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+    if select == 1:
+        corr = corr_1
+        显著性检验结果 = corr_test(ols, corr, alpha=0.05)
+    elif select == 2:
+        corr = corr_2
+        显著性检验结果 = corr_test(sen, corr, alpha=0.05)
+    ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
+    相关系数图层 = ax.contourf(pre_diff['lon'], pre_diff['lat'], corr, levels=lev,
+                               cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96], extend='both',
+                               transform=ccrs.PlateCarree())
+    显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
+    显著性检验图层 = ax.quiver(pre_diff['lon'], pre_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+                               color='black', headlength=2, headaxislength=2,
+                               transform=ccrs.PlateCarree(central_longitude=0))
+    ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
+    ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+    draw_maps(get_adm_maps(level='国'), linewidth=0.15)
+    print(f"第{num}个图层绘制完成。")
+
 if __name__ == '__main__':
     # 数据读取
     ols = np.load(r"cache\OLS_detrended.npy")  # 读取缓存
@@ -72,31 +98,21 @@ if __name__ == '__main__':
     lev = [i*.05 for i in range(-15, 16, 1)]
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     num = 0
+    draw_pool = []
     for x in range(11, -1, -1):
         m1 = M + x + 1
         if m1 > 12:
             m1 -= 12
-        for y in tqdm.trange(11 - x, 12):
+        for y in range(11 - x, 12):
             num += 1
             m2 = M - y
             if m2 <= 0:
                 m2 += 12
-            pre_diff = xr.open_dataset(fr"cache\pre_diff\pre_{num}_{m1}_{m2}.nc")['pre'].transpose('lat', 'lon', 'time')
-            corr_1 = np.load(fr"cache\corr_pre_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
-            corr_2 = np.load(fr"cache\corr_pre_2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
-            if select == 1:
-                corr = corr_1
-                显著性检验结果 = corr_test(ols, corr, alpha=0.05)
-            elif select == 2:
-                corr = corr_2
-                显著性检验结果 = corr_test(sen, corr, alpha=0.05)
-            ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
-            相关系数图层 = ax.contourf(pre_diff['lon'], pre_diff['lat'], corr, levels=lev, cmap=cmaps.MPL_RdYlGn[32:56]+cmaps.CBR_wet[0]+cmaps.MPL_RdYlGn[72:96], extend='both', transform=ccrs.PlateCarree())
-            显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
-            显著性检验图层 = ax.quiver(pre_diff['lon'], pre_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20, color='black', headlength=2, headaxislength=2, transform=ccrs.PlateCarree(central_longitude=0))
-            ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
-            ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
-            draw_maps(get_adm_maps(level='国'), linewidth=0.15)
+            draw_pool.append([x, y, num, m1, m2, select, fig, spec, lev, ols, sen])
+    p = multiprocessing.Pool()
+    p.starmap(draw, draw_pool)
+    p.close()
+    p.join()
 
     plt.savefig(fr"C:\Users\10574\Desktop\pre_corr{select}.png", dpi=2000, bbox_inches='tight')
     plt.show()
