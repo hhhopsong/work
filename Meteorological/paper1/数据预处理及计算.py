@@ -200,7 +200,7 @@ if eval(input("7)是否计算全球降水时间滚动差值(0/1)?\n")):
                 output = forward.to_numpy() - backfore.to_numpy()
                 output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
                                                               ('lat', forward['lat'].data),
-                                                              ('lon', forward['lon'].data)]).to_dataset(name='pre')
+                                                              ('lon', forward['lon'].data)]).to_dataset(name='precip')
                 output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\glopre_diff\pre_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
