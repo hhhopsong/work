@@ -23,18 +23,18 @@ import multiprocessing
 
 
 # 多核计算部分函数
-def multi_core(num, m1, m2, ols, sen):
+def multi_core(num, m1, m2, ols, sen, regrid):
     print(f"第{num}个相关系数计算中...")
     pre_diff = xr.open_dataset(fr"cache\2mT\diff\2mT_{num}_{m1}_{m2}.nc")['t2m'].transpose('lat', 'lon', 'time')  # 读取缓存
     try:
         corr_1 = np.load(fr"cache\2mT\corr1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
     except:
-        corr_1 = np.array([[np.corrcoef(ols, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
+        corr_1 = np.array([[np.corrcoef(ols, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon'][::regrid]] for ilat in pre_diff['lat'][::regrid]])
         np.save(fr"cache\2mT\corr1\corr_{num}_{m1}_{m2}.npy", corr_1)  # 保存缓存
     try:
         corr_2 = np.load(fr"cache\2mT\corr2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
     except:
-        corr_2 = np.array([[np.corrcoef(sen, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
+        corr_2 = np.array([[np.corrcoef(sen, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon'][::regrid]] for ilat in pre_diff['lat'][::regrid]])
         np.save(fr"cache\2mT\corr2\corr_{num}_{m1}_{m2}.npy", corr_2)
     print(f"第{num}个相关系数完成。")
 
@@ -47,6 +47,7 @@ if __name__ == '__main__':
     M = 6  # 临界月
     Ncpu = multiprocessing.cpu_count()
     data_pool = []
+    regrid = 3
     # 多核计算
     for x in range(11, -1, -1):
         m1 = M + x + 1
@@ -57,7 +58,7 @@ if __name__ == '__main__':
             m2 = M - y
             if m2 <= 0:
                 m2 += 12
-            data_pool.append([num, m1, m2, ols, sen])
+            data_pool.append([num, m1, m2, ols, sen, regrid])
 
     p = multiprocessing.Pool()
     p.starmap(multi_core, data_pool)
@@ -93,12 +94,12 @@ if __name__ == '__main__':
                 corr = corr_2
                 显著性检验结果 = corr_test(sen, corr, alpha=0.05)
             ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
-            相关系数图层 = ax.contourf(pre_diff['lon'], pre_diff['lat'], corr, levels=lev,
+            相关系数图层 = ax.contourf(pre_diff['lon'][::regrid], pre_diff['lat'][::regrid], corr, levels=lev,
                                        cmap=cmaps.WhiteBlueGreenYellowRed,
                                        extend='both',
                                        transform=ccrs.PlateCarree())
             显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
-            显著性检验图层 = ax.quiver(pre_diff['lon'], pre_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+            显著性检验图层 = ax.quiver(pre_diff['lon'][::regrid], pre_diff['lat'][::regrid], 显著性检验结果, 显著性检验结果, scale=20,
                                        color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                        transform=ccrs.PlateCarree(central_longitude=0))
             ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
