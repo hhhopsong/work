@@ -71,7 +71,7 @@ if __name__ == '__main__':
     plt.rcParams['axes.unicode_minus'] = False
     fig = plt.figure(figsize=(16, 9))  # 创建画布
     spec = gridspec.GridSpec(nrows=12, ncols=12)  # 设置子图比例
-    lev = [-.8, -.6, -.4, -.2, .2, .4, .6, .8]
+    lev = 15
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     num = 0
     draw_pool = []
