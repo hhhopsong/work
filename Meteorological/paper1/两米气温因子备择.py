@@ -71,7 +71,7 @@ if __name__ == '__main__':
     plt.rcParams['axes.unicode_minus'] = False
     fig = plt.figure(figsize=(16, 9))  # 创建画布
     spec = gridspec.GridSpec(nrows=12, ncols=12)  # 设置子图比例
-    lev = 15
+    lev = [-.25, -.2, -.15, -.1, -.05, .05, .1, .15, .2, .25]
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     num = 0
     draw_pool = []
@@ -95,7 +95,7 @@ if __name__ == '__main__':
                 显著性检验结果 = corr_test(sen, corr, alpha=0.05)
             ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
             相关系数图层 = ax.contourf(pre_diff['lon'][::regrid], pre_diff['lat'][::regrid], corr, levels=lev,
-                                       cmap=cmaps.WhiteBlueGreenYellowRed,
+                                       cmap=cmaps.GMT_polar[4:10]+cmaps.CBR_wet[0]+cmaps.GMT_polar[10:16],
                                        extend='both',
                                        transform=ccrs.PlateCarree())
             显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
