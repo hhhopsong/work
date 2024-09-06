@@ -12,12 +12,22 @@ from eofs.standard import Eof
 from matplotlib import ticker
 import cmaps
 from matplotlib.ticker import MultipleLocator
+from pyparsing.diagram import template
+
 from toolbar.masked import masked   # 气象工具函数
 import pandas as pd
 import tqdm
 import seaborn as sns
-
+import requests
 from toolbar.pre_whitening import ws2001
+
+
+def send_wechat(msg):
+    token = '66c20c5453fb4220b203126b4ed1a388'
+    title = '运算进度通知'
+    content = msg
+    template = 'html'
+    url = f"https://www.pushplus.plus/send?token={token}&title={title}&content={content}&template={template}"
 
 # 数据读取
 data_year = ['1979', '2022']
@@ -301,5 +311,6 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
                 output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
+    send_wechat(f'各气压层{var_name}时间滚动差值计算完成')
 
 print("数据处理完成")
