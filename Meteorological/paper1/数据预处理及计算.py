@@ -12,8 +12,6 @@ from eofs.standard import Eof
 from matplotlib import ticker
 import cmaps
 from matplotlib.ticker import MultipleLocator
-from pyparsing.diagram import template
-
 from toolbar.masked import masked   # 气象工具函数
 import pandas as pd
 import tqdm
