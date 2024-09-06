@@ -20,6 +20,7 @@
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/TN_WaveActivityFlux.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/masked.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/pre_whitening.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/send_wechat.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/significance_test.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/sub_adjust.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../PyQT6/Application/数据预处理/DataUrl.txt" charset="UTF-8" />
