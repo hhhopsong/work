@@ -258,8 +258,9 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
         pressure_level=[200, 500, 600, 700, 850],
         latitude=[90 - i*0.5 for i in range(361)], longitude=[i*0.5 for i in range(720)])[var_name]
     pre = xr.DataArray(pre.data, coords=[('time', pd.to_datetime(pre['date'], format="%Y%m%d")),
-                                            ('lat', pre['latitude'].data),
-                                            ('lon', pre['longitude'].data)]).to_dataset(name=var_name)
+                                         ('p', pre['pressure_level'].data),
+                                         ('lat', pre['latitude'].data),
+                                         ('lon', pre['longitude'].data)]).to_dataset(name=var_name)
     times = 0
     # 研究月份外时间滚动差值(不含同期!!)
     for m1 in range(0, 12):
@@ -294,8 +295,9 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
                 backfore = backfore.sel(time=backfore['time.month'].isin([m]))
                 output = forward[var_name].to_numpy() - backfore[var_name].to_numpy()
                 output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
-                                                              ('lat', forward['lat'].data),
-                                                              ('lon', forward['lon'].data)]).to_dataset(name=var_name)
+                                                           ('p', pre['pressure_level'].data),
+                                                           ('lat', forward['lat'].data),
+                                                           ('lon', forward['lon'].data)]).to_dataset(name=var_name)
                 output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
