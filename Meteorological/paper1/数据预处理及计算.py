@@ -295,7 +295,7 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
                 backfore = backfore.sel(time=backfore['time.month'].isin([m]))
                 output = forward[var_name].to_numpy() - backfore[var_name].to_numpy()
                 output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
-                                                           ('p', pre['pressure_level'].data),
+                                                           ('p', pre['p'].data),
                                                            ('lat', forward['lat'].data),
                                                            ('lon', forward['lon'].data)]).to_dataset(name=var_name)
                 output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_{times+1}_{M}_{m}.nc")
