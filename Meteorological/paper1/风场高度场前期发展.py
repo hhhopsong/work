@@ -45,70 +45,97 @@ if __name__ == '__main__':
     sen = np.load(r"cache\SEN_detrended.npy")  # 读取缓存
     M = 6  # 临界月
     # 多核计算
-    Ncpu = multiprocessing.cpu_count() - 1  # 保留一个闲置线程, 防止电脑卡死
-    data_pool = []
-    for p in [200, 500, 600, 700, 850]:
-        for var in ['u', 'v', 'z']:
-            num = 0
-            for x in range(11, -1, -1):
-                m1 = M + x + 1
-                if m1 > 12:
-                    m1 -= 12
-                for y in range(11 - x, 12):
-                    num += 1
-                    m2 = M - y
-                    if m2 <= 0:
-                        m2 += 12
-                    if m1 == m2:
-                        data_pool.append([num, m1, m2, var, p, ols, sen])
+    if eval(input("是否进行相关系数计算(0/1):")):
+        Ncpu = multiprocessing.cpu_count()  # 保留一个核心, 防止电脑卡死
+        data_pool = []
+        for p in [200, 500, 600, 700, 850]:
+            for var in ['u', 'v', 'z']:
+                num = 0
+                for x in range(11, -1, -1):
+                    m1 = M + x + 1
+                    if m1 > 12:
+                        m1 -= 12
+                    for y in range(11 - x, 12):
+                        num += 1
+                        m2 = M - y
+                        if m2 <= 0:
+                            m2 += 12
+                        if m1 == m2:
+                            data_pool.append([num, m1, m2, var, p, ols, sen])
 
-    p = multiprocessing.Pool()
-    p.starmap(multi_core, data_pool)
-    p.close()
-    p.join()
+        p = multiprocessing.Pool()
+        p.starmap(multi_core, data_pool)
+        p.close()
+        p.join()
+        del data_pool
 
-r'''
     # 绘图
     # ##地图要素设置
     plt.rcParams['font.sans-serif'] = ['Arial']
     plt.rcParams['axes.unicode_minus'] = False
     fig = plt.figure(figsize=(16, 9))  # 创建画布
-    spec = gridspec.GridSpec(nrows=12, ncols=12)  # 设置子图比例
-    lev = [i*.05 for i in range(-15, 16, 1)]
+    lev = 15
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     num = 0
-    draw_pool = []
-    for x in range(11, -1, -1):
-        m1 = M + x + 1
-        if m1 > 12:
-            m1 -= 12
-        for y in tqdm.trange(11 - x, 12):
-            num += 1
-            m2 = M - y
-            if m2 <= 0:
-                m2 += 12
-            pre_diff = xr.open_dataset(fr"cache\pre_diff\pre_{num}_{m1}_{m2}.nc")['pre'].transpose('lat', 'lon', 'time')
-            corr_1 = np.load(fr"cache\corr_pre_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
-            corr_2 = np.load(fr"cache\corr_pre_2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
-            if select == 1:
-                corr = corr_1
-                显著性检验结果 = corr_test(ols, corr, alpha=0.05)
-            elif select == 2:
-                corr = corr_2
-                显著性检验结果 = corr_test(sen, corr, alpha=0.05)
-            ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
-            相关系数图层 = ax.contourf(pre_diff['lon'], pre_diff['lat'], corr, levels=lev,
-                                       cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
-                                       extend='both',
-                                       transform=ccrs.PlateCarree())
-            显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
-            显著性检验图层 = ax.quiver(pre_diff['lon'], pre_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
-                                       color='black', headlength=2, headaxislength=2, regrid_shape=60,
-                                       transform=ccrs.PlateCarree(central_longitude=0))
-            ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
-            ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
-            draw_maps(get_adm_maps(level='国'), linewidth=0.15)
+    p = [200, 500, 600, 700, 850]
+    time = [6]
+    spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
+    date_pool = []
+    for date in time:
+        for x in range(11, -1, -1):
+            m1 = M + x + 1
+            if m1 > 12:
+                m1 -= 12
+            for y in range(11 - x, 12):
+                num += 1
+                m2 = M - y
+                if m2 <= 0:
+                    m2 += 12
+                if m1 == m2:
+                    if m1 == date:
+                        date_pool.append([num, m1, m2]) # 保存文件名称索引
+                        break
+    col = -1
+    for date in date_pool:
+        num, m1, m2 = date
+        col += 1
+        for p in [200, 500, 600, 700, 850]:
+            u_diff = xr.open_dataset(fr"cache\uvz\u\diff\u_{num}_{m1}_{m2}.nc")['u'].sel(p=p).transpose('lat', 'lon', 'time')
+            u_corr_1 = np.load(fr"cache\uvz\u\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+            u_corr_2 = np.load(fr"cache\uvz\u\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+            v_diff = xr.open_dataset(fr"cache\uvz\v\diff\v_{num}_{m1}_{m2}.nc")['v'].sel(p=p).transpose('lat', 'lon', 'time')
+            v_corr_1 = np.load(fr"cache\uvz\v\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+            v_corr_2 = np.load(fr"cache\uvz\v\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+            z_diff = xr.open_dataset(fr"cache\uvz\z\diff\z_{num}_{m1}_{m2}.nc")['z'].sel(p=p).transpose('lat', 'lon', 'time')
+            z_corr_1 = np.load(fr"cache\uvz\z\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+            z_corr_2 = np.load(fr"cache\uvz\z\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+            if p == 200:
+                if select == 1:
+                    u_corr = u_corr_1
+                    v_corr = v_corr_1
+                    z_corr = z_corr_1
+                    u显著性检验结果 = corr_test(ols, u_corr, alpha=0.05)
+                    v显著性检验结果 = corr_test(ols, v_corr, alpha=0.05)
+                    z显著性检验结果 = corr_test(ols, z_corr, alpha=0.05)
+                elif select == 2:
+                    u_corr = u_corr_2
+                    v_corr = v_corr_2
+                    z_corr = z_corr_2
+                    u显著性检验结果 = corr_test(sen, corr, alpha=0.05)
+                    v显著性检验结果 = corr_test(sen, corr, alpha=0.05)
+                    z显著性检验结果 = corr_test(sen, corr, alpha=0.05)
+                ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
+                相关系数图层 = ax.contourf(z_diff['lon'], z_diff['lat'], z_corr, levels=lev,
+                                           cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
+                                           extend='both',
+                                           transform=ccrs.PlateCarree())
+                显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
+                显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], z显著性检验结果, z显著性检验结果, scale=20,
+                                           color='black', headlength=2, headaxislength=2, regrid_shape=60,
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
+                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                draw_maps(get_adm_maps(level='国'), linewidth=0.15)
 
-    plt.savefig(fr"C:\Users\10574\Desktop\pic\pre_corr{select}.png", dpi=2000, bbox_inches='tight')
+    plt.savefig(fr"C:\Users\10574\Desktop\pic\uvz_corr{select}.png", dpi=2000, bbox_inches='tight')
     plt.show()
-'''
