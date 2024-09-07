@@ -155,7 +155,7 @@ def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.a
         return fx, fy
 
 
-def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5):
+def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
     """
     计算的是三维的TN波作用通量, 请注意输入的数据格式为DataArray,代码参考了下列样例,并做了勘误。\n
     https://www.bilibili.com/read/cv15633261/?spm_id_from=333.999.collection.opus.click
@@ -280,7 +280,13 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5):
         )
 
     ### 返回结果
-    if not data_shape[0]==1:
-        return Fx, Fy, Fz
+    if return_streamf:
+        if not data_shape[0]==1:
+            return Fx, Fy, Fz, PSIa
+        else:
+            return Fx, Fy, PSIa
     else:
-        return Fx, Fy
+        if not data_shape[0]==1:
+            return Fx, Fy, Fz
+        else:
+            return Fx, Fy

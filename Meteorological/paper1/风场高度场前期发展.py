@@ -4,6 +4,7 @@ import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter  # 专门提供经纬度的
 import numpy as np
+from scipy.ndimage import filters
 import pymannkendall as mk
 import xarray as xr
 import matplotlib.pyplot as plt
@@ -155,15 +156,15 @@ if __name__ == '__main__':
                 waf_x, waf_y = TN_WAF_3D(Geoc, Uc, Vc, GEOa)
                 ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
                 相关系数图层 = ax.contourf(z_diff['lon'], z_diff['lat'], z_corr, levels=lev,
-                                           cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
+                                           cmap=cmaps.MPL_PuOr_r[:54] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[73:],
                                            extend='both',
                                            transform=ccrs.PlateCarree())
                 显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
                 显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf_x[0], waf_y[0], scale=20,
-                                           color='black', headlength=2, headaxislength=2, regrid_shape=60,
+                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], filters.gaussian_filter(waf_x[0], 1), filters.gaussian_filter(waf_y[0], 1), scale=20,
+                                           color='black', headlength=2, headaxislength=2, regrid_shape=40,
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(WAF图层, X=0.946, Y=1.03, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
                               labelpos='N', color='black', labelcolor='k',
