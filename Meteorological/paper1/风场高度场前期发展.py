@@ -12,6 +12,8 @@ import matplotlib.transforms as mtransforms
 from matplotlib import ticker
 from matplotlib.ticker import MultipleLocator, FixedLocator
 from matplotlib import gridspec
+import matplotlib.path as mpath
+import matplotlib.patheffects as path_effects
 import matplotlib.colors as colors
 from cnmaps import get_adm_maps, draw_maps
 import cmaps
@@ -108,6 +110,9 @@ if __name__ == '__main__':
     for date in date_pool:
         num, m1, m2 = date
         col += 1
+        x = 0.92
+        y = 1.04
+        title_size = 8
         for p in [200, 500, 600, 700, 850]:
             u_diff = xr.open_dataset(fr"cache\uvz\u\diff\u_{num}_{m1}_{m2}.nc")['u'].sel(p=p).transpose('lat', 'lon', 'time')
             u_corr_1 = np.load(fr"cache\uvz\u\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
@@ -153,25 +158,223 @@ if __name__ == '__main__':
                                     coords=[('level', [200]),
                                             ('lat', z_diff['lat'].data),
                                             ('lon', z_diff['lon'].data)])
-                waf_x, waf_y = TN_WAF_3D(Geoc, Uc, Vc, GEOa)
-                ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
-                相关系数图层 = ax.contourf(z_diff['lon'], z_diff['lat'], z_corr, levels=lev,
-                                           cmap=cmaps.MPL_PuOr_r[:54] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[73:],
+                waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0)
+                ax = fig.add_subplot(spec[0, col], projection=ccrs.NorthPolarStereo(central_longitude=90))
+                streamf图层 = ax.contourf(z_diff['lon'], z_diff['lat'], waf_streamf[0]*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
+                                           cmap=cmaps.MPL_PuOr_r,
                                            extend='both',
-                                           transform=ccrs.PlateCarree())
-                显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                '''显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
                 显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
+                                           transform=ccrs.PlateCarree(central_longitude=0))'''
+                waf_x = filters.gaussian_filter(waf_x[0], 3)
+                waf_y = filters.gaussian_filter(waf_y[0], 3)
+                waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, np.nan)
+                waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, np.nan)
+                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf_x, waf_y, scale=3,
+                                           color='black', regrid_shape=150,pivot='mid',width=0.005,headwidth=3,zorder=6,
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], filters.gaussian_filter(waf_x[0], 1), filters.gaussian_filter(waf_y[0], 1), scale=20,
-                                           color='black', headlength=2, headaxislength=2, regrid_shape=40,
-                                           transform=ccrs.PlateCarree(central_longitude=0))
-                ax.quiverkey(WAF图层, X=0.946, Y=1.03, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
-                              labelpos='N', color='black', labelcolor='k',
-                              linewidth=0.8)  # linewidth=1为箭头的大小
-                ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
+                # 为箭头添加白边，好看一些
+                WAF图层.set_path_effects([path_effects.PathPatchEffect(edgecolor='w', facecolor='k', linewidth=0.1)])
+                ax.quiverkey(WAF图层, X=0.05, Y=1.03, U=0.25, angle=225, label='0.25 m$^2$/s$^2$',
+                              labelpos='N', color='black', labelcolor='k', linewidth=0.3, fontproperties={'size': 5})  # linewidth=1为箭头的大小
+                ax.set_extent([-180, 180, 20, 90], crs=ccrs.PlateCarree(central_longitude=180))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
-                draw_maps(get_adm_maps(level='国'), linewidth=0.15)
+                ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                                  ccrs.PlateCarree(central_longitude=0), facecolor='none',edgecolor='black',linewidth=.2)
+
+                grid_lon = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=.2, color='grey',
+                                         linestyle='--')
+                grid_lon.xlocator = FixedLocator(np.linspace(-180, 180, 13))
+                grid_lon.ylocator = FixedLocator([30, 60])
+                grid_lon.xlabel_style = {'size': 5}
+                grid_lon.ylabel_style = {'size': 1}
+
+                theta = np.linspace(0, 2 * np.pi, 100)
+                center, radius = [0.5, 0.5], 0.5
+                verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+                circle = mpath.Path(verts * radius + center)
+                ax.set_boundary(circle, transform=ax.transAxes)
+                # 设置色标
+                cbar = plt.colorbar(streamf图层, orientation='vertical', drawedges=True)
+                cbar.Location = 'eastoutside'
+                cbar.locator = ticker.FixedLocator([-2.5, -2, -1.5, -1, -0.5, -.25, .25, 0.5, 1, 1.5, 2, 2.5])
+                #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
+                cbar.ax.tick_params(length=0)  # 设置色标刻度长度
+                cbar.ax.tick_params(labelsize=4)
+                cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
+                cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
+            if p == 500:
+                lev = [-.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, .05, .1, .15, .2, .25, .3, .35, .4]
+                if select == 1:
+                    u_corr = u_corr_1
+                    v_corr = v_corr_1
+                    z_corr = z_corr_1
+                    u显著性检验结果 = corr_test(ols, u_corr, alpha=0.10)
+                    v显著性检验结果 = corr_test(ols, v_corr, alpha=0.10)
+                    z显著性检验结果 = corr_test(ols, z_corr, alpha=0.10)
+                    pc = ols
+                else:
+                    u_corr = u_corr_2
+                    v_corr = v_corr_2
+                    z_corr = z_corr_2
+                    u显著性检验结果 = corr_test(sen, u_corr, alpha=0.10)
+                    v显著性检验结果 = corr_test(sen, v_corr, alpha=0.10)
+                    z显著性检验结果 = corr_test(sen, z_corr, alpha=0.10)
+                    pc = sen
+                ax = fig.add_subplot(spec[1, col], projection=ccrs.PlateCarree(central_longitude=180))
+                ax.set_title('500hPa UVZ', fontsize=title_size, loc='left')
+                相关系数图层 = ax.contourf(z_diff['lon'], z_diff['lat'], z_corr, levels=lev,
+                                           cmap=cmaps.GMT_polar,
+                                           extend='both',
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
+                显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+                                           color='white', headlength=2, headaxislength=2, regrid_shape=60,
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                uv显著性检验结果 = np.where(np.where(u显著性检验结果 == 1, 1, 0) + np.where(v显著性检验结果 == 1, 1, 0) >= 1, 1, np.nan)
+                u_np = np.where(uv显著性检验结果 != 1, u_corr, np.nan)
+                v_np = np.where(uv显著性检验结果 != 1, v_corr, np.nan)
+                u_np = np.where(u_np**2 + v_np**2 >= 0.15**2, u_np, np.nan)
+                v_np = np.where(u_np**2 + v_np**2 >= 0.15**2, v_np, np.nan)
+                u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
+                v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
+                uv = ax.quiver(z_diff['lon'], z_diff['lat'], u_corr, v_corr, scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                uv_np = ax.quiver(z_diff['lon'], z_diff['lat'], u_np, v_np, color='gray', scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
+                ax.set_extent([0, 292.5, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
+                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+                # 设置色标
+                cbar = plt.colorbar(相关系数图层, orientation='vertical', drawedges=True)
+                cbar.Location = 'eastoutside'
+                cbar.locator = ticker.FixedLocator([-.4, -.3, -.2, -.1, .1, .2, .3, .4])
+                #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
+                cbar.ax.tick_params(length=0)  # 设置色标刻度长度
+                cbar.ax.tick_params(labelsize=4)
+                cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
+                cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
+            if p == 700:
+                lev = [-.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, .05, .1, .15, .2, .25, .3, .35, .4]
+                level_z = [-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4]
+                if select == 1:
+                    u_corr = u_corr_1
+                    v_corr = v_corr_1
+                    z_corr = z_corr_1
+                    sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_{num}_{m1}_{m2}.nc")['sst'].transpose('lat', 'lon', 'time')
+                    sst_corr = np.load(fr"cache\corr_sst_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+                    u显著性检验结果 = corr_test(ols, u_corr, alpha=0.10)
+                    v显著性检验结果 = corr_test(ols, v_corr, alpha=0.10)
+                    sst显著性检验结果 = corr_test(ols, sst_corr, alpha=0.10)
+                    pc = ols
+                else:
+                    u_corr = u_corr_2
+                    v_corr = v_corr_2
+                    z_corr = z_corr_2
+                    sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_{num}_{m1}_{m2}.nc")['sst'].sel(p=p).transpose('lat', 'lon', 'time')
+                    sst_corr = np.load(fr"cache\corr_sst_2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+                    u显著性检验结果 = corr_test(sen, u_corr, alpha=0.10)
+                    v显著性检验结果 = corr_test(sen, v_corr, alpha=0.10)
+                    sst显著性检验结果 = corr_test(sen, sst_corr, alpha=0.10)
+                    pc = sen
+                ax = fig.add_subplot(spec[2, col], projection=ccrs.PlateCarree(central_longitude=180))
+                ax.set_title('700hPa UVZ&SST', fontsize=title_size, loc='left')
+                sst相关系数图层 = ax.contourf(sst_diff['lon'], sst_diff['lat'], sst_corr, levels=lev,
+                                           cmap=cmaps.BlueWhiteOrangeRed,
+                                           extend='both',
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                z_corr = filters.gaussian_filter(z_corr, 4)
+                z相关系数图层_low = ax.contour(z_diff['lon'], z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:4],
+                                     linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
+                z相关系数图层_0 = ax.contour(z_diff['lon'], z_diff['lat'], z_corr, color='gray', levels=[0],
+                                     linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
+                z相关系数图层_high = ax.contour(z_diff['lon'], z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[17], levels=level_z[5:],
+                                     linewidths=.2, linestyles='-', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
+                plt.clabel(z相关系数图层_low, inline=True, fontsize=3, fmt='%d', inline_spacing=5)
+                plt.clabel(z相关系数图层_0, inline=True, fontsize=3, fmt='%d', inline_spacing=5)
+                plt.clabel(z相关系数图层_high, inline=True, fontsize=3, fmt='%d', inline_spacing=5)
+                显著性检验结果 = np.where(sst显著性检验结果 == 1, 0, np.nan)
+                显著性检验图层 = ax.quiver(sst_diff['lon'], sst_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+                                           color='white', headlength=2, headaxislength=2, regrid_shape=60,
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                uv显著性检验结果 = np.where(np.where(u显著性检验结果 == 1, 1, 0) + np.where(v显著性检验结果 == 1, 1, 0) >= 1, 1, np.nan)
+                u_np = np.where(uv显著性检验结果 != 1, u_corr, np.nan)
+                v_np = np.where(uv显著性检验结果 != 1, v_corr, np.nan)
+                u_np = np.where(u_np**2 + v_np**2 >= 0.15**2, u_np, np.nan)
+                v_np = np.where(u_np**2 + v_np**2 >= 0.15**2, v_np, np.nan)
+                u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
+                v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
+                uv = ax.quiver(u_diff['lon'], u_diff['lat'], u_corr, v_corr, scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                uv_np = ax.quiver(u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
+                ax.set_extent([0, 292.5, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
+                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+                # 设置色标
+                cbar = plt.colorbar(sst相关系数图层, orientation='vertical', drawedges=True)
+                cbar.Location = 'eastoutside'
+                cbar.locator = ticker.FixedLocator([-.4, -.3, -.2, -.1, .1, .2, .3, .4])
+                #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
+                cbar.ax.tick_params(length=0)  # 设置色标刻度长度
+                cbar.ax.tick_params(labelsize=4)
+                cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
+                cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
+            if p == 850:
+                lev = [-.4, -.35, -.3, -.25, -.2, -.15, -.1, .1, .15, .2, .25, .3, .35, .4]
+                if select == 1:
+                    u_corr = u_corr_1
+                    v_corr = v_corr_1
+                    pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_{num}_{m1}_{m2}.nc")['precip'].transpose('lat', 'lon', 'time')
+                    pre_corr = np.load(fr"cache\corr_glopre_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+                    u显著性检验结果 = corr_test(ols, u_corr, alpha=0.10)
+                    v显著性检验结果 = corr_test(ols, v_corr, alpha=0.10)
+                    pre显著性检验结果 = corr_test(ols, pre_corr, alpha=0.10)
+                    pc = ols
+                else:
+                    u_corr = u_corr_2
+                    v_corr = v_corr_2
+                    pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_{num}_{m1}_{m2}.nc")['precip'].sel(p=p).transpose('lat', 'lon', 'time')
+                    pre_corr = np.load(fr"cache\corr_glopre_2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+                    u显著性检验结果 = corr_test(sen, u_corr, alpha=0.10)
+                    v显著性检验结果 = corr_test(sen, v_corr, alpha=0.10)
+                    pre显著性检验结果 = corr_test(sen, pre_corr, alpha=0.10)
+                    pc = sen
+                ax = fig.add_subplot(spec[3, col], projection=ccrs.PlateCarree(central_longitude=180))
+                ax.set_title('850hPa UV&PRE', fontsize=title_size, loc='left')
+                pre相关系数图层 = ax.contourf(pre_diff['lon'], pre_diff['lat'], pre_corr, levels=lev,
+                                           cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
+                                           extend='both',
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                显著性检验结果 = np.where(pre显著性检验结果 == 1, 0, np.nan)
+                显著性检验图层 = ax.quiver(pre_diff['lon'], pre_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+                                           color='white', headlength=2, headaxislength=2, regrid_shape=60,
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                uv显著性检验结果 = np.where(np.where(u显著性检验结果 == 1, 1, 0) + np.where(v显著性检验结果 == 1, 1, 0) >= 1, 1, np.nan)
+                u_np = np.where(uv显著性检验结果 != 1, u_corr, np.nan)
+                v_np = np.where(uv显著性检验结果 != 1, v_corr, np.nan)
+                u_np = np.where(u_np**2 + v_np**2 >= 0.15**2, u_np, np.nan)
+                v_np = np.where(u_np**2 + v_np**2 >= 0.15**2, v_np, np.nan)
+                u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
+                v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
+                uv = ax.quiver(u_diff['lon'], u_diff['lat'], u_corr, v_corr, scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                uv_np = ax.quiver(u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
+                ax.set_extent([0, 292.5, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
+                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+                # 设置色标
+                cbar = plt.colorbar(pre相关系数图层, orientation='vertical', drawedges=True)
+                cbar.Location = 'eastoutside'
+                cbar.locator = ticker.FixedLocator([-.4, -.3, -.2, -.1, .1, .2, .3, .4])
+                #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
+                cbar.ax.tick_params(length=0)  # 设置色标刻度长度
+                cbar.ax.tick_params(labelsize=4)
+                cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
+                cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
 
     plt.savefig(fr"C:\Users\10574\Desktop\pic\uvz_corr{select}.png", dpi=2000, bbox_inches='tight')
     plt.show()
