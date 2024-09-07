@@ -135,7 +135,7 @@ if __name__ == '__main__':
                     pc = sen
                 # 计算TN波作用通量
                 reg_z200 = np.load(fr"cache\uvz\z\reg\z_{num}_{m1}_{m2}.npy")
-                waf = np.array(TN_WAF(z_diff.mean('time'), u_diff.mean('time'), v_diff.mean('time'), reg_z200, z_diff['lon'], z_diff['lat']))
+                waf = np.array(TN_WAF(z_diff.mean('time'), u_diff.mean('time'), v_diff.mean('time'), reg_z200+z_diff.mean('time'), z_diff['lon'], z_diff['lat']))
                 ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
                 相关系数图层 = ax.contourf(z_diff['lon'], z_diff['lat'], z_corr, levels=lev,
                                            cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
@@ -145,9 +145,12 @@ if __name__ == '__main__':
                 显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf[0], waf[1], scale=50000,
+                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf[0], waf[1], scale=1000,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
+                ax.quiverkey(WAF图层, X=0.946, Y=1.03, U=25, angle=0, label='25 m$^2$/s$^2$',
+                              labelpos='N', color='black', labelcolor='k',
+                              linewidth=0.8)  # linewidth=1为箭头的大小
                 ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 draw_maps(get_adm_maps(level='国'), linewidth=0.15)
