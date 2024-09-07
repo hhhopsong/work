@@ -17,6 +17,7 @@ from toolbar.masked import masked  # 气象工具函数
 from toolbar.sub_adjust import adjust_sub_axes
 from toolbar.pre_whitening import ws2001
 from toolbar.significance_test import corr_test
+from toolbar.TN_WaveActivityFlux import TN_WAF
 import seaborn as sns
 import tqdm
 import multiprocessing
@@ -124,13 +125,15 @@ if __name__ == '__main__':
                     u显著性检验结果 = corr_test(sen, corr, alpha=0.05)
                     v显著性检验结果 = corr_test(sen, corr, alpha=0.05)
                     z显著性检验结果 = corr_test(sen, corr, alpha=0.05)
-                ax = fig.add_subplot(spec[y, x], projection=ccrs.PlateCarree(central_longitude=180))
+                # 计算TN波作用通量
+                waf = np.array(TN_WAF(z_diff.mean('time'), u_diff.mean('time'), v_diff.mean('time'), z_corr, z_diff['lon'], z_diff['lat']))
+                ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
                 相关系数图层 = ax.contourf(z_diff['lon'], z_diff['lat'], z_corr, levels=lev,
                                            cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
                                            extend='both',
                                            transform=ccrs.PlateCarree())
-                显著性检验结果 = np.where(显著性检验结果 == 1, 0, np.nan)
-                显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], z显著性检验结果, z显著性检验结果, scale=20,
+                显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
+                显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
