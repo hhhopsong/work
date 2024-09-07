@@ -122,12 +122,12 @@ def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.a
         Geopotential_climatic = np.array(Geopotential_climatic) * units("m**2 / s**2")    # 高度气候场
         dlon = (np.gradient(np.array(lon)) * np.pi / 180.).reshape(1, -1) * units("1")    # 经度间隔
         dlat = (np.gradient(np.array(lat)) * np.pi / 180.).reshape(-1, 1) * units("1")    # 纬度间隔
-        coslat = np.cos(np.array(lat) * np.pi / 180.).reshape(-1, 1) * units("1")    # cos(lat)
-        sinlat = np.sin(np.array(lat) * np.pi / 180.).reshape(-1, 1) * units("1")    # sin(lat)
+        coslat = (np.cos(np.array(lat) * np.pi / 180.).reshape(-1, 1)) * units("1")    # cos(lat)
+        sinlat = (np.sin(np.array(lat) * np.pi / 180.).reshape(-1, 1)) * units("1")    # sin(lat)
         z_tmp = Geopotential_climatic    # 计算z_tmp
         wind = np.sqrt(U_climatic ** 2 + V_climatic ** 2)   # 计算|U|
         c = lev * coslat / (2 * a * a * wind)    # 计算c
-        za = np.array(Geopotential) - np.array(z_tmp)   # 计算za
+        za = np.array(Geopotential)   # 计算za
         streamf = za / f    # 计算流函数
         # 求偏导
         dzdlon = np.gradient(streamf, axis=1) / dlon

@@ -37,6 +37,12 @@ def multi_core(num, m1, m2, var, p, ols, sen):
     except:
         corr_2 = np.array([[np.corrcoef(sen, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
         np.save(fr"cache\uvz\{var}\corr2\corr_{p}_{num}_{m1}_{m2}.npy", corr_2)
+    if var == 'z' and p == 200:
+        try:
+            reg_z = np.load(fr"cache\uvz\{var}\reg\{var}_{num}_{m1}_{m2}.npy")
+        except:
+            reg_z = np.array([[np.polyfit(ols, pre_diff.sel(lon=ilon, lat=ilat), 1)[0] for ilon in pre_diff['lon']] for ilat in tqdm.tqdm((pre_diff['lat']), desc=f'计算reg {m1} {p}{var}', position=0, leave=True)])
+            np.save(fr"cache\uvz\{var}\reg\{var}_{num}_{m1}_{m2}.npy", reg_z)
     print(f"{p}hPa层{var}相关系数完成。")
 
 
@@ -47,7 +53,7 @@ if __name__ == '__main__':
     M = 6  # 临界月
     # 多核计算
     if eval(input("是否进行相关系数计算(0/1):")):
-        Ncpu = multiprocessing.cpu_count()  # 保留一个核心, 防止电脑卡死
+        Ncpu = multiprocessing.cpu_count()
         data_pool = []
         for p in [200, 500, 600, 700, 850]:
             for var in ['u', 'v', 'z']:
@@ -79,7 +85,7 @@ if __name__ == '__main__':
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     num = 0
     p = [200, 500, 600, 700, 850]
-    time = [6]
+    time = [6] ## 选择时间
     spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
     date_pool = []
     for date in time:
@@ -118,15 +124,18 @@ if __name__ == '__main__':
                     u显著性检验结果 = corr_test(ols, u_corr, alpha=0.05)
                     v显著性检验结果 = corr_test(ols, v_corr, alpha=0.05)
                     z显著性检验结果 = corr_test(ols, z_corr, alpha=0.05)
-                elif select == 2:
+                    pc = ols
+                else:
                     u_corr = u_corr_2
                     v_corr = v_corr_2
                     z_corr = z_corr_2
-                    u显著性检验结果 = corr_test(sen, corr, alpha=0.05)
-                    v显著性检验结果 = corr_test(sen, corr, alpha=0.05)
-                    z显著性检验结果 = corr_test(sen, corr, alpha=0.05)
+                    u显著性检验结果 = corr_test(sen, u_corr, alpha=0.05)
+                    v显著性检验结果 = corr_test(sen, v_corr, alpha=0.05)
+                    z显著性检验结果 = corr_test(sen, z_corr, alpha=0.05)
+                    pc = sen
                 # 计算TN波作用通量
-                waf = np.array(TN_WAF(z_diff.mean('time'), u_diff.mean('time'), v_diff.mean('time'), z_corr, z_diff['lon'], z_diff['lat']))
+                reg_z200 = np.load(fr"cache\uvz\z\reg\z_{num}_{m1}_{m2}.npy")
+                waf = np.array(TN_WAF(z_diff.mean('time'), u_diff.mean('time'), v_diff.mean('time'), reg_z200, z_diff['lon'], z_diff['lat']))
                 ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
                 相关系数图层 = ax.contourf(z_diff['lon'], z_diff['lat'], z_corr, levels=lev,
                                            cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
@@ -134,6 +143,9 @@ if __name__ == '__main__':
                                            transform=ccrs.PlateCarree())
                 显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
                 显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+                                           color='black', headlength=2, headaxislength=2, regrid_shape=60,
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf[0], waf[1], scale=50000,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
