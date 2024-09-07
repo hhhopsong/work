@@ -155,7 +155,17 @@ def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.a
         return fx, fy
 
 
-def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None):
+def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5):
+    """
+    计算的是三维的TN波作用通量, 请注意输入的数据格式为DataArray,代码参考了下列样例,并做了勘误。\n
+    https://www.bilibili.com/read/cv15633261/?spm_id_from=333.999.collection.opus.click
+    :param GEOc:    气候态位势高度场
+    :param Uc:    气候态U风
+    :param Vc:  气候态V风
+    :param GEOa:    位势高度场扰动场
+    :param Tc:  气候态温度
+    :return:    Fx, Fy, Fz
+    """
     ### 常量
     gc = 290.0  # 气体常数
     g = 9.80665  # 重力加速度
@@ -193,11 +203,11 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None):
 
     if not data_shape[0]==1:
         Tc  =np.where(Uc>=0,Tc  ,np.nan)
-    Uc  =np.where(Uc>=0,Uc  ,np.nan)
-    Vc  =np.where(Uc>=0,Vc  ,np.nan)
-    UVc =np.where(Uc>=0,UVc ,np.nan)
-    GEOc=np.where(Uc>=0,GEOc,np.nan)
-    GEOa=np.where(Uc>=0,GEOa,np.nan)
+    Uc  =np.where(Uc>=u_threshold,Uc  ,np.nan)
+    Vc  =np.where(Uc>=u_threshold,Vc  ,np.nan)
+    UVc =np.where(Uc>=u_threshold,UVc ,np.nan)
+    GEOc=np.where(Uc>=u_threshold,GEOc,np.nan)
+    GEOa=np.where(Uc>=u_threshold,GEOa,np.nan)
 
     ### 坐标、常数补充
     ## 坐标差分

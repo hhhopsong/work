@@ -1,3 +1,4 @@
+import pandas as pd
 from cartopy import crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
@@ -17,7 +18,7 @@ from toolbar.masked import masked  # 气象工具函数
 from toolbar.sub_adjust import adjust_sub_axes
 from toolbar.pre_whitening import ws2001
 from toolbar.significance_test import corr_test
-from toolbar.TN_WaveActivityFlux import TN_WAF
+from toolbar.TN_WaveActivityFlux import TN_WAF, TN_WAF_3D
 import seaborn as sns
 import tqdm
 import multiprocessing
@@ -135,7 +136,23 @@ if __name__ == '__main__':
                     pc = sen
                 # 计算TN波作用通量
                 reg_z200 = np.load(fr"cache\uvz\z\reg\z_{num}_{m1}_{m2}.npy")
-                waf = np.array(TN_WAF(z_diff.mean('time'), u_diff.mean('time'), v_diff.mean('time'), reg_z200+z_diff.mean('time'), z_diff['lon'], z_diff['lat']))
+                Geoc = xr.DataArray(z_diff.mean('time').data[np.newaxis, :, :],
+                                    coords=[('level', [200]),
+                                            ('lat', z_diff['lat'].data),
+                                            ('lon', z_diff['lon'].data)])
+                Uc = xr.DataArray(u_diff.mean('time').data[np.newaxis, :, :],
+                                    coords=[('level', [200]),
+                                            ('lat', u_diff['lat'].data),
+                                            ('lon', u_diff['lon'].data)])
+                Vc = xr.DataArray(v_diff.mean('time').data[np.newaxis, :, :],
+                                    coords=[('level', [200]),
+                                            ('lat', v_diff['lat'].data),
+                                            ('lon', v_diff['lon'].data)])
+                GEOa = xr.DataArray(reg_z200[np.newaxis, :, :],
+                                    coords=[('level', [200]),
+                                            ('lat', z_diff['lat'].data),
+                                            ('lon', z_diff['lon'].data)])
+                waf_x, waf_y = TN_WAF_3D(Geoc, Uc, Vc, GEOa)
                 ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
                 相关系数图层 = ax.contourf(z_diff['lon'], z_diff['lat'], z_corr, levels=lev,
                                            cmap=cmaps.MPL_RdYlGn[32:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:96],
@@ -145,10 +162,10 @@ if __name__ == '__main__':
                 显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf[0], waf[1], scale=1000,
+                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf_x[0], waf_y[0], scale=20,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                ax.quiverkey(WAF图层, X=0.946, Y=1.03, U=25, angle=0, label='25 m$^2$/s$^2$',
+                ax.quiverkey(WAF图层, X=0.946, Y=1.03, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
                               labelpos='N', color='black', labelcolor='k',
                               linewidth=0.8)  # linewidth=1为箭头的大小
                 ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=180))
