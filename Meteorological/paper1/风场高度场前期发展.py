@@ -89,7 +89,7 @@ if __name__ == '__main__':
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     num = 0
     p = [200, 500, 600, 700, 850]
-    time = [6] ## 选择时间
+    time = [6, 5, 4] ## 选择时间
     spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
     date_pool = []
     for date in time:
@@ -113,6 +113,9 @@ if __name__ == '__main__':
         x = 0.92
         y = 1.04
         title_size = 8
+        extent1 = [0, 292.5, -30, 80]
+        xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
+        yticks1 = np.arange(extent1[2], extent1[3] + 1, 30)
         for p in [200, 500, 600, 700, 850]:
             u_diff = xr.open_dataset(fr"cache\uvz\u\diff\u_{num}_{m1}_{m2}.nc")['u'].sel(p=p).transpose('lat', 'lon', 'time')
             u_corr_1 = np.load(fr"cache\uvz\u\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
@@ -243,10 +246,31 @@ if __name__ == '__main__':
                 uv = ax.quiver(z_diff['lon'], z_diff['lat'], u_corr, v_corr, scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np = ax.quiver(z_diff['lon'], z_diff['lat'], u_np, v_np, color='gray', scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
-                ax.set_extent([0, 292.5, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
+                ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+
+                # 刻度线设置
+                # ax1
+                ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
+                lon_formatter = LongitudeFormatter()
+                lat_formatter = LatitudeFormatter()
+                ax.yaxis.set_major_formatter(lat_formatter)
+
+
+                ymajorLocator = MultipleLocator(30)  # 先定义xmajorLocator，再进行调用
+                ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
+                yminorLocator = MultipleLocator(10)
+                ax.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
+                # ax1.axes.xaxis.set_ticklabels([]) ##隐藏刻度标签
+                # 最大刻度、最小刻度的刻度线长短，粗细设置
+                ax.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
+                ax.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
+                ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+                plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
+                # 调整刻度值字体大小
+                ax.tick_params(axis='both', labelsize=title_size, colors='black')
                 # 设置色标
                 cbar = plt.colorbar(相关系数图层, orientation='vertical', drawedges=True)
                 cbar.Location = 'eastoutside'
@@ -309,10 +333,31 @@ if __name__ == '__main__':
                 uv = ax.quiver(u_diff['lon'], u_diff['lat'], u_corr, v_corr, scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np = ax.quiver(u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
-                ax.set_extent([0, 292.5, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
+                ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+                # 刻度线设置
+                # ax1
+                ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
+                lon_formatter = LongitudeFormatter()
+                lat_formatter = LatitudeFormatter()
+                ax.yaxis.set_major_formatter(lat_formatter)
+
+
+                ymajorLocator = MultipleLocator(30)  # 先定义xmajorLocator，再进行调用
+                ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
+                yminorLocator = MultipleLocator(10)
+                ax.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
+                # ax1.axes.xaxis.set_ticklabels([]) ##隐藏刻度标签
+                # 最大刻度、最小刻度的刻度线长短，粗细设置
+                ax.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
+                ax.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
+                ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+                plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
+                # 调整刻度值字体大小
+                ax.tick_params(axis='both', labelsize=title_size, colors='black')
+
                 # 设置色标
                 cbar = plt.colorbar(sst相关系数图层, orientation='vertical', drawedges=True)
                 cbar.Location = 'eastoutside'
@@ -362,10 +407,31 @@ if __name__ == '__main__':
                 uv = ax.quiver(u_diff['lon'], u_diff['lat'], u_corr, v_corr, scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np = ax.quiver(u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
-                ax.set_extent([0, 292.5, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
+                ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+                # 刻度线设置
+                # ax1
+                ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
+                lon_formatter = LongitudeFormatter()
+                lat_formatter = LatitudeFormatter()
+                ax.yaxis.set_major_formatter(lat_formatter)
+
+
+                ymajorLocator = MultipleLocator(30)  # 先定义xmajorLocator，再进行调用
+                ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
+                yminorLocator = MultipleLocator(10)
+                ax.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
+                # ax1.axes.xaxis.set_ticklabels([]) ##隐藏刻度标签
+                # 最大刻度、最小刻度的刻度线长短，粗细设置
+                ax.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
+                ax.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
+                ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+                plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
+                # 调整刻度值字体大小
+                ax.tick_params(axis='both', labelsize=title_size, colors='black')
+
                 # 设置色标
                 cbar = plt.colorbar(pre相关系数图层, orientation='vertical', drawedges=True)
                 cbar.Location = 'eastoutside'
