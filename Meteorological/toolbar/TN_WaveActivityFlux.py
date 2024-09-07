@@ -153,3 +153,124 @@ def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.a
         fy = np.where(np.abs(lat) < 20, np.nan, fy)
         streamf = np.where(np.abs(lat) < 20, np.nan, streamf)
         return fx, fy
+
+
+def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None):
+    ### 常量
+    gc = 290.0  # 气体常数
+    g = 9.80665  # 重力加速度
+    re = 6378388.0  # 地球半径
+    sclhgt = 8000.0  # 大气标高
+    omega = 7.292e-5  # 角速度
+
+### 函数  给定气候态和位势扰动；输入三维(level,lat,lon)的DataArray数据
+    ### 数据维度和坐标
+    data_shape =GEOc.shape
+    data_coords=GEOc.coords
+
+    ### 气候态和扰动
+    UVc=np.sqrt(Uc**2+Vc**2)
+
+    if not data_shape[0]==1:
+        Tc  =xr.where(abs(Tc  ['lat'])<=20,np.nan,Tc  ).transpose('level','lat','lon')
+    Uc  =xr.where(abs(Uc  ['lat'])<=20,np.nan,Uc  ).transpose('level','lat','lon')
+    Vc  =xr.where(abs(Vc  ['lat'])<=20,np.nan,Vc  ).transpose('level','lat','lon')
+    UVc =xr.where(abs(UVc ['lat'])<=20,np.nan,UVc ).transpose('level','lat','lon')
+    GEOc=xr.where(abs(GEOc['lat'])<=20,np.nan,GEOc).transpose('level','lat','lon')
+    GEOa=xr.where(abs(GEOa['lat'])<=20,np.nan,GEOa).transpose('level','lat','lon')
+
+    lon=np.array(GEOc['lon'  ])[np.newaxis,np.newaxis,:         ]
+    lat=np.array(GEOc['lat'  ])[np.newaxis,:         ,np.newaxis]
+    pp =np.array(GEOc['level'])[:         ,np.newaxis,np.newaxis]
+
+    if not data_shape[0]==1:
+        Tc  =np.array(Tc  )
+    Uc  =np.array(Uc  )
+    Vc  =np.array(Vc  )
+    UVc =np.array(UVc )
+    GEOc=np.array(GEOc)
+    GEOa=np.array(GEOa)
+
+    if not data_shape[0]==1:
+        Tc  =np.where(Uc>=0,Tc  ,np.nan)
+    Uc  =np.where(Uc>=0,Uc  ,np.nan)
+    Vc  =np.where(Uc>=0,Vc  ,np.nan)
+    UVc =np.where(Uc>=0,UVc ,np.nan)
+    GEOc=np.where(Uc>=0,GEOc,np.nan)
+    GEOa=np.where(Uc>=0,GEOa,np.nan)
+
+    ### 坐标、常数补充
+    ## 坐标差分
+    dlon  =np.deg2rad(np.gradient(lon,axis=2))
+    dlat  =np.deg2rad(np.gradient(lat,axis=1))
+    coslat=np.array(np.cos(np.deg2rad(lat)))
+    sinlat=np.array(np.sin(np.deg2rad(lat)))
+    if not data_shape[0]==1:
+        dlev=np.gradient(-sclhgt*np.log(pp/1000.0),axis=0)
+
+    ## 科氏参数
+    f=2*omega*sinlat
+
+    ## N^2
+    if not data_shape[0]==1:
+        N2=np.array(gc*(pp/1000.0)**0.286)/sclhgt*np.gradient(Tc*(1000.0/pp)**0.286,axis=0)/\
+            (np.gradient(-sclhgt*np.log(pp/1000.0),axis=0))
+
+    ## PSI
+    PSIa=GEOa/f
+
+    ### 差分、计算TN通量三个分量
+    ## 差分
+    dzdlon=np.gradient(PSIa,axis=2)/dlon
+    dzdlat=np.gradient(PSIa,axis=1)/dlat
+
+    ddzdlonlon=np.gradient(dzdlon,axis=2)/dlon
+    ddzdlonlat=np.gradient(dzdlon,axis=1)/dlat
+    ddzdlatlat=np.gradient(dzdlat,axis=1)/dlat
+
+    if not data_shape[0]==1:
+        dzdlev    =np.gradient(PSIa  ,axis=0)/dlev
+        ddzdlonlev=np.gradient(dzdlon,axis=0)/dlev
+        ddzdlatlev=np.gradient(dzdlat,axis=0)/dlev
+
+    ## 分量的u/v组分
+    xuterm=dzdlon*dzdlon-PSIa*ddzdlonlon
+    xvterm=dzdlon*dzdlat-PSIa*ddzdlonlat
+
+    yuterm=xvterm
+    yvterm=dzdlat*dzdlat-PSIa*ddzdlatlat
+
+    if not data_shape[0]==1:
+        zuterm=dzdlon*dzdlev-PSIa*ddzdlonlev
+        zvterm=dzdlat*dzdlev-PSIa*ddzdlatlev
+
+    ## 分量
+    coef=pp*coslat/1000.0/2.0/UVc
+    Fx=coef*(xuterm*Uc/(re*coslat)**2+xvterm*Vc/(re**2*coslat))
+    Fy=coef*(yuterm*Uc/(re**2*coslat)+yvterm*Vc/re**2)
+    if not data_shape[0]==1:
+        Fz=coef*(f**2/N2*(zuterm*Uc/(re*coslat)+zvterm*Vc/re))
+
+    ## 转为dataarray
+    Fx=xr.DataArray(
+        Fx,
+        dims  =('level','lat','lon'),
+        coords=data_coords
+    )
+    Fy=xr.DataArray(
+        Fy,
+        dims  =('level','lat','lon'),
+        coords=data_coords
+    )
+    if not data_shape[0]==1:
+        Fz=xr.DataArray(
+            Fz,
+            dims  =('level','lat','lon'),
+            coords=data_coords
+        )
+
+    ### 返回结果
+    if not data_shape[0]==1:
+        return Fx, Fy, Fz
+    else:
+        return Fx, Fy
