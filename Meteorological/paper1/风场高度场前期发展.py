@@ -87,12 +87,12 @@ if __name__ == '__main__':
     fig = plt.figure(figsize=(16, 9))  # 创建画布
     lev = 15
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
-    num = 0
     p = [200, 500, 600, 700, 850]
     time = [6, 5, 4] ## 选择时间
     spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
     date_pool = []
     for date in time:
+        num = 0
         for x in range(11, -1, -1):
             m1 = M + x + 1
             if m1 > 12:
