@@ -39,6 +39,12 @@ a1 = ax1.contourf(Tmax_sort95['lon'], Tmax_sort95['lat'], Tmax_sort95['tmax'], c
 ax1.add_feature(cfeature.LAND.with_scale('10m'),color='lightgray')# 添加陆地并且陆地部分全部填充成浅灰色
 ax1.add_geometries(Reader(r'C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=0.4)
 ax1.add_geometries(Reader(r'D:\CODES\Python\Meteorological\maps\cnriver\长江\长江.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='blue', linewidth=0.2)
+# color bar位置
+# position = fig.add_axes([0.296, 0.08, 0.44, 0.011])#位置[左,下,右,上]
+cb1 = plt.colorbar(a1, orientation='horizontal', aspect=30, shrink=0.6)#orientation为水平或垂直
+cb1.ax.tick_params(length=1, labelsize=16, color='lightgray')#length为刻度线的长度
+tick_locator = ticker.MaxNLocator(nbins=7)  # colorbar上的刻度值个数
+
 plt.savefig(r'C:\Users\10574\desktop\pic\图2.png', dpi=1500, bbox_inches='tight')
 plt.show()
 pass
