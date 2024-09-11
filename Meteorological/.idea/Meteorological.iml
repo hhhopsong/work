@@ -4,6 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/maps" />
       <excludeFolder url="file://$MODULE_DIR$/paper1/cache" />
+      <excludeFolder url="file://$MODULE_DIR$/sfm" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

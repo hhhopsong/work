@@ -16,9 +16,9 @@ import salem
 
 
 # 数据读取
-sst = xr.open_dataset(r"C:\Users\10574\Desktop\data\sst.mnmean.nc")  # NetCDF-4文件路径不可含中文
+sst = xr.open_dataset(r"E:\data\NOAA\ERSSTv5\sst.mnmean.nc")  # NetCDF-4文件路径不可含中文
 # 截取sst数据为5N-5S，40E-80W
-time_data = [1979, 2014]
+time_data = [1979, 2022]
 sst = sst.sel(lat=slice(5, -5), lon=slice(40, 360-80))['sst']
 lon_sst = sst['lon']
 sst_term = sst.sel(time=slice(f'{time_data[0]}-01-01', f'{time_data[1]}-12-31'))
@@ -28,16 +28,7 @@ sst_nextyear = sst.sel(time=slice(f'{time_data[0] + 1}-01-01', f'{time_data[1] +
 sst_term_lonavg = sst_term.mean(dim='lat')
 sst_lastyear_lonavg = sst_lastyear.mean(dim='lat')
 sst_nextyear_lonavg = sst_nextyear.mean(dim='lat')
-std_q78 = xr.open_dataset(r'D:\CODES\Python\PythonProject\cache\Graduation Thesis\std_q78.nc')
-shp = fr"D:/CODES/Python/PythonProject/map/shp/south_china/中国南方.shp"
-split_shp = gpd.read_file(shp)
-split_shp.crs = 'wgs84'
-std_q78 = std_q78.salem.roi(shape=split_shp)
-# eof分解
-eof_78 = Eof(std_q78['tmax'].to_numpy())  # 进行eof分解
-EOF_78 = eof_78.eofs(eofscaling=2, neofs=2)  # 得到空间模态U eofscaling 对得到的场进行放缩 （1为除以特征值平方根，2为乘以特征值平方根，默认为0不处理） neofs决定输出的空间模态场个数
-PC_78 = eof_78.pcs(pcscaling=1, npcs=2)  # 同上 npcs决定输出的时间序列个数
-s_78 = eof_78.varianceFraction(neigs=2)  # 得到前neig个模态的方差贡献
+PC = np.load(r"cache\OLS_detrended.npy") # 读取时间序列
 # 计算sst距平
 sst_term_anom = sst_term_lonavg - sst_term_lonavg.mean(dim='time')
 sst_lastyear_anom = sst_lastyear_lonavg - sst_lastyear_lonavg.mean(dim='time')
@@ -51,16 +42,16 @@ for i in range(time_data[1] - time_data[0] + 1):
     sst_leadlag[i*18:i*18+18, :] = np.append(sst_lastyear_anom[i*12+9:i*12+12, :], np.append(sst_term_anom[i*12:i*12+12, :], sst_nextyear_anom[i*12:i*12+3, :], axis=0), axis=0)
 for i in range(num_lead_lag_corr):
     for j in range(len(lon_sst)):
-        lead_lag_corr[i, j] = np.corrcoef(sst_leadlag[i::num_lead_lag_corr, j], PC_78[:, 0])[0, 1]
+        lead_lag_corr[i, j] = np.corrcoef(sst_leadlag[i::num_lead_lag_corr, j], PC)[0, 1]
 lead_lag_corr2 = np.zeros((num_lead_lag_corr, len(lon_sst)))
 lead_lag_corr2.fill(np.nan)
 for i in range(num_lead_lag_corr):
     for j in range(len(lon_sst)):
-        lead_lag_corr2[i, j] = np.corrcoef(sst_leadlag[i::num_lead_lag_corr, j], PC_78[:, 1])[0, 1]
+        lead_lag_corr2[i, j] = np.corrcoef(sst_leadlag[i::num_lead_lag_corr, j], PC)[0, 1]
 # 进行显著性0.1检验
 from scipy.stats import t
 # 计算自由度
-n = len(PC_78[:, 0])
+n = len(PC)
 # 计算t值
 t_lead_lag_corr = lead_lag_corr * np.sqrt((n - 2) / (1 - lead_lag_corr ** 2))
 t_lead_lag_corr2 = lead_lag_corr2 * np.sqrt((n - 2) / (1 - lead_lag_corr2 ** 2))
@@ -87,7 +78,7 @@ extent1 = [40, 360-80, 1, num_lead_lag_corr]  # 经度范围，纬度范围
 time = np.arange(extent1[2], extent1[3] + 1, 1)
 xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
 yticks1 = np.arange(extent1[2], extent1[3] + 1, 1)
-yticks2 = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar']
+yticks2 = ['Last-Oct', 'Last-Nov', 'Last-Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Next-Jan', 'Next-Feb', 'Next-Mar']
 proj = ccrs.PlateCarree(central_longitude=180)
 fig = plt.figure(figsize=(16, 8))
 # ##ax1 Corr. PC1 & JA SST,2mT
