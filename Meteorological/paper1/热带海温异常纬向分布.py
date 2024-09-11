@@ -10,6 +10,7 @@ from cnmaps import get_adm_maps, draw_maps
 from matplotlib import ticker
 import cmaps
 from matplotlib.ticker import MultipleLocator
+from toolbar.significance_test import corr_test
 from eofs.standard import Eof
 import geopandas as gpd
 import salem
@@ -48,25 +49,8 @@ lead_lag_corr2.fill(np.nan)
 for i in range(num_lead_lag_corr):
     for j in range(len(lon_sst)):
         lead_lag_corr2[i, j] = np.corrcoef(sst_leadlag[i::num_lead_lag_corr, j], PC)[0, 1]
-# 进行显著性0.1检验
-from scipy.stats import t
-# 计算自由度
-n = len(PC)
-# 计算t值
-t_lead_lag_corr = lead_lag_corr * np.sqrt((n - 2) / (1 - lead_lag_corr ** 2))
-t_lead_lag_corr2 = lead_lag_corr2 * np.sqrt((n - 2) / (1 - lead_lag_corr2 ** 2))
-# 计算临界值
-t_critical = t.ppf(0.95, n - 2)
 # 进行显著性检验
-p_lead_lag_corr = np.zeros((num_lead_lag_corr, len(lon_sst)))
-p_lead_lag_corr.fill(np.nan)
-p_lead_lag_corr[np.abs(t_lead_lag_corr) > t_critical] = 1
-
-p_lead_lag_corr2 = np.zeros((num_lead_lag_corr, len(lon_sst)))
-p_lead_lag_corr2.fill(np.nan)
-p_lead_lag_corr2[np.abs(t_lead_lag_corr2) > t_critical] = 1
-
-
+p_lead_lag_corr = corr_test(PC, lead_lag_corr, alpha=0.1)
 
 # 绘图
 # ##地图要素设置
@@ -88,53 +72,33 @@ print('开始绘制图1')
 ax1.set_title('(a)Lead-lag corr. PC1 & SST', fontsize=22, loc='left')
 a1 = ax1.contourf(lon_sst, time, lead_lag_corr, cmap=cmaps.cmp_b2r, levels=level1, extend='both')
 # 通过打点显示出通过显著性检验的区域
-a1_p = ax1.contourf(lon_sst, time, p_lead_lag_corr, levels=[0, 1], hatches=['..', None], colors="none", add_colorbar=False, zorder=5)
+a1_p = ax1.contourf(lon_sst, time, p_lead_lag_corr, levels=[0, 1], hatches=['//', None], colors="none", add_colorbar=False, zorder=5)
 ax1.axhline(10, color='black', linewidth=2)
 ax1.axhline(11, color='black', linewidth=2)
 
-'''ax2 = fig.add_subplot(122)
-print('开始绘制图2')
-ax2.set_title('(b)Lead-lag corr. PC2 & SST', fontsize=22, loc='left')
-a2 = ax2.contourf(lon_sst, time, lead_lag_corr2, cmap=cmaps.cmp_b2r, levels=level1, extend='neither')
-# 通过打点显示出通过显著性检验的区域
-a2_p = ax2.contourf(lon_sst, time, p_lead_lag_corr2, levels=[0, 1], hatches=['..', None], colors="none", add_colorbar=False, zorder=5)
-ax2.axhline(10, color='black', linewidth=2)
-ax2.axhline(11, color='black', linewidth=2)
-'''
 # 刻度线设置
 ax1.set_xticks(xticks1)
 ax1.set_yticks(yticks1)
 ax1.set_yticklabels(yticks2)
 lon_formatter = LongitudeFormatter()
 ax1.xaxis.set_major_formatter(lon_formatter)
-'''ax2.set_xticks(xticks1)
-ax2.set_yticks(yticks1)
-ax2.set_yticklabels(yticks2)
-ax2.xaxis.set_major_formatter(lon_formatter)'''
 
 font = {'family': 'Arial', 'weight': 'bold', 'size': 22}
 
 xmajorLocator = MultipleLocator(60)  # 先定义xmajorLocator，再进行调用
 ax1.xaxis.set_major_locator(xmajorLocator)  # x轴最大刻度
-'''ax2.xaxis.set_major_locator(xmajorLocator)  # x轴最大刻度'''
 xminorLocator = MultipleLocator(10)
 ax1.xaxis.set_minor_locator(xminorLocator)  # x轴最小刻度
-'''ax2.xaxis.set_minor_locator(xminorLocator)  # x轴最小刻度'''
 ymajorLocator = MultipleLocator(1)
 ax1.yaxis.set_major_locator(ymajorLocator)  # y轴最大刻度
-'''ax2.yaxis.set_major_locator(ymajorLocator)  # y轴最大刻度'''
 # ax1.axes.xaxis.set_ticklabels([]) ##隐藏刻度标签
 # 最大刻度、最小刻度的刻度线长短，粗细设置
 ax1.tick_params(which='major', length=11, width=2, color='darkgray')  # 最大刻度长度，宽度设置，
 ax1.tick_params(which='minor', length=8, width=1.8, color='darkgray')  # 最小刻度长度，宽度设置
 ax1.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
-'''ax2.tick_params(which='major', length=11, width=2, color='darkgray')  # 最大刻度长度，宽度设置，
-ax2.tick_params(which='minor', length=8, width=1.8, color='darkgray')  # 最小刻度长度，宽度设置
-ax2.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)'''
 plt.rcParams['xtick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
 # 调整刻度值字体大小
 ax1.tick_params(axis='both', labelsize=22, colors='black')
-'''ax2.tick_params(axis='both', labelsize=22, colors='black')'''
 # 设置坐标刻度值的大小以及刻度值的字体
 labels = ax1.get_xticklabels() + ax1.get_yticklabels()
 [label.set_fontname('Arial') for label in labels]
