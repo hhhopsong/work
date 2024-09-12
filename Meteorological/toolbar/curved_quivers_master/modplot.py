@@ -152,8 +152,8 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     # Convert start_points from data to array coords
     # Shift the seed points from the bottom left of the data so that
     # data2grid works properly.
-    sp2[:, 0] -= grid.x_origin.data
-    sp2[:, 1] -= grid.y_origin.data
+    sp2[:, 0] -= grid.x_origin
+    sp2[:, 1] -= grid.y_origin
 
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
