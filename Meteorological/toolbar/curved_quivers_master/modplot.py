@@ -6,6 +6,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import six
+from matplotlib.streamplot import TerminateTrajectory
 from six.moves import xrange
 from scipy.interpolate import interp1d
 
@@ -151,8 +152,8 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     # Convert start_points from data to array coords
     # Shift the seed points from the bottom left of the data so that
     # data2grid works properly.
-    sp2[:, 0] -= grid.x_origin
-    sp2[:, 1] -= grid.y_origin
+    sp2[:, 0] -= grid.x_origin.data
+    sp2[:, 1] -= grid.y_origin.data
 
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
