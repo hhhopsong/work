@@ -21,6 +21,8 @@
     <file url="file://$PROJECT_DIR$/../Meteorological/paper1/风场高度场前期发展.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/sfm/240911.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/TN_WaveActivityFlux.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/curved_quiver.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/curved_quivers_master/modplot.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/masked.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/pre_whitening.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/send_wechat.py" charset="UTF-8" />

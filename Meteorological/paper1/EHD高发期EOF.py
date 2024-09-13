@@ -14,12 +14,17 @@ import matplotlib.colors as colors
 from cnmaps import get_adm_maps, draw_maps
 from eofs.standard import Eof
 import cmaps
+from scipy.ndimage import gaussian_filter
 from toolbar.masked import masked  # 气象工具函数
+from toolbar.significance_test import corr_test
 from toolbar.sub_adjust import adjust_sub_axes
 from toolbar.pre_whitening import ws2001
+from toolbar.curved_quivers_master.modplot import velovect
 import pandas as pd
-import tqdm
+import tqdm as tq
 import seaborn as sns
+import multiprocessing
+
 
 # 数据读取
 EHD = xr.open_dataset(r"cache\EHD.nc")  # 读取缓存
@@ -38,10 +43,47 @@ EHD_concat = masked(EHD_concat,
                     r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
 # 计算EOF
 eof = Eof(EHD_concat.to_numpy())  #进行eof分解
-Modality = eof.eofs(eofscaling=2,
-                    neofs=2)  # 得到空间模态U eofscaling 对得到的场进行放缩 （1为除以特征值平方根，2为乘以特征值平方根，默认为0不处理） neofs决定输出的空间模态场个数
+Modality = eof.eofs(eofscaling=2, neofs=2)  # 得到空间模态U eofscaling 对得到的场进行放缩 （1为除以特征值平方根，2为乘以特征值平方根，默认为0不处理） neofs决定输出的空间模态场个数
 PC = eof.pcs(pcscaling=1, npcs=2)  # 同上 npcs决定输出的时间序列个数
 s = eof.varianceFraction(neigs=2)  # 得到前neig个模态的方差贡献
+# uvz
+uv = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev.nc").sel(
+    date=slice('19790101', '20221231'),
+    pressure_level=[850],
+    latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])
+uv = xr.DataArray([uv['u'].data, uv['v'].data, uv['z'].data], coords=[('var', ['u', 'v', 'z']),
+                                     ('time', pd.to_datetime(uv['date'], format="%Y%m%d")),
+                                     ('p', uv['pressure_level'].data),
+                                     ('lat', uv['latitude'].data),
+                                     ('lon', uv['longitude'].data)]).to_dataset(name='uv')
+uv = uv.sel(time=uv['time.month'].isin([7, 8]))
+uv = uv.groupby('time.year').mean('time') # 两月平均
+ols = np.load(r"cache\OLS_detrended.npy")  # 读取缓存
+
+for i in ['u', 'v', 'z']:
+    try:
+        corr_1 = np.load(fr"cache\ehd_eof\{i}_corr.npy")  # 读取缓存
+    except:
+        corr_1 = np.array([[np.corrcoef(ols, uv['uv'].sel(var=i, p=850, lat=ilat, lon=ilon))[0, 1] for ilon in uv['lon']] for ilat in tq.tqdm(uv['lat'])])
+        np.save(fr"cache\ehd_eof\{i}_corr.npy", corr_1)  # 保存缓存
+
+u_r = np.load(fr"cache\ehd_eof\u_corr.npy")
+v_r = np.load(fr"cache\ehd_eof\v_corr.npy")
+z_r = np.load(fr"cache\ehd_eof\z_corr.npy")
+
+u显著性检验结果 = corr_test(ols, u_r, alpha=0.10)
+v显著性检验结果 = corr_test(ols, v_r, alpha=0.10)
+z显著性检验结果 = corr_test(ols, z_r, alpha=0.10)
+uv显著性检验结果 = np.where(np.where(u显著性检验结果 == 1, 1, 0) + np.where(v显著性检验结果 == 1, 1, 0) >= 1, 1, np.nan)
+z显著性检验结果 = np.where(z显著性检验结果 == 1, 1, np.nan)
+# 通过显著性检验结果进行筛选
+u_corr = np.where(uv显著性检验结果 == 1, u_r, np.nan)
+v_corr = np.where(uv显著性检验结果 == 1, v_r, np.nan)
+u_np = np.where(uv显著性检验结果 != 1, u_r, np.nan)
+v_np = np.where(uv显著性检验结果 != 1, v_r, np.nan)
+u_np = np.where(u_np ** 2 + v_np ** 2 >= 0.15 ** 2, u_np, np.nan)
+v_np = np.where(u_np ** 2 + v_np ** 2 >= 0.15 ** 2, v_np, np.nan)
+
 # 绘图
 # ##地图要素设置
 plt.rcParams['font.sans-serif'] = ['Arial']
@@ -49,21 +91,44 @@ plt.rcParams['axes.unicode_minus'] = False
 fig = plt.figure(figsize=(16, 9))  # 创建画布
 spec = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[1, 1], height_ratios=[1])  # 设置子图比例
 
-extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
+extent_changjiang = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
+extent_CN = [85, 145, 12, 48]  # 中国大陆经度范围，纬度范围
 proj = ccrs.PlateCarree()  # 投影方式
 ax1 = fig.add_subplot(spec[0, 0], projection=proj)  # 添加子图
 # 设置ax1 figsize=(9, 4)
 ax1.set_extent(extent_CN, crs=proj)  # 设置地图范围
-a1 = ax1.contourf(EHD['lon'], EHD['lat'], Modality[0], cmap=cmaps.WhiteBlueGreenYellowRed,
+a1 = ax1.contourf(EHD['lon'], EHD['lat'], Modality[0], cmap=cmaps.BlueWhiteOrangeRed[140:],
                   levels=[0, .5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6],
                   extend='both',transform=proj)
+####
+level2 = [-0.4 + i * 0.2 for i in range(5)]
+z_r = gaussian_filter(z_r, 3)
+a1_h = ax1.contour(uv['lon'], uv['lat'], z_r, transform=proj, levels=level2[:2], colors='blue', linewidths=1.5, linestyles='--',alpha=1)
+a1_hm = ax1.contour(uv['lon'], uv['lat'], z_r, transform=proj, levels=[0], colors='gray', linewidths=1.5, linestyles='-', alpha=1)
+a1_h1 = ax1.contour(uv['lon'], uv['lat'], z_r, transform=proj, levels=level2[3:], colors='red', linewidths=1.5, linestyles='-', alpha=1)
+ax1.clabel(a1_h, inline=True, fontsize=14, fmt='%.01f', colors='blue')
+ax1.clabel(a1_hm, inline=True, fontsize=14, fmt='%.01f', colors='gray')
+ax1.clabel(a1_h1, inline=True, fontsize=14, fmt='%.01f', colors='red')
+ax1.text(124.5, 31.6, 'A', fontsize=20, fontweight='bold', color='blue', zorder=20)
+####
+'''a1_uv = ax1.quiver(uv['lon'], uv['lat'], u_corr, v_corr, transform=proj, pivot='mid',scale=25,  regrid_shape=20,
+                   headlength=3,headaxislength=3)'''
+uv = uv.sel(lat=slice(extent_CN[3], extent_CN[2]), lon=slice(extent_CN[0], extent_CN[1]))
+a1_uv = velovect(ax1, uv['lon'].data[::10], uv['lat'].data[::-10], np.array(u_corr.tolist())[::10, ::10], np.array(v_corr.tolist())[::10, ::10], color='k', scale=1.5, transform=proj, arrowstyle='fancy', grains = 15)
+a1_uv_np = ax1.quiver(uv['lon'], uv['lat'], u_np, v_np, color='gray', scale=25, regrid_shape=20, transform=proj)
+ax1.quiverkey(a1_uv, X=0.90, Y=1.03, U=1,angle = 0,  label='1 m/s',
+              labelpos='E', color='black',labelcolor = 'k',linewidth=0.8)  # linewidth=1为箭头的大小
 cbar = plt.colorbar(a1, ax=ax1, orientation='horizontal', pad=0.05, aspect=50, shrink=0.8)
+draw_maps(get_adm_maps(level='国'), linewidth=0.5)
 ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray')  # 添加陆地并且陆地部分全部填充成浅灰色
 ax1.add_geometries(Reader(
     r'C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(),
                    ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=0.4)
 ax1.add_geometries(Reader(r'D:\CODES\Python\Meteorological\maps\cnriver\长江\长江.shp').geometries(),
                    ccrs.PlateCarree(), facecolor='none', edgecolor='blue', linewidth=0.2)
+DBATP = r"D:\CODES\Python\PythonProject\map\DBATP\TP_2500m\TPBoundary_2500m.shp"
+provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
+# ax1.add_feature(provinces, lw=0.5, zorder=2)
 # 设置坐标轴
 xticks1=np.arange(extent_CN[0], extent_CN[1]+1, 10)
 yticks1=np.arange(extent_CN[2], extent_CN[3]+1, 10)
