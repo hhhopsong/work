@@ -15,6 +15,7 @@ from cnmaps import get_adm_maps, draw_maps
 from eofs.standard import Eof
 import cmaps
 from scipy.ndimage import gaussian_filter
+from scipy.interpolate import interp2d
 from toolbar.masked import masked  # 气象工具函数
 from toolbar.significance_test import corr_test
 from toolbar.sub_adjust import adjust_sub_axes
@@ -43,33 +44,39 @@ EHD_concat = masked(EHD_concat,
                     r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
 # 计算EOF
 eof = Eof(EHD_concat.to_numpy())  #进行eof分解
-Modality = eof.eofs(eofscaling=2, neofs=2)  # 得到空间模态U eofscaling 对得到的场进行放缩 （1为除以特征值平方根，2为乘以特征值平方根，默认为0不处理） neofs决定输出的空间模态场个数
-PC = eof.pcs(pcscaling=1, npcs=2)  # 同上 npcs决定输出的时间序列个数
-s = eof.varianceFraction(neigs=2)  # 得到前neig个模态的方差贡献
+Modality = eof.eofs(eofscaling=2, neofs=1)  # 得到空间模态U eofscaling 对得到的场进行放缩 （1为除以特征值平方根，2为乘以特征值平方根，默认为0不处理） neofs决定输出的空间模态场个数
+PC = eof.pcs(pcscaling=1, npcs=1)  # 同上 npcs决定输出的时间序列个数
+s = eof.varianceFraction(neigs=1)  # 得到前neig个模态的方差贡献
+print('EOF计算完成')
 # uvz
-uv = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev.nc").sel(
-    date=slice('19790101', '20221231'),
-    pressure_level=[850],
-    latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])
-uv = xr.DataArray([uv['u'].data, uv['v'].data, uv['z'].data], coords=[('var', ['u', 'v', 'z']),
-                                     ('time', pd.to_datetime(uv['date'], format="%Y%m%d")),
-                                     ('p', uv['pressure_level'].data),
-                                     ('lat', uv['latitude'].data),
-                                     ('lon', uv['longitude'].data)]).to_dataset(name='uv')
+try:
+    uv = xr.open_dataset(r"cache\ehd_eof\uv.nc")  # 读取缓存
+except:
+    uv = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev.nc").sel(
+        date=slice('19790101', '20221231'),
+        pressure_level=[850],
+        latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])
+    uv = xr.DataArray([uv['u'].data, uv['v'].data, uv['z'].data], coords=[('var', ['u', 'v', 'z']),
+                                         ('time', pd.to_datetime(uv['date'], format="%Y%m%d")),
+                                         ('p', uv['pressure_level'].data),
+                                         ('lat', uv['latitude'].data),
+                                         ('lon', uv['longitude'].data)]).to_dataset(name='uv')
+    uv.to_netcdf(r"cache\ehd_eof\uv.nc")
 uv = uv.sel(time=uv['time.month'].isin([7, 8]))
 uv = uv.groupby('time.year').mean('time') # 两月平均
 ols = np.load(r"cache\OLS_detrended.npy")  # 读取缓存
 
 for i in ['u', 'v', 'z']:
     try:
-        corr_1 = np.load(fr"cache\ehd_eof\{i}_corr.npy")  # 读取缓存
+        corr = np.load(fr"cache\ehd_eof\{i}_corr.npy")  # 读取缓存
     except:
-        corr_1 = np.array([[np.corrcoef(ols, uv['uv'].sel(var=i, p=850, lat=ilat, lon=ilon))[0, 1] for ilon in uv['lon']] for ilat in tq.tqdm(uv['lat'])])
-        np.save(fr"cache\ehd_eof\{i}_corr.npy", corr_1)  # 保存缓存
+        corr = np.array([[np.corrcoef(ols, uv['uv'].sel(var=i, p=850, lat=ilat, lon=ilon))[0, 1] for ilon in uv['lon']] for ilat in tq.tqdm(uv['lat'])])
+        np.save(fr"cache\ehd_eof\{i}_corr.npy", corr)  # 保存缓存
 
 u_r = np.load(fr"cache\ehd_eof\u_corr.npy")
 v_r = np.load(fr"cache\ehd_eof\v_corr.npy")
 z_r = np.load(fr"cache\ehd_eof\z_corr.npy")
+print('相关系数加载完成')
 
 u显著性检验结果 = corr_test(ols, u_r, alpha=0.10)
 v显著性检验结果 = corr_test(ols, v_r, alpha=0.10)
@@ -83,6 +90,7 @@ u_np = np.where(uv显著性检验结果 != 1, u_r, np.nan)
 v_np = np.where(uv显著性检验结果 != 1, v_r, np.nan)
 u_np = np.where(u_np ** 2 + v_np ** 2 >= 0.15 ** 2, u_np, np.nan)
 v_np = np.where(u_np ** 2 + v_np ** 2 >= 0.15 ** 2, v_np, np.nan)
+print('显著性检验完成')
 
 # 绘图
 # ##地图要素设置
@@ -113,10 +121,10 @@ ax1.text(124.5, 31.6, 'A', fontsize=20, fontweight='bold', color='blue', zorder=
 ####
 '''a1_uv = ax1.quiver(uv['lon'], uv['lat'], u_corr, v_corr, transform=proj, pivot='mid',scale=25,  regrid_shape=20,
                    headlength=3,headaxislength=3)'''
-uv = uv.sel(lat=slice(extent_CN[3], extent_CN[2]), lon=slice(extent_CN[0], extent_CN[1]))
-a1_uv = velovect(ax1, uv['lon'].data[::10], uv['lat'].data[::-10], np.array(u_corr.tolist())[::10, ::10], np.array(v_corr.tolist())[::10, ::10], color='k', scale=1.5, transform=proj, arrowstyle='fancy', grains = 15)
-a1_uv_np = ax1.quiver(uv['lon'], uv['lat'], u_np, v_np, color='gray', scale=25, regrid_shape=20, transform=proj)
-ax1.quiverkey(a1_uv, X=0.90, Y=1.03, U=1,angle = 0,  label='1 m/s',
+a1_uv = velovect(ax1, uv['lon'].data, uv['lat'].data[::-1], np.array(u_corr.tolist())[::-1, :], np.array(v_corr.tolist())[::-1, :], arrowstyle='fancy', scale = 1.25, grains = 100, color='black', transform=proj)
+a1_uv_np_ = velovect(ax1, uv['lon'].data, uv['lat'].data[::-1], np.array(u_np.tolist())[::-1, :], np.array(v_np.tolist())[::-1, :], arrowstyle='fancy', scale = 1.25, grains = 100, color='gray', transform=proj)
+a1_uv_np = ax1.quiver(uv['lon'], uv['lat'], u_np, v_np, color='gray', scale=15, regrid_shape=20, transform=proj)
+ax1.quiverkey(a1_uv_np, X=0.90, Y=1.03, U=1,angle = 0,  label='1 m/s',
               labelpos='E', color='black',labelcolor = 'k',linewidth=0.8)  # linewidth=1为箭头的大小
 cbar = plt.colorbar(a1, ax=ax1, orientation='horizontal', pad=0.05, aspect=50, shrink=0.8)
 draw_maps(get_adm_maps(level='国'), linewidth=0.5)
@@ -176,9 +184,9 @@ adjust_sub_axes(ax1, ax1_pc, shrink=1, lr=-.1, ud=1.0)
 ax1_pc_reg = ax1_pc.twinx()
 k, b = mk.sens_slope(ws2001(PC[:, 0]))  # Theil-Sen 斜率, 截距
 ax1_pc_reg = sns.regplot(x=[i for i in range(44)], y=PC[:, 0], ax=ax1_pc_reg, scatter=False, color='#74C476', ci=95)
-ax1_pc_sens = sns.lineplot(x=[i for i in range(44)], y=k * np.array([i for i in range(44)]) + b, ax=ax1_pc_reg, color='black')
+#ax1_pc_sens = sns.lineplot(x=[i for i in range(44)], y=k * np.array([i for i in range(44)]) + b, ax=ax1_pc_reg, color='black')
 ax1_pc_reg.set_ylim(-3, 3)
-ax1_pc_sens.set_ylim(-3, 3)
+#ax1_pc_sens.set_ylim(-3, 3)
 ax1_pc_reg.yaxis.set_visible(False)  # 隐藏y轴标签
 ax1_pc_reg.spines['top'].set_visible(False)  # 隐藏上边框
 ax1_pc_reg.spines['right'].set_visible(False)  # 隐藏右边框
