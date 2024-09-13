@@ -150,7 +150,7 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     sp2 = np.asanyarray(start_points, dtype=float).copy()
 
     # Check if start_points are outside the data boundaries
-    for xs, ys in tq.tqdm(sp2):
+    for xs, ys in tq.tqdm(sp2, desc='Checking starting points'):
         if not (grid.x_origin <= xs <= grid.x_origin + grid.width
                 and grid.y_origin <= ys <= grid.y_origin + grid.height):
             raise ValueError("Starting point ({}, {}) outside of data "
@@ -162,7 +162,7 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
-    for xs, ys in tq.tqdm(sp2):
+    for xs, ys in tq.tqdm(sp2, desc='Integrating trajectories'):
         xg, yg = dmap.data2grid(xs, ys)
         t = integrate(xg, yg)
         if t is not None:
@@ -179,7 +179,7 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
 
     streamlines = []
     arrows = []
-    for t, edge in tq.tqdm(zip(trajectories,edges)):
+    for t, edge in tq.tqdm(zip(trajectories,edges), desc='Drawing streamlines'):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
         
@@ -428,7 +428,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, masked=True):
     speed = np.ma.sqrt(u_ax ** 2 + v_ax ** 2)
 
     def forward_time(xi, yi):
-        ds_dt = interpgrid(speed, xi, yi)
+        ds_dt = interpgrid(speed, xi, yi, masked=masked)
         if ds_dt == 0:
             raise TerminateTrajectory()
         dt_ds = 1. / ds_dt
