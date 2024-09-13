@@ -27,7 +27,7 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
                cmap=None, norm=None, arrowsize=1, arrowstyle='-|>',
                transform=None, zorder=None, start_points=None,
                scale=1.0, grains=15, masked=True):
-    """Draws streamlines of a vector flow.
+    """Draws streamlines of a vector flow. 缺测值切记用0代替
 
     *x*, *y* : 1d arrays
         an *evenly spaced* grid.
