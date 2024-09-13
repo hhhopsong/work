@@ -22,6 +22,7 @@ from toolbar.sub_adjust import adjust_sub_axes
 from toolbar.pre_whitening import ws2001
 from toolbar.significance_test import corr_test
 from toolbar.TN_WaveActivityFlux import TN_WAF, TN_WAF_3D
+from toolbar.curved_quivers_master.modplot import velovect
 import seaborn as sns
 import tqdm
 import multiprocessing
@@ -162,7 +163,7 @@ if __name__ == '__main__':
                                             ('lat', z_diff['lat'].data),
                                             ('lon', z_diff['lon'].data)])
                 waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0)
-                ax = fig.add_subplot(spec[0, col], projection=ccrs.NorthPolarStereo(central_longitude=90))
+                ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=0))
                 streamf图层 = ax.contourf(z_diff['lon'], z_diff['lat'], waf_streamf[0]*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
                                            cmap=cmaps.MPL_PuOr_r,
                                            extend='both',
@@ -175,14 +176,18 @@ if __name__ == '__main__':
                 waf_y = filters.gaussian_filter(waf_y[0], 3)
                 waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, np.nan)
                 waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, np.nan)
-                WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf_x, waf_y, scale=3,
+                '''WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf_x, waf_y, scale=3,
                                            color='black', regrid_shape=150,pivot='mid',width=0.005,headwidth=3,zorder=6,
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 # 为箭头添加白边，好看一些
-                WAF图层.set_path_effects([path_effects.PathPatchEffect(edgecolor='w', facecolor='k', linewidth=0.1)])
-                ax.quiverkey(WAF图层, X=0.05, Y=1.03, U=0.25, angle=225, label='0.25 m$^2$/s$^2$',
+                WAF图层.set_path_effects([path_effects.PathPatchEffect(edgecolor='w', facecolor='k', linewidth=0.1)])'''
+                WAF图层_ = velovect(ax, z_diff['lon'].data, z_diff['lat'].data[::-1], np.array(waf_x.tolist())[::-1, :],
+                                 np.array(waf_y.tolist())[::-1, :], arrowstyle='fancy', scale=1.25, grains=100,
+                                 color='black', transform=ccrs.PlateCarree(central_longitude=0))
+                WAF图层 = ax.quiver(z_diff['lon'][0], z_diff['lat'][0], waf_x[0, 0], waf_x[0, 0], scale=8)
+                ax.quiverkey(WAF图层, X=x, Y=y, U=0.5, angle=0, label='0.5 m$^2$/s$^2$',
                               labelpos='N', color='black', labelcolor='k', linewidth=0.3, fontproperties={'size': 5})  # linewidth=1为箭头的大小
-                ax.set_extent([-180, 180, 20, 90], crs=ccrs.PlateCarree(central_longitude=180))
+                ax.set_extent([0, 292.5, 30, 80], crs=ccrs.PlateCarree(central_longitude=180))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none',edgecolor='black',linewidth=.2)
