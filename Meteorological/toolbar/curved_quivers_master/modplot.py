@@ -85,6 +85,12 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
             changes should be backward compatible.
 
     """
+
+    # 填充nan值为0
+    if masked:
+        u = np.where(np.isnan(u), 0, u)
+        v = np.where(np.isnan(v), 0, v)
+
     grid = Grid(x, y)
     mask = StreamMask(10)
     dmap = DomainMap(grid, mask)
