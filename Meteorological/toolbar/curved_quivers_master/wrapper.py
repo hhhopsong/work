@@ -11,8 +11,8 @@ Y, X = np.mgrid[-w:w:100j, -w:w:100j]
 #U = np.sin(X)*np.sin(Y)
 #V = np.cos(X)*np.sin(Y)
 
-U = -Y
-V = X
+U = -Y*50
+V = X*50
 
 #U = -Y*np.sin(Y)*np.cos(Y)
 #V = X*np.sin(X)*np.cos(X)
