@@ -20,6 +20,8 @@ import matplotlib.lines as mlines
 import matplotlib.patches as patches
 
 
+import tqdm as tq
+
 
 def velovect(axes, x, y, u, v, linewidth=None, color=None,
                cmap=None, norm=None, arrowsize=1, arrowstyle='-|>',
@@ -148,7 +150,7 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     sp2 = np.asanyarray(start_points, dtype=float).copy()
 
     # Check if start_points are outside the data boundaries
-    for xs, ys in sp2:
+    for xs, ys in tq.tqdm(sp2):
         if not (grid.x_origin <= xs <= grid.x_origin + grid.width
                 and grid.y_origin <= ys <= grid.y_origin + grid.height):
             raise ValueError("Starting point ({}, {}) outside of data "
@@ -160,7 +162,7 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
-    for xs, ys in sp2:
+    for xs, ys in tq.tqdm(sp2):
         xg, yg = dmap.data2grid(xs, ys)
         t = integrate(xg, yg)
         if t is not None:
@@ -177,7 +179,7 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
 
     streamlines = []
     arrows = []
-    for t, edge in zip(trajectories,edges):
+    for t, edge in tq.tqdm(zip(trajectories,edges)):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
         
