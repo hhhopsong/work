@@ -123,7 +123,7 @@ ax1.text(124.5, 31.6, 'A', fontsize=20, fontweight='bold', color='blue', zorder=
                    headlength=3,headaxislength=3)'''
 a1_uv = velovect(ax1, uv['lon'].data, uv['lat'].data[::-1], np.array(u_corr.tolist())[::-1, :], np.array(v_corr.tolist())[::-1, :], arrowstyle='fancy', scale = 1.25, grains = 100, color='black', transform=proj)
 a1_uv_np_ = velovect(ax1, uv['lon'].data, uv['lat'].data[::-1], np.array(u_np.tolist())[::-1, :], np.array(v_np.tolist())[::-1, :], arrowstyle='fancy', scale = 1.25, grains = 100, color='gray', transform=proj)
-a1_uv_np = ax1.quiver(uv['lon'], uv['lat'], u_np, v_np, color='gray', scale=10, regrid_shape=20, transform=proj)
+a1_uv_np = ax1.quiver(uv['lon'][0], uv['lat'][0], u_np[0, 0], v_np[0, 0], scale=8)
 ax1.quiverkey(a1_uv_np, X=0.90, Y=1.03, U=0.5,angle = 0,  label='0.5 m/s',
               labelpos='E', color='black',labelcolor = 'k',linewidth=0.8)  # linewidth=1为箭头的大小
 cbar = plt.colorbar(a1, ax=ax1, orientation='horizontal', pad=0.05, aspect=50, shrink=0.8)
