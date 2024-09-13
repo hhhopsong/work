@@ -37,7 +37,7 @@ seed_points = np.array([list(xs), list(ys)])
 
 scale=2.
 U = np.where(W>2.5, U, 0)
-V = np.where(W>.5, V, 0)
+V = np.where(W>2.5, V, 0)
 velovect(ax3,X,Y,U,V, arrowstyle='fancy', scale = 1.5, grains = 15, color='k')
 
 				   
