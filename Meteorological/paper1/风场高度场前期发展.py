@@ -89,7 +89,7 @@ if __name__ == '__main__':
     lev = 15
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     p = [200, 500, 600, 700, 850]
-    time = [6, 5, 4] ## 选择时间
+    time = [4] ## 选择时间
     spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
     date_pool = []
     for date in time:
@@ -163,7 +163,7 @@ if __name__ == '__main__':
                                             ('lat', z_diff['lat'].data),
                                             ('lon', z_diff['lon'].data)])
                 waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0)
-                ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=0))
+                ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
                 streamf图层 = ax.contourf(z_diff['lon'], z_diff['lat'], waf_streamf[0]*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
                                            cmap=cmaps.MPL_PuOr_r,
                                            extend='both',
@@ -176,34 +176,41 @@ if __name__ == '__main__':
                 waf_y = filters.gaussian_filter(waf_y[0], 3)
                 waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, np.nan)
                 waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, np.nan)
-                '''WAF图层 = ax.quiver(z_diff['lon'], z_diff['lat'], waf_x, waf_y, scale=3,
+                WAF图层1 = ax.quiver(z_diff['lon'], z_diff['lat'], waf_x, waf_y, scale=20,
                                            color='black', regrid_shape=150,pivot='mid',width=0.005,headwidth=3,zorder=6,
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                # 为箭头添加白边，好看一些
-                WAF图层.set_path_effects([path_effects.PathPatchEffect(edgecolor='w', facecolor='k', linewidth=0.1)])'''
                 WAF图层_ = velovect(ax, z_diff['lon'].data, z_diff['lat'].data[::-1], np.array(waf_x.tolist())[::-1, :],
-                                 np.array(waf_y.tolist())[::-1, :], arrowstyle='fancy', scale=1.25, grains=100,
+                                 np.array(waf_y.tolist())[::-1, :], arrowstyle='fancy', scale=1.75, grains=50,
                                  color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层 = ax.quiver(z_diff['lon'][0], z_diff['lat'][0], waf_x[0, 0], waf_x[0, 0], scale=8)
+                WAF图层 = ax.quiver(z_diff['lon'][0], z_diff['lat'][0], waf_x[0, 0], waf_x[0, 0], scale=20)
                 ax.quiverkey(WAF图层, X=x, Y=y, U=0.5, angle=0, label='0.5 m$^2$/s$^2$',
                               labelpos='N', color='black', labelcolor='k', linewidth=0.3, fontproperties={'size': 5})  # linewidth=1为箭头的大小
-                ax.set_extent([0, 292.5, 30, 80], crs=ccrs.PlateCarree(central_longitude=180))
+                ax.set_extent([0, 292.5, 20, 80], crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none',edgecolor='black',linewidth=.2)
 
-                grid_lon = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=.2, color='grey',
-                                         linestyle='--')
-                grid_lon.xlocator = FixedLocator(np.linspace(-180, 180, 13))
-                grid_lon.ylocator = FixedLocator([30, 60])
-                grid_lon.xlabel_style = {'size': 5}
-                grid_lon.ylabel_style = {'size': 1}
+                # 刻度线设置
+                # ax1
+                ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
+                lon_formatter = LongitudeFormatter()
+                lat_formatter = LatitudeFormatter()
+                ax.yaxis.set_major_formatter(lat_formatter)
 
-                theta = np.linspace(0, 2 * np.pi, 100)
-                center, radius = [0.5, 0.5], 0.5
-                verts = np.vstack([np.sin(theta), np.cos(theta)]).T
-                circle = mpath.Path(verts * radius + center)
-                ax.set_boundary(circle, transform=ax.transAxes)
+
+                ymajorLocator = MultipleLocator(30)  # 先定义xmajorLocator，再进行调用
+                ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
+                yminorLocator = MultipleLocator(10)
+                ax.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
+                # ax1.axes.xaxis.set_ticklabels([]) ##隐藏刻度标签
+                # 最大刻度、最小刻度的刻度线长短，粗细设置
+                ax.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
+                ax.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
+                ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+                plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
+                # 调整刻度值字体大小
+                ax.tick_params(axis='both', labelsize=title_size, colors='black')
+
                 # 设置色标
                 cbar = plt.colorbar(streamf图层, orientation='vertical', drawedges=True)
                 cbar.Location = 'eastoutside'
