@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import six
 from matplotlib.streamplot import TerminateTrajectory
+
 from six.moves import xrange
 from scipy.interpolate import interp1d
 
@@ -23,7 +24,7 @@ import matplotlib.patches as patches
 def velovect(axes, x, y, u, v, linewidth=None, color=None,
                cmap=None, norm=None, arrowsize=1, arrowstyle='-|>',
                transform=None, zorder=None, start_points=None,
-               scale=1.0, grains=15):
+               scale=1.0, grains=15, masked=True):
     """Draws streamlines of a vector flow.
 
     *x*, *y* : 1d arrays
@@ -61,6 +62,10 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
         any number
     *scale* : float
         Maximum length of streamline in axes coordinates.
+    *grains* : int
+        Number of points to use in integration.
+    *masked* : bool
+        原数据是否为掩码数组
 
     Returns:
 
@@ -193,12 +198,12 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
         arrow_head = (np.mean(tx[n:n + 2]), np.mean(ty[n:n + 2]))
 
         if isinstance(linewidth, np.ndarray):
-            line_widths = interpgrid(linewidth, tgx, tgy)[:-1]
+            line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
             line_kw['linewidth'].extend(line_widths)
             arrow_kw['linewidth'] = line_widths[n]
 
         if use_multicolor_lines:
-            color_values = interpgrid(color, tgx, tgy)[:-1]
+            color_values = interpgrid(color, tgx, tgy, masked=masked)[:-1]
             line_colors.append(color_values)
             arrow_kw['color'] = cmap(norm(color_values[n]))
         
@@ -410,7 +415,7 @@ class StreamMask(object):
 # Integrator definitions
 #========================
 
-def get_integrator(u, v, dmap, minlength, resolution, magnitude):
+def get_integrator(u, v, dmap, minlength, resolution, magnitude, masked=True):
 
     # rescale velocity onto grid-coordinates for integrations.
     u, v = dmap.data2grid(u, v)
@@ -425,8 +430,8 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude):
         if ds_dt == 0:
             raise TerminateTrajectory()
         dt_ds = 1. / ds_dt
-        ui = interpgrid(u, xi, yi)
-        vi = interpgrid(v, xi, yi)
+        ui = interpgrid(u, xi, yi, masked=masked)
+        vi = interpgrid(v, xi, yi, masked=masked)
         return ui * dt_ds, vi * dt_ds
 
 
@@ -459,7 +464,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude):
     return integrate
 
 
-def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude):
+def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True):
     """2nd-order Runge-Kutta algorithm with adaptive step size.
 
     This method is also referred to as the improved Euler's method, or Heun's
@@ -507,7 +512,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude):
     while dmap.grid.within_grid(xi, yi):
         xf_traj.append(xi)
         yf_traj.append(yi)
-        m_total.append(interpgrid(magnitude, xi, yi))
+        m_total.append(interpgrid(magnitude, xi, yi, masked=masked))
         try:
             k1x, k1y = f(xi, yi)
             k2x, k2y = f(xi + ds * k1x,
@@ -581,7 +586,7 @@ def _euler_step(xf_traj, yf_traj, dmap, f):
 # Utility functions
 # ========================
 
-def interpgrid(a, xi, yi):
+def interpgrid(a, xi, yi, masked=True):
     """Fast 2D, linear interpolation on an integer grid"""
 
     Ny, Nx = np.shape(a)
@@ -615,7 +620,7 @@ def interpgrid(a, xi, yi):
     ai = a0 * (1 - yt) + a1 * yt
 
     if not isinstance(xi, np.ndarray):
-        if np.ma.is_masked(ai):
+        if np.ma.is_masked(ai) and (not masked):
             raise TerminateTrajectory
 
     return ai
