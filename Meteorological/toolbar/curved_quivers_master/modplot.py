@@ -206,6 +206,10 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
         arrow_tail = (tx[n] + error_arrowloc[0], ty[n]+ error_arrowloc[1])
         arrow_head = (np.mean(tx[n:n + 2]) + error_arrowloc[0], np.mean(ty[n:n + 2]) + error_arrowloc[1])
 
+        # If the error_arrowloc is too large, just use the tail as the head as well
+        if error_arrowloc[0] > 5 or error_arrowloc[1] > 5:
+            arrow_head = arrow_tail
+
         if isinstance(linewidth, np.ndarray):
             line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
             line_kw['linewidth'].extend(line_widths)

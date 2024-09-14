@@ -89,7 +89,7 @@ if __name__ == '__main__':
     lev = 15
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     p = [200, 500, 600, 700, 850]
-    time = [4, 5, 6] ## 选择时间
+    time = [6, 5, 4] ## 选择时间
     spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
     date_pool = []
     for date in time:
