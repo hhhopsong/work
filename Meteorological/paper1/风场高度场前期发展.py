@@ -253,16 +253,16 @@ if __name__ == '__main__':
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv = ax.quiver(u_diff['lon'][0:3], u_diff['lat'][0:3], u_corr[0:3, 0:3], v_corr[0:3, 0:3], scale=10, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
-                uv_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
-                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist())[::-1, :][90:, :],
-                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist())[::-1, :][90:, :],
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35,linewidth=0.75,
-                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist())[::-1, :][90:, :],
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist())[::-1, :][90:, :],
                                arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
+                uv_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
+                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist())[::-1, :][90:, :],
+                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist())[::-1, :][90:, :],
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35,linewidth=0.75,
+                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
@@ -349,16 +349,16 @@ if __name__ == '__main__':
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv = ax.quiver(u_diff['lon'][0:3], u_diff['lat'][0:3], u_corr[0:3, 0:3], v_corr[0:3, 0:3], scale=10, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
-                uv_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
-                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist())[::-1, :][90:, :],
-                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist())[::-1, :][90:, :],
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35,linewidth=0.75,
-                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist())[::-1, :][90:, :],
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist())[::-1, :][90:, :],
                                arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
+                uv_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
+                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist())[::-1, :][90:, :],
+                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist())[::-1, :][90:, :],
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35,linewidth=0.75,
+                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
@@ -432,16 +432,16 @@ if __name__ == '__main__':
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv = ax.quiver(u_diff['lon'][0:3], u_diff['lat'][0:3], u_corr[0:3, 0:3], v_corr[0:3, 0:3], scale=10, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
-                uv_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
-                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist())[::-1, :][90:, :],
-                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist())[::-1, :][90:, :],
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35,linewidth=0.75,
-                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist())[::-1, :][90:, :],
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist())[::-1, :][90:, :],
                                arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
+                uv_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
+                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist())[::-1, :][90:, :],
+                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist())[::-1, :][90:, :],
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35,linewidth=0.75,
+                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
