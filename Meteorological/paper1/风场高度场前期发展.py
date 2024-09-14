@@ -89,7 +89,7 @@ if __name__ == '__main__':
     lev = 15
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     p = [200, 500, 600, 700, 850]
-    time = [4] ## 选择时间
+    time = [4, 5, 6] ## 选择时间
     spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
     date_pool = []
     for date in time:
@@ -209,7 +209,7 @@ if __name__ == '__main__':
                 ax1.tick_params(axis='both', labelsize=title_size, colors='black')
 
                 # 设置色标
-                cbar = plt.colorbar(streamf图层, orientation='vertical', drawedges=True)
+                cbar = plt.colorbar(streamf图层, orientation='vertical', drawedges=True, ax=ax1)
                 cbar.Location = 'eastoutside'
                 cbar.locator = ticker.FixedLocator([-2.5, -2, -1.5, -1, -0.5, -.25, .25, 0.5, 1, 1.5, 2, 2.5])
                 #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
@@ -290,7 +290,7 @@ if __name__ == '__main__':
                 # 调整刻度值字体大小
                 ax.tick_params(axis='both', labelsize=title_size, colors='black')
                 # 设置色标
-                cbar = plt.colorbar(相关系数图层, orientation='vertical', drawedges=True)
+                cbar = plt.colorbar(相关系数图层, orientation='vertical', drawedges=True, ax=ax)
                 cbar.Location = 'eastoutside'
                 cbar.locator = ticker.FixedLocator([-.4, -.3, -.2, -.1, .1, .2, .3, .4])
                 #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
@@ -386,7 +386,7 @@ if __name__ == '__main__':
                 ax.tick_params(axis='both', labelsize=title_size, colors='black')
 
                 # 设置色标
-                cbar = plt.colorbar(sst相关系数图层, orientation='vertical', drawedges=True)
+                cbar = plt.colorbar(sst相关系数图层, orientation='vertical', drawedges=True, ax=ax)
                 cbar.Location = 'eastoutside'
                 cbar.locator = ticker.FixedLocator([-.4, -.3, -.2, -.1, .1, .2, .3, .4])
                 #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
@@ -469,7 +469,7 @@ if __name__ == '__main__':
                 ax.tick_params(axis='both', labelsize=title_size, colors='black')
 
                 # 设置色标
-                cbar = plt.colorbar(pre相关系数图层, orientation='vertical', drawedges=True)
+                cbar = plt.colorbar(pre相关系数图层, orientation='vertical', drawedges=True, ax=ax)
                 cbar.Location = 'eastoutside'
                 cbar.locator = ticker.FixedLocator([-.4, -.3, -.2, -.1, .1, .2, .3, .4])
                 #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
