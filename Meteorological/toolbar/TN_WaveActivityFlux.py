@@ -187,7 +187,7 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
     Vc  =xr.where(abs(Vc  ['lat'])<=20,np.nan,Vc  ).transpose('level','lat','lon')
     UVc =xr.where(abs(UVc ['lat'])<=20,np.nan,UVc ).transpose('level','lat','lon')
     GEOc=xr.where(abs(GEOc['lat'])<=20,np.nan,GEOc).transpose('level','lat','lon')
-    PSI_global = xr.where(GEOa).transpose('level','lat','lon')
+    PSI_global = GEOa.transpose('level','lat','lon')
     GEOa=xr.where(abs(GEOa['lat'])<=20,np.nan,GEOa).transpose('level','lat','lon')
 
 
