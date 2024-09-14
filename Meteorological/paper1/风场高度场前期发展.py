@@ -89,7 +89,7 @@ if __name__ == '__main__':
     lev = 15
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     p = [200, 500, 600, 700, 850]
-    time = [6, 5, 4] ## 选择时间
+    time = [4, 5, 6] ## 选择时间
     spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
     date_pool = []
     for date in time:
@@ -176,14 +176,25 @@ if __name__ == '__main__':
                 waf_y = filters.gaussian_filter(waf_y[0], 3)
                 waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, np.nan)
                 waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, np.nan)
-                WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=10, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层_ = velovect(ax1, z_diff['lon'].data, z_diff['lat'].data[::-1][180:], np.array(waf_x.tolist())[::-1, :][180:, :],
-                                 np.array(waf_y.tolist())[::-1, :][180:, :], arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=20,linewidth=0.75,
-                                 color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.5, angle=0, label='0.5 m$^2$/s$^2$',
-                              labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
+                if m1 != 4:
+                    WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
+                    WAF图层_ = velovect(ax1, z_diff['lon'].data, z_diff['lat'].data[::-1][180:], np.array(waf_x.tolist())[::-1, :][180:, :],
+                                     np.array(waf_y.tolist())[::-1, :][180:, :], arrowstyle='fancy', arrowsize=.3, scale=6, grains=20, linewidth=0.75,
+                                     color='black', transform=ccrs.PlateCarree(central_longitude=0))
+                    ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
+                                  labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
+                    pass
+                else:
+                    WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=10, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
+                    WAF图层_ = velovect(ax1, z_diff['lon'].data, z_diff['lat'].data[::-1][180:], np.array(waf_x.tolist())[::-1, :][180:, :],
+                                     np.array(waf_y.tolist())[::-1, :][180:, :], arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=20,linewidth=0.75,
+                                     color='black', transform=ccrs.PlateCarree(central_longitude=0))
+                    ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.5, angle=0, label='0.5 m$^2$/s$^2$',
+                                  labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
                 ax1.set_extent([0, 292.5, 20, 80], crs=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                # 在赤道画一条纬线
+                ax1.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none',edgecolor='black',linewidth=.2)
 
@@ -266,6 +277,7 @@ if __name__ == '__main__':
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
 
@@ -362,6 +374,7 @@ if __name__ == '__main__':
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
                 # 刻度线设置
@@ -435,16 +448,17 @@ if __name__ == '__main__':
                 uv_np_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist())[::-1, :][90:, :],
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist())[::-1, :][90:, :],
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35, linewidth=0.75,
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=36, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'].data, u_diff['lat'].data[::-1][90:],
                                np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist())[::-1, :][90:, :],
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist())[::-1, :][90:, :],
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=35,linewidth=0.75,
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=36,linewidth=0.75,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
                 # 刻度线设置
