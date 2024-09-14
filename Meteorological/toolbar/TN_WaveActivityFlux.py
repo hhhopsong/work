@@ -211,7 +211,6 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
     UVc =np.where(Uc>=u_threshold,UVc ,np.nan)
     GEOc=np.where(Uc>=u_threshold,GEOc,np.nan)
     GEOa=np.where(Uc>=u_threshold,GEOa,np.nan)
-    PSI_global = np.where(Uc>=u_threshold,PSI_global,np.nan)
 
     ### 坐标、常数补充
     ## 坐标差分

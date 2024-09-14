@@ -177,8 +177,8 @@ if __name__ == '__main__':
                 waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, np.nan)
                 waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, np.nan)
                 WAF图层1 = ax.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=10, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层_ = velovect(ax, z_diff['lon'].data, z_diff['lat'].data[::-1], np.array(waf_x.tolist())[::-1, :],
-                                 np.array(waf_y.tolist())[::-1, :], arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=40,linewidth=0.75,
+                WAF图层_ = velovect(ax, z_diff['lon'].data, z_diff['lat'].data[::-1][180:], np.array(waf_x.tolist())[::-1, :][180:, :],
+                                 np.array(waf_y.tolist())[::-1, :][180:, :], arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=20,linewidth=0.75,
                                  color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.5, angle=0, label='0.5 m$^2$/s$^2$',
                               labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
