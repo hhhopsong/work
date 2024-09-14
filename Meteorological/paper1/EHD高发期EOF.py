@@ -97,6 +97,7 @@ print('显著性检验完成')
 plt.rcParams['font.sans-serif'] = ['Arial']
 plt.rcParams['axes.unicode_minus'] = False
 fig = plt.figure(figsize=(16, 9))  # 创建画布
+fig.subplots_adjust(wspace=0, hspace=0)
 spec = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[1, 1], height_ratios=[1])  # 设置子图比例
 
 extent_changjiang = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
@@ -105,8 +106,8 @@ proj = ccrs.PlateCarree()  # 投影方式
 ax1 = fig.add_subplot(spec[0, 0], projection=proj)  # 添加子图
 # 设置ax1 figsize=(9, 4)
 ax1.set_extent(extent_CN, crs=proj)  # 设置地图范围
-a1 = ax1.contourf(EHD['lon'], EHD['lat'], Modality[0], cmap=cmaps.BlueWhiteOrangeRed[140:],
-                  levels=[0, .5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6],
+a1 = ax1.contourf(EHD['lon'], EHD['lat'], Modality[0], cmap=cmaps.BlueWhiteOrangeRed,
+                  levels=[-6, -5.5, -5, -4.5, -4, -3.5, -3, -2.5, -2, -1.5, -1, -.05, 0, .05, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6],
                   extend='both',transform=proj)
 ####
 level2 = [-0.4 + i * 0.2 for i in range(5)]
@@ -123,10 +124,9 @@ ax1.text(124.5, 31.6, 'A', fontsize=20, fontweight='bold', color='blue', zorder=
                    headlength=3,headaxislength=3)'''
 a1_uv = velovect(ax1, uv['lon'].data, uv['lat'].data[::-1], np.array(u_corr.tolist())[::-1, :], np.array(v_corr.tolist())[::-1, :], arrowstyle='fancy', scale = 1.25, grains = 100, color='black', transform=proj)
 a1_uv_np_ = velovect(ax1, uv['lon'].data, uv['lat'].data[::-1], np.array(u_np.tolist())[::-1, :], np.array(v_np.tolist())[::-1, :], arrowstyle='fancy', scale = 1.25, grains = 100, color='gray', transform=proj)
-a1_uv_np = ax1.quiver(uv['lon'][0], uv['lat'][0], u_np[0, 0], v_np[0, 0], scale=8)
+a1_uv_np = ax1.quiver(uv['lon'][0:3], uv['lat'][0:3], u_np[0:3, 0:3], v_np[0:3, 0:3], scale=8, transform=ccrs.PlateCarree(central_longitude=0))
 ax1.quiverkey(a1_uv_np, X=0.90, Y=1.03, U=0.5,angle = 0,  label='0.5 m/s',
-              labelpos='E', color='black',labelcolor = 'k',linewidth=0.8)  # linewidth=1为箭头的大小
-cbar = plt.colorbar(a1, ax=ax1, orientation='horizontal', pad=0.05, aspect=50, shrink=0.8)
+              labelpos='E', color='black',labelcolor = 'k',fontproperties={'size': 5})  # linewidth=1为箭头的大小
 draw_maps(get_adm_maps(level='国'), linewidth=0.5)
 ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray')  # 添加陆地并且陆地部分全部填充成浅灰色
 ax1.add_geometries(Reader(
@@ -180,7 +180,7 @@ for i in range(44):
 ax1_pc.set_xlim(-.5, 43.5)
 ax1_pc.set_ylim(-3, 3)
 #设定子图ax2大小位置
-adjust_sub_axes(ax1, ax1_pc, shrink=1, lr=-.1, ud=1.0)
+adjust_sub_axes(ax1, ax1_pc, shrink=1, lr=-.2, ud=1.0)
 ax1_pc_reg = ax1_pc.twinx()
 k, b = mk.sens_slope(ws2001(PC[:, 0]))  # Theil-Sen 斜率, 截距
 ax1_pc_reg = sns.regplot(x=[i for i in range(44)], y=PC[:, 0], ax=ax1_pc_reg, scatter=False, color='#74C476', ci=95)
@@ -193,7 +193,16 @@ ax1_pc_reg.spines['right'].set_visible(False)  # 隐藏右边框
 ax1_pc_reg.spines['bottom'].set_visible(False)  # 显示下边框
 ax1_pc_reg.spines['left'].set_visible(False)  # 显示左边框
 #  pd.Series(PC[:, 0]).autocorr(2)  自相关计算=0.26
+# color bar位置
+position = fig.add_axes(ax1.get_position())#位置[x,y,width,height][0.296, 0.05, 0.44, 0.015]
+#竖向colorbar,无尖角
+cb1 = plt.colorbar(a1, cax=position, orientation='vertical', pad=0.05)#orientation为水平或垂直
+cb1.ax.tick_params(color='black')#length为刻度线的长度
+cb1.ax.tick_params(which='major',direction='in', labelsize=12, length=11)
+cb1.ax.tick_params(which='minor',direction='in', length=11)
+cb1.ax.yaxis.set_minor_locator(MultipleLocator(.1))#显示x轴副刻度
+cb1.locator = ticker.FixedLocator([-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6])  # colorbar上的刻度值个数
+adjust_sub_axes(ax1, position, shrink=1, lr=-3, ud=1.0, width=0.025)
 
-
-plt.savefig(r'C:\Users\10574\desktop\pic\EHD高发期EOF.png', dpi=1500, bbox_inches='tight')
+plt.savefig(r'C:\Users\10574\desktop\pic\EHD高发期EOF.png', dpi=1000, bbox_inches='tight')
 plt.show()
