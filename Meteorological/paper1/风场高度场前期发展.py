@@ -163,50 +163,50 @@ if __name__ == '__main__':
                                             ('lat', z_diff['lat'].data),
                                             ('lon', z_diff['lon'].data)])
                 waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0)
-                ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
-                streamf图层 = ax.contourf(z_diff['lon'], z_diff['lat'], waf_streamf[0]*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
+                ax1 = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180))
+                streamf图层 = ax1.contourf(z_diff['lon'], z_diff['lat'], waf_streamf[0]*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
                                            cmap=cmaps.MPL_PuOr_r,
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 '''显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
-                显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+                显著性检验图层 = ax1.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))'''
                 waf_x = filters.gaussian_filter(waf_x[0], 3)
                 waf_y = filters.gaussian_filter(waf_y[0], 3)
                 waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, np.nan)
                 waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, np.nan)
-                WAF图层1 = ax.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=10, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层_ = velovect(ax, z_diff['lon'].data, z_diff['lat'].data[::-1][180:], np.array(waf_x.tolist())[::-1, :][180:, :],
+                WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=10, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
+                WAF图层_ = velovect(ax1, z_diff['lon'].data, z_diff['lat'].data[::-1][180:], np.array(waf_x.tolist())[::-1, :][180:, :],
                                  np.array(waf_y.tolist())[::-1, :][180:, :], arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=20,linewidth=0.75,
                                  color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                ax.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.5, angle=0, label='0.5 m$^2$/s$^2$',
+                ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.5, angle=0, label='0.5 m$^2$/s$^2$',
                               labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
-                ax.set_extent([0, 292.5, 20, 80], crs=ccrs.PlateCarree(central_longitude=0))
-                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
-                ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                ax1.set_extent([0, 292.5, 20, 80], crs=ccrs.PlateCarree(central_longitude=0))
+                ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax1.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none',edgecolor='black',linewidth=.2)
 
                 # 刻度线设置
                 # ax1
-                ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
+                ax1.set_yticks(yticks1, crs=ccrs.PlateCarree())
                 lon_formatter = LongitudeFormatter()
                 lat_formatter = LatitudeFormatter()
-                ax.yaxis.set_major_formatter(lat_formatter)
+                ax1.yaxis.set_major_formatter(lat_formatter)
 
 
                 ymajorLocator = MultipleLocator(30)  # 先定义xmajorLocator，再进行调用
-                ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
+                ax1.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
                 yminorLocator = MultipleLocator(10)
-                ax.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
+                ax1.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
                 # ax1.axes.xaxis.set_ticklabels([]) ##隐藏刻度标签
                 # 最大刻度、最小刻度的刻度线长短，粗细设置
-                ax.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
-                ax.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
-                ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+                ax1.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
+                ax1.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
+                ax1.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
                 plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
                 # 调整刻度值字体大小
-                ax.tick_params(axis='both', labelsize=title_size, colors='black')
+                ax1.tick_params(axis='both', labelsize=title_size, colors='black')
 
                 # 设置色标
                 cbar = plt.colorbar(streamf图层, orientation='vertical', drawedges=True)
@@ -252,8 +252,18 @@ if __name__ == '__main__':
                 v_np = np.where(u_np**2 + v_np**2 >= 0.15**2, v_np, np.nan)
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
-                uv = ax.quiver(z_diff['lon'], z_diff['lat'], u_corr, v_corr, scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
-                uv_np = ax.quiver(z_diff['lon'], z_diff['lat'], u_np, v_np, color='gray', scale=20, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                uv = ax.quiver(z_diff['lon'], z_diff['lat'], u_corr, v_corr, scale=10, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                uv_ = velovect(ax, z_diff['lon'].data, z_diff['lat'].data[::-1][180:],
+                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist())[::-1, :][180:, :],
+                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist())[::-1, :][180:, :],
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=50,linewidth=0.75,
+                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
+                uv_np = ax.quiver(z_diff['lon'], z_diff['lat'], u_np, v_np, color='gray', scale=10, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                uv_np_ = velovect(ax, z_diff['lon'].data, z_diff['lat'].data[::-1][180:],
+                               np.array(np.where(np.isnan(u_np), 0, u_np).tolist())[::-1, :][180:, :],
+                               np.array(np.where(np.isnan(v_np), 0, v_np).tolist())[::-1, :][180:, :],
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=50, linewidth=0.75,
+                               color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
