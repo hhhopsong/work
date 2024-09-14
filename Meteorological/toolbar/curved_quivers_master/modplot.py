@@ -202,13 +202,14 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
         # Add arrows half way along each trajectory.
         s = np.cumsum(np.sqrt(np.diff(tx) ** 2 + np.diff(ty) ** 2))
         n = np.searchsorted(s, s[-1])
-        error_arrowloc =  (tx[n + 1] - tx[n], ty[n + 1] - ty[n])
-        arrow_tail = (tx[n] + error_arrowloc[0], ty[n]+ error_arrowloc[1])
-        arrow_head = (np.mean(tx[n:n + 2]) + error_arrowloc[0], np.mean(ty[n:n + 2]) + error_arrowloc[1])
+        arrow_tail = (tx[n], ty[n])
+        arrow_head = (np.mean(tx[n:n + 2]), np.mean(ty[n:n + 2]))
 
-        # If the error_arrowloc is too large, just use the tail as the head as well
-        if error_arrowloc[0] > 5 or error_arrowloc[1] > 5:
-            arrow_head = arrow_tail
+        # If the streamline is too short, don't add an arrow.
+        if not edge:
+            error_arrowloc = (tx[n + 1] - tx[n], ty[n + 1] - ty[n])
+            arrow_tail = (tx[n] + error_arrowloc[0], ty[n] + error_arrowloc[1])
+            arrow_head = (np.mean(tx[n:n + 2]) + error_arrowloc[0], np.mean(ty[n:n + 2]) + error_arrowloc[1])
 
         if isinstance(linewidth, np.ndarray):
             line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
