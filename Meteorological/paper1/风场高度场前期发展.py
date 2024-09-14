@@ -300,7 +300,7 @@ if __name__ == '__main__':
                 cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
             if p == 700:
                 lev = [-.4, -.35, -.3, -.25, -.2, -.15, -.1, -.05, .05, .1, .15, .2, .25, .3, .35, .4]
-                level_z = [-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4]
+                level_z = [-.4, -.3, -.2, -.1, -.05, 0, .05, .1, .2, .3, .4]
                 if select == 1:
                     u_corr = u_corr_1
                     v_corr = v_corr_1
@@ -328,11 +328,11 @@ if __name__ == '__main__':
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 z_corr = filters.gaussian_filter(z_corr, 4)
-                z相关系数图层_low = ax.contour(z_diff['lon'], z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:4],
+                z相关系数图层_low = ax.contour(z_diff['lon'], z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5],
                                      linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
                 z相关系数图层_0 = ax.contour(z_diff['lon'], z_diff['lat'], z_corr, color='gray', levels=[0],
                                      linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
-                z相关系数图层_high = ax.contour(z_diff['lon'], z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[17], levels=level_z[5:],
+                z相关系数图层_high = ax.contour(z_diff['lon'], z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[17], levels=level_z[6:],
                                      linewidths=.2, linestyles='-', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
                 plt.clabel(z相关系数图层_low, inline=True, fontsize=3, fmt='%d', inline_spacing=5)
                 plt.clabel(z相关系数图层_0, inline=True, fontsize=3, fmt='%d', inline_spacing=5)
