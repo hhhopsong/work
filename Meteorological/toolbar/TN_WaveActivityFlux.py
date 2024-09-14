@@ -188,6 +188,7 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
     UVc =xr.where(abs(UVc ['lat'])<=20,np.nan,UVc ).transpose('level','lat','lon')
     GEOc=xr.where(abs(GEOc['lat'])<=20,np.nan,GEOc).transpose('level','lat','lon')
     GEOa=xr.where(abs(GEOa['lat'])<=20,np.nan,GEOa).transpose('level','lat','lon')
+    PSI_global = xr.where(GEOa).transpose('level','lat','lon')
 
     lon=np.array(GEOc['lon'  ])[np.newaxis,np.newaxis,:         ]
     lat=np.array(GEOc['lat'  ])[np.newaxis,:         ,np.newaxis]
@@ -200,6 +201,7 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
     UVc =np.array(UVc )
     GEOc=np.array(GEOc)
     GEOa=np.array(GEOa)
+    PSI_global = np.array(PSI_global)
 
     if not data_shape[0]==1:
         Tc  =np.where(Uc>=0,Tc  ,np.nan)
@@ -208,6 +210,7 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
     UVc =np.where(Uc>=u_threshold,UVc ,np.nan)
     GEOc=np.where(Uc>=u_threshold,GEOc,np.nan)
     GEOa=np.where(Uc>=u_threshold,GEOa,np.nan)
+    PSI_global = np.where(Uc>=u_threshold,PSI_global,np.nan)
 
     ### 坐标、常数补充
     ## 坐标差分
@@ -228,6 +231,7 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
 
     ## PSI
     PSIa=GEOa/f
+    PSI_global = PSI_global/f
 
     ### 差分、计算TN通量三个分量
     ## 差分
@@ -282,9 +286,9 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
     ### 返回结果
     if return_streamf:
         if not data_shape[0]==1:
-            return Fx, Fy, Fz, PSIa
+            return Fx, Fy, Fz, PSI_global
         else:
-            return Fx, Fy, PSIa
+            return Fx, Fy, PSI_global
     else:
         if not data_shape[0]==1:
             return Fx, Fy, Fz
