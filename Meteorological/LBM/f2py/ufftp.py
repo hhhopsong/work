@@ -3,8 +3,8 @@ import math
 
 
 def fft99x(g, z, trigs, ifax, inc, jump, n, lot, isign):
-    new_g = list(g)
-    new_z = list(z)
+    new_g = g.flatten()
+    new_z = z.flatten()
     if n == 1:
         if isign == 0:
             for k in range(lot):

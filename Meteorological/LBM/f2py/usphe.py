@@ -107,8 +107,8 @@ def SPG2W(WDATA, GDATA, PNM, NMO, TRIGS, IFAX, GW, HGRAD, HFUNC, IMAX, JMAX, KMA
         WORK = copy(GDATA, IDIM * JDIM * KMAX)
 
     new_work, new_zdata = fft99x(WORK, ZDATA, TRIGS, IFAX, 1, IDIM, IMAX, JDIM * KMAX, 0)
-    WORK = new_work
-    ZDATA = new_zdata
+    WORK = new_work.reshape(WORK.shape)
+    ZDATA = new_zdata.reshape(ZDATA.shape)
 
     if HGRAD[0] == 'X':
         ZDATA = GRADX(ZDATA, IDIM, JDIM, KMAX, MMAX, MINT, WORK)
@@ -235,6 +235,12 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
             for IM in range(1, IDIM + 1):
                 ZDW[IM, JE, K] = GW[J] * (ZDATA[IM, JN, K] + ZDATA[IM, JS, K])
                 ZDW[IM, JO, K] = GW[J] * (ZDATA[IM, JN, K] - ZDATA[IM, JS, K])
+                '''ZDW[(IM - 1) * (JE - 1) * (K - 1) + (JE - 1) * (K - 1) + (K - 1)] = GW[J] * (
+                            ZDATA[(IM - 1) * (JN - 1) * (K - 1) + (JN - 1) * (K - 1) + (K - 1)] + ZDATA[
+                        (IM - 1) * (JS - 1) * (K - 1) + (JS - 1) * (K - 1) + (K - 1)])
+                ZDW[IM * JO * K + JO * K + K][(IM - 1) * (JN - 1) * (K - 1) + (JN - 1) * (K - 1) + (K - 1)] = GW[J] * (
+                            ZDATA[(IM - 1) * (JN - 1) * (K - 1) + (JN - 1) * (K - 1) + (K - 1)] - ZDATA[
+                        (IM - 1) * (JS - 1) * (K - 1) + (JS - 1) * (K - 1) + (K - 1)])'''
 
     if HFUNC[0] == 'N' or HFUNC[0] == 'S':
         if KMAX < NMDIM:
