@@ -5,6 +5,12 @@
     <file url="file://$APPLICATION_CONFIG_DIR$/scratches/scratch.py" charset="UTF-8" />
     <file url="file://$APPLICATION_CONFIG_DIR$/scratches/？？？.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/LBM/LBM.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/copy.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/dim.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/dsphe.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/ufftp.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/usphe.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/xabort.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/LBM/fortran/g2w.f" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/LBM/fortran/spg2w.f" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/LBM/fortran/spw2g.f" charset="UTF-8" />
