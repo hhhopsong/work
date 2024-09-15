@@ -51,10 +51,13 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='
     try:
         if ops:
             Z = G2W(Z, GDATA=data, HGRAD='    ', HFUNC='POSO', KMAXD=1)
+            return Z
         else:
             Z = G2W(Z, GDATA=data, HGRAD=HGRAD, HFUNC='POSO', KMAXD=K_)
+            return Z
     except:
         raise ValueError('G2W函数运行失败')
+
     if data is None:
         raise ValueError('data参数不能为空')
     try:

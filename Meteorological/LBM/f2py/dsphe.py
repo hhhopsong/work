@@ -1,6 +1,4 @@
 import numpy as np
-#from usphe import SPW2G, SPG2W
-#from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
 
 
 def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
