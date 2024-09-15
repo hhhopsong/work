@@ -9,7 +9,7 @@ from cartopy.util import add_cyclic_point
 from scipy.interpolate import interpolate
 from tqdm import tqdm
 import tqdm as tq
-
+from f2py.dsphe import G2W
 
 force_file_address = '//wsl.localhost/Ubuntu-20.04/home/hopsong/lbm/data/frc'
 
@@ -38,7 +38,7 @@ def read_force_file(address=force_file_address):
     return lbm, level_sigp
 
 
-def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False):
+def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='POSO', ):
     """
     格点数据转谱系数
     :param lat: int, 纬向格点数
@@ -46,10 +46,17 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False):
     :param data: np.array, 格点数据(lev, 64, 128)
     :return: np.array, 谱系数
     """
-    if data is None:
-        raise ValueError('data参数不能为空')
     Z = np.zeros((lat * M, len(data)), dtype=complex)
     Z.fill(complex(0, 0))
+    try:
+        if ops:
+            Z = G2W(Z, GDATA=data, HGRAD='    ', HFUNC='POSO', KMAXD=1)
+        else:
+            Z = G2W(Z, GDATA=data, HGRAD=HGRAD, HFUNC='POSO', KMAXD=K_)
+    except:
+        raise ValueError('G2W函数运行失败')
+    if data is None:
+        raise ValueError('data参数不能为空')
     try:
         one = np.load(f'D:\CODES\Python\Meteorological\LBM\g2w.npy')
     except:

@@ -1,9 +1,13 @@
 import numpy as np
-from usphe import SPW2G, SPG2W
-from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+#from usphe import SPW2G, SPG2W
+#from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
 
 
 def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
+    from usphe import SPW2G, SPG2W
+    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+
+
     # 初始化内部工作变量
     ZDATA = np.zeros((IDIM * JDIM, KMAXD))
     WORK = np.zeros((IDIM * JDIM, KMAXD))
@@ -42,6 +46,10 @@ def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
 
 
 def G2W(WDATA, GDATA, HGRAD, HFUNC, KMAXD):
+    from usphe import SPW2G, SPG2W
+    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+
+
     # 初始化内部保存变量
     PNM = np.zeros(JMXHF * NMDIM)
     DPNM = np.zeros(JMXHF * NMDIM)

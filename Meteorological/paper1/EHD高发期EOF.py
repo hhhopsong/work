@@ -124,9 +124,8 @@ ax1.text(124.5, 31.6, 'A', fontsize=20, fontweight='bold', color='blue', zorder=
                    headlength=3,headaxislength=3)'''
 a1_uv = velovect(ax1, uv['lon'].data, uv['lat'].data[::-1], np.array(u_corr.tolist())[::-1, :], np.array(v_corr.tolist())[::-1, :], arrowstyle='fancy', scale = 1.25, grains = 100, color='black', transform=proj)
 a1_uv_np_ = velovect(ax1, uv['lon'].data, uv['lat'].data[::-1], np.array(u_np.tolist())[::-1, :], np.array(v_np.tolist())[::-1, :], arrowstyle='fancy', scale = 1.25, grains = 100, color='gray', transform=proj)
-a1_uv_np = ax1.quiver(uv['lon'][0:3], uv['lat'][0:3], u_np[0:3, 0:3], v_np[0:3, 0:3], scale=8, transform=ccrs.PlateCarree(central_longitude=0))
-ax1.quiverkey(a1_uv_np, X=0.90, Y=1.03, U=0.5,angle = 0,  label='0.5 m/s',
-              labelpos='E', color='black',labelcolor = 'k',fontproperties={'size': 5})  # linewidth=1为箭头的大小
+a1_uv_np = ax1.quiver(uv['lon'][0], uv['lat'][0], u_np[0, 0], v_np[0, 0], scale=8, transform=ccrs.PlateCarree(central_longitude=0))
+ax1.quiverkey(a1_uv_np, X=0.90, Y=1.03, U=0.5,angle = 0,  label='0.5 m/s', labelpos='E', color='black', labelcolor = 'k', linewidth = .02)  # linewidth=1为箭头的大小
 draw_maps(get_adm_maps(level='国'), linewidth=0.5)
 ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray')  # 添加陆地并且陆地部分全部填充成浅灰色
 ax1.add_geometries(Reader(
