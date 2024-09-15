@@ -11,7 +11,10 @@ from tqdm import tqdm
 import tqdm as tq
 from f2py.dsphe import G2W
 from cartopy.util import add_cyclic_point
+from f2py.dim import NTR, NMDIM, KMAX
+import torch
 
+device = torch.device('cuda')
 force_file_address = '//wsl.localhost/Ubuntu-20.04/home/hopsong/lbm/data/frc'
 
 # LBM网格
@@ -40,7 +43,7 @@ def read_force_file(address=force_file_address):
 
 
 def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='POSO', ):
-    from f2py.dim import NMDIM, KMAX
+
     """
     格点数据转谱系数
     :param lat: int, 纬向格点数
@@ -51,11 +54,11 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='
     Z = np.zeros((NMDIM, KMAX))
     try:
         if ops:
-            Z = G2W(Z, GDATA=data, HGRAD='    ', HFUNC='POSO', KMAXD=1)
-            return Z
+            Z = G2W(torch.tensor(Z).to(device), GDATA=torch.tensor(data).to(device), HGRAD='    ', HFUNC='POSO', KMAXD=torch.tensor(1).to(device))
+            return Z.cpu().numpy()
         else:
-            Z = G2W(Z, GDATA=data, HGRAD=HGRAD, HFUNC='POSO', KMAXD=K_)
-            return Z
+            Z = G2W(torch.tensor(Z).to(device), GDATA=torch.tensor(data).to(device), HGRAD=HGRAD, HFUNC='POSO', KMAXD=torch.tensor(K_).to(device))
+            return Z.cpu().numpy()
     except:
         raise ValueError('G2W函数运行失败')
     '''Z = np.zeros((lat * M, len(data)), dtype=complex)
@@ -330,7 +333,7 @@ def SetNMO2(Mmax, Lmax, Nmax, Mint):
         Mmax = Nmax
     NMO = np.zeros((2, Mmax+ 1, Lmax + 1))
     for l in range(Lmax + 1):
-        Mend = np.min([Mmax, Nmax - l])
+        Mend = np.min(np.array([int(Mmax), int(Nmax - l)]))
         for m in range(0, Mend + 1, Mint):
             Nmh += 1
             if Mmax == 0:
@@ -343,6 +346,7 @@ def SetNMO2(Mmax, Lmax, Nmax, Mint):
 
 
 #PWM 的强迫向量被重新排序，由 owall=f 定义的边界条件控制。在这种情况下，强迫向量的顺序是：v, d, t, p, q。
+
 def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=False, ops=False, osh=False, owall=True, oclassic=True):
     """
     生成谱资料
@@ -369,26 +373,24 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
         Mmax = Nmax
     if len(Gfrct[0, :K_, :, :]) != K_:
         raise ValueError('Gfrct垂直层次错误')
-    Ntr = 0  # 三角形截断谱分量个数
-    for i in range(-Mmax, Mmax + 1):
-        Ntr += Mmax - np.abs(i) + 1  # 三角形截断谱分量个数
+    Ntr = NTR# 三角形截断谱分量个数
     Jw = np.zeros((Ntr+1))
-    Wfrcf = np.zeros(((Lmax+1) * (Nmax+1), K_), dtype=complex)
-    Wxvor = np.zeros((Nmax, K_, Ntr + 1), dtype=complex)
-    Wxdiv = np.zeros((Nmax, K_, Ntr + 1), dtype=complex)
-    Wxtemp = np.zeros((Nmax, K_, Ntr + 1), dtype=complex)
-    Wxps = np.zeros((Nmax, Ntr + 1), dtype=complex)
-    Wxsph = np.zeros((Nmax, K_, Ntr + 1), dtype=complex)
+    Wfrcf = np.zeros(((Lmax+1) * (Nmax+1), K_))
+    Wxvor = np.zeros((Nmax, K_, Ntr + 1))
+    Wxdiv = np.zeros((Nmax, K_, Ntr + 1))
+    Wxtemp = np.zeros((Nmax, K_, Ntr + 1))
+    Wxps = np.zeros((Nmax, Ntr + 1))
+    Wxsph = np.zeros((Nmax, K_, Ntr + 1))
     NMO = SetNMO2(Mmax, Lmax, Nmax, Mint)
     iW = -1
     result = []
     # 先调整维度顺序
     Gfrct = Gfrct.transpose(0, 1, 3, 2).reshape(Gfrct.shape[0], Gfrct.shape[1], (128+1) * 64)
-    for m in tqdm(range(Ntr + 1), desc='Grid to Wave:', unit='波', position=0, colour='green'):
-        Lend = np.min([Lmax, Nmax - m])
+    for m in range(Ntr + 1):
+        Lend = np.min(np.array([int(Lmax), int(Nmax - m)]))
         for iK in tq.trange(K_):
             iW = -1
-            for l in tq.trange(Lend + 1):
+            for l in range(Lend + 1):
                 if m == 0 and l == 0:
                     continue
                 i = NMO[0, m, l]
@@ -400,15 +402,15 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
                 Wxps[iW, m] = Wfrcf[i, 0]
                 Wxsph[iW, iK, m] = Wfrcf[i, iK]
                 if ovor:
-                    Wxvor[iW, iK, m] = grid2wave(Gfrct[0, :K_, :].T)[i, iK]
+                    Wxvor[iW, iK, m] = grid2wave(Gfrct[0, :K_, :].T, ops=ops)[i, iK]
                 if odiv:
-                    Wxdiv[iW, iK, m] = grid2wave(Gfrct[1, :K_, :].T)[i, iK]
+                    Wxdiv[iW, iK, m] = grid2wave(Gfrct[1, :K_, :].T, ops=ops)[i, iK]
                 if otmp:
-                    Wxtemp[iW, iK, m] = grid2wave(Gfrct[2, :K_, :].T)[i, iK]
+                    Wxtemp[iW, iK, m] = grid2wave(Gfrct[2, :K_, :].T, ops=ops)[i, iK]
                 if ops:
-                    Wxps[iW, m] = grid2wave(Gfrct[3, :K_, :].T)[i, 0]
+                    Wxps[iW, m] = grid2wave(Gfrct[3, :K_, :].T, ops=ops)[i, 0]
                 if osh:
-                    Wxsph[iW, iK, m] = grid2wave(Gfrct[4, :K_, :].T)[i, iK]
+                    Wxsph[iW, iK, m] = grid2wave(Gfrct[4, :K_, :].T, ops=ops)[i, iK]
                 if m==0:
                     continue
                 iW += 1
@@ -418,15 +420,15 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
                 Wxps[iW, m] = Wfrcf[j, 0]
                 Wxsph[iW, iK, m] = Wfrcf[j, iK]
                 if ovor:
-                    Wxvor[iW, iK, m] = grid2wave(Gfrct[0, :K_, :].T)[j, iK]
+                    Wxvor[iW, iK, m] = grid2wave(Gfrct[0, :K_, :].T, ops=ops)[j, iK]
                 if odiv:
-                    Wxdiv[iW, iK, m] = grid2wave(Gfrct[1, :K_, :].T)[j, iK]
+                    Wxdiv[iW, iK, m] = grid2wave(Gfrct[1, :K_, :].T, ops=ops)[j, iK]
                 if otmp:
-                    Wxtemp[iW, iK, m] = grid2wave(Gfrct[2, :K_, :].T)[j, iK]
+                    Wxtemp[iW, iK, m] = grid2wave(Gfrct[2, :K_, :].T, ops=ops)[j, iK]
                 if ops:
-                    Wxps[iW, m] = grid2wave(Gfrct[3, :K_, :].T)[j, 0]
+                    Wxps[iW, m] = grid2wave(Gfrct[3, :K_, :].T, ops=ops)[j, 0]
                 if osh:
-                    Wxsph[iW, iK, m] = grid2wave(Gfrct[4, :K_, :].T)[j, iK]
+                    Wxsph[iW, iK, m] = grid2wave(Gfrct[4, :K_, :].T, ops=ops)[j, iK]
         if not owall:
             if oclassic:
                 result.append(Wxvor[0:iW, :K_, m].tolist())
@@ -471,5 +473,5 @@ if __name__ == '__main__':
     v = vertical_profile(kvpr=2, vamp=8., vdil=20., vcnt=0.45)  # 生成强迫场的理想化垂直结构
     h = horizontal_profile(khpr=1, hamp=0.25, xdil=23., ydil=6.5, xcnt=77., ycnt=-1.5)  # 生成强迫场的理想化水平结构
     frc = mk_grads(hor_structure=h, ver_structure=v, ovor=0, odiv=0, otmp=1, ops=0, osh=0)  # 生成强迫场
-    frc_mat = mk_wave(add_cyclic_point(frc.to_dataarray()[0], coord=frc['lon'])[0], Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=True, ops=False, osh=False, owall=True, oclassic=True)  # 生成谱资料
+    frc_mat = mk_wave(np.array(add_cyclic_point(frc.to_dataarray()[0], coord=frc['lon'])[0]), Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=True, ops=False, osh=False, owall=True, oclassic=True)  # 生成谱资料
 pass

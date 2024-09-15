@@ -1,10 +1,12 @@
 import numpy as np
 import math
+import torch
 
+device = torch.device('cuda')
 
 def fft99x(g, z, trigs, ifax, inc, jump, n, lot, isign):
-    new_g = g.flatten()
-    new_z = z.flatten()
+    new_g = torch.tensor(g.flatten(), dtype=torch.complex64, device = device)
+    new_z = torch.tensor(z.flatten(), dtype=torch.complex64, device = device)
     if n == 1:
         if isign == 0:
             for k in range(lot):
@@ -21,52 +23,70 @@ def fft99x(g, z, trigs, ifax, inc, jump, n, lot, isign):
         incn = incn - 1
     incn = max(incn, lot)
     if isign == 0:
+        # 计算la和lb的偏移量
+        la_offsets = torch.arange(1, n * inc + 1, inc).view(-1, 1).to(device)
+        lb_offsets = torch.arange(0, n * incn, incn).view(-1, 1).to(device)
+        # 计算所有的索引并进行赋值
         for i in range(n):
-            la = (i * inc) + 1
-            lb = (i * incn)
-            for k in range(lot):
-                new_z[lb + k] = new_g[la - 1]
-                la = la + jump
-        new_z = np.array(new_z)
-        new_z = np.fft.fft(new_z.reshape(-1, incn).transpose())
+            la_offset = la_offsets[i]
+            lb_offset = lb_offsets[i]
+            la_indices = la_offset + torch.arange(0, lot * jump, jump).view(-1, 1).to(device)
+            lb_indices = lb_offset + torch.arange(lot).view(-1, 1).to(device)
+            new_z[lb_indices.view(-1)] = new_g[la_indices.view(-1)]
+        new_z = new_z.reshape(-1, incn).transpose(0, 1)
+        new_z = torch.fft.fft(new_z)
         new_z = new_z.flatten()
         for k in range(lot):
             new_g[k] = new_z[k]
             new_g[k+incn] = new_z[k+incn*(n - 1)]
-        for i in range(2, n):
-            lb = (i * incn)
-            for k in range(lot):
-                new_g[lb + k] = new_z[lb + k - incn]
+        # 计算lb的偏移量
+        lb_offsets = torch.arange(2 * incn, n * incn, incn).view(-1, 1).to(device)
+        for i in range(len(lb_offsets)):
+            lb_offset = lb_offsets[i]
+            lb_indices = lb_offset + torch.arange(lot).view(-1, 1).to(device)
+            source_indices = lb_indices - incn
+            new_g[lb_indices.view(-1)] = new_z[source_indices.view(-1)]
+        la_offsets = torch.arange(1, n * inc + 1, inc).view(-1, 1).to(device)
+        lb_offsets = torch.arange(0, n * incn, incn).view(-1, 1).to(device)
         for i in range(n):
-            la = (i * inc) + 1
-            lb = (i * incn)
-            for k in range(lot):
-                new_z[la - 1] = new_g[lb + k]
-                la = la + jump
+            la_offset = la_offsets[i]
+            lb_offset = lb_offsets[i]
+            la_indices = la_offset + torch.arange(0, lot * jump, jump).view(-1, 1).to(device)
+            lb_indices = lb_offset + torch.arange(lot).view(-1, 1).to(device)
+            new_z[la_indices.view(-1)] = new_g[lb_indices.view(-1)]
         return new_g, new_z
     else:
+        # 计算la和lb的偏移量
+        la_offsets = torch.arange(1, n * inc + 1, inc).view(-1, 1).to(device)
+        lb_offsets = torch.arange(0, n * incn, incn).view(-1, 1).to(device)
+        # 计算所有的索引并进行赋值
         for i in range(n):
-            la = (i * inc) + 1
-            lb = (i * incn)
-            for k in range(lot):
-                new_g[lb + k] = new_z[la - 1]
-                la = la + jump
+            la_offset = la_offsets[i]
+            lb_offset = lb_offsets[i]
+            la_indices = la_offset + torch.arange(0, lot * jump, jump).view(-1, 1).to(device)
+            lb_indices = lb_offset + torch.arange(lot).view(-1, 1).to(device)
+            new_g[lb_indices.view(-1)] = new_z[la_indices.view(-1)]
         for k in range(lot):
             new_z[k] = new_g[k]
             new_z[k+incn*(n - 1)] = new_g[k+incn]
-        for i in range(2, n):
-            lb = (i * incn)
-            for k in range(lot):
-                new_z[lb + k - incn] = new_g[lb + k]
-        new_z = np.array(new_z)
-        new_z = np.fft.ifft(new_z.reshape(-1, incn).transpose())
+        lb_offsets = torch.arange(2 * incn, n * incn, incn).view(-1, 1).to(device)
+        for i in range(len(lb_offsets)):
+            lb_offset = lb_offsets[i]
+            lb_indices = lb_offset + torch.arange(lot).view(-1, 1).to(device)
+            target_indices = lb_indices - incn
+            new_z[target_indices.view(-1)] = new_g[lb_indices.view(-1)]
+        new_z = new_z.reshape(-1, incn).transpose(0, 1)
+        new_z = torch.fft.ifft(new_z)
         new_z = new_z.flatten()
+        # 预先计算偏移量
+        la_offsets = torch.arange(1, n * inc + 1, inc).to(device).view(-1, 1)
+        lb_offsets = torch.arange(0, n * incn, incn).to(device).view(-1, 1)
         for i in range(n):
-            la = (i * inc) + 1
-            lb = (i * incn)
-            for k in range(lot):
-                new_g[la - 1] = new_z[lb + k]
-                la = la + jump
+            la_offset = la_offsets[i]
+            lb_offset = lb_offsets[i]
+            la_indices = la_offset + torch.arange(0, lot * jump, jump).view(-1, 1).to(device)
+            lb_indices = lb_offset + torch.arange(lot).view(-1, 1).to(device)
+            new_g[la_indices.view(-1)] = new_z[lb_indices.view(-1)]
         return new_g, new_z
 
 
@@ -82,6 +102,12 @@ def rfftfm(n, inc, jump, lot, r, wa, ifac, wsave):
 
 
 def rftf2m(n, inc, jump, lot, r, wa, ifac, wsave):
+    # 将相关数据转换为torch张量并移到指定设备上
+    r = torch.tensor(r, dtype=torch.complex64, device=device)
+    wa = torch.tensor(wa, dtype=torch.float32, device=device)
+    ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    wsave = torch.tensor(wsave, dtype=torch.complex64, device=device)
+
     incn = lot * jump // n if jump > inc else inc
     if incn % 16 == 0:
         incn = incn - 1
@@ -199,37 +225,60 @@ def rftf2m(n, inc, jump, lot, r, wa, ifac, wsave):
 
 
 def rftf3m(n, inc, lot, c, wa, ifac, ch):
+    # 判断GPU是否可用并设置设备
+    device = torch.device('cuda')
+
+    # 将相关数据转换为torch张量并移到指定设备上
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    wa = torch.tensor(wa, dtype=torch.float32, device=device)
+    ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    if ch is not None:
+        ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+
     na, c, wa, ifac, ch = rftf9m(n, inc, lot, None, c, wa, ifac, ch)
     cf = 1.0 / n
     n4 = (n // 4) * 4
     if na == 1:
         if n4 >= 4:
-            for k in range(1, n4, 4):
+            for k in torch.arange(1, n4, 4).to(device):
                 for l in range(lot):
                     c[l][k] = cf * c[l][k]
                     c[l][k + 1] = cf * c[l][k + 1]
                     c[l][k + 2] = cf * c[l][k + 2]
                     c[l][k + 3] = cf * c[l][k + 3]
         if n4!= n:
-            for k in range(n4 + 1, n):
+            for k in torch.arange(n4 + 1, n).to(device):
                 for l in range(lot):
                     c[l][k] = cf * c[l][k]
     else:
         if n4 >= 4:
-            for k in range(1, n4, 4):
+            for k in torch.arange(1, n4, 4).to(device):
                 for l in range(lot):
                     c[l][k] = cf * ch[l][k]
                     c[l][k + 1] = cf * ch[l][k + 1]
                     c[l][k + 2] = cf * ch[l][k + 2]
                     c[l][k + 3] = cf * ch[l][k + 3]
         if n4!= n:
-            for k in range(n4 + 1, n):
+            for k in torch.arange(n4 + 1, n).to(device):
                 for l in range(lot):
                     c[l][k] = cf * ch[l][k]
+    if device.type == 'cuda':
+        c = c
+        if ch is not None:
+            ch = ch
+        wa = wa
+        ifac = ifac
     return c, wa, ifac, ch
 
-
+ # jit，numba装饰器中的一种
 def rftf1m(n, inc, lot, c, wa, ifac, ch):
+    # 将相关数据转换为torch张量并移到指定设备上
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    wa = torch.tensor(wa, dtype=torch.float32, device=device)
+    ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    if ch is not None:
+        ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+
     na, c, wa, ifac, ch = rftf9m(n, inc, lot, None, c, wa, ifac, ch)
     if na == 1:
         return c, wa, ifac, ch
@@ -249,6 +298,14 @@ def rftf1m(n, inc, lot, c, wa, ifac, ch):
 
 
 def rftf9m(n, inc, lot, na, c, wa, ifac, ch):
+    # 将相关数据转换为torch张量并移到指定设备上
+    ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    wa = torch.tensor(wa, dtype=torch.float32, device=device)
+    if c is not None:
+        c = torch.tensor(c, dtype=torch.complex64, device=device)
+    if ch is not None:
+        ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+
     nf = ifac[2]
     if na is None:
         na = 1
@@ -302,8 +359,15 @@ def rftf9m(n, inc, lot, na, c, wa, ifac, ch):
 
 
 def radf4m(inc, lot, ido, l1, c, ch, ca1, ca2, ca3):
+    # 将相关数据转换为torch张量并移到指定设备上
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    ca1 = torch.tensor(ca1, dtype=torch.float32, device=device)
+    ca2 = torch.tensor(ca2, dtype=torch.float32, device=device)
+    ca3 = torch.tensor(ca3, dtype=torch.float32, device=device)
+
     for i in range(lot):
-        for j in range(ido):
+        for j in torch.arange(ido).to(device):
             index1 = j * l1 * inc
             index2 = (ido + j) * l1 * inc
             index3 = (2 * ido + j) * l1 * inc
@@ -323,8 +387,12 @@ def radf4m(inc, lot, ido, l1, c, ch, ca1, ca2, ca3):
 
 
 def radf2m(inc, lot, ido, l1, c, ch, ca1):
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    ca1 = torch.tensor(ca1, dtype=torch.float32, device=device)
+
     for i in range(lot):
-        for j in range(ido):
+        for j in torch.arange(ido).to(device):
             index1 = j * l1 * inc
             index2 = (ido + j) * l1 * inc
             ca = ca1[j]
@@ -336,14 +404,19 @@ def radf2m(inc, lot, ido, l1, c, ch, ca1):
 
 
 def radf3m(inc, lot, ido, l1, c, ch, ca1, ca2):
-    tpi = 8 * np.arctan(1)
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    ca1 = torch.tensor(ca1, dtype=torch.float32, device=device)
+    ca2 = torch.tensor(ca2, dtype=torch.float32, device=device)
+
+    tpi = 8 * torch.atan(torch.tensor(1.0))
     arg1 = tpi / 3
-    ca1_ = np.cos(arg1)
-    sa1 = np.sin(arg1)
-    ca2_ = np.cos(2 * arg1)
-    sa2 = np.sin(2 * arg1)
+    ca1_ = torch.cos(arg1)
+    sa1 = torch.sin(arg1)
+    ca2_ = torch.cos(2 * arg1)
+    sa2 = torch.sin(2 * arg1)
     for i in range(lot):
-        for j in range(ido):
+        for j in torch.arange(ido).to(device):
             index1 = j * l1 * inc
             index2 = (ido + j) * l1 * inc
             index3 = (2 * ido + j) * l1 * inc
@@ -359,10 +432,18 @@ def radf3m(inc, lot, ido, l1, c, ch, ca1, ca2):
 
 
 def radf5m(inc, lot, ido, l1, cc, ch, wa1, wa2, wa3, wa4):
-    tr11 = (-1.0 + math.sqrt(5.0)) / 4.0
-    ti11 = math.sqrt(1.0 - tr11 * tr11)
-    tr12 = (-1.0 - math.sqrt(5.0)) / 4.0
-    ti12 = math.sqrt(1.0 - tr12 * tr12)
+    # 将相关数据转换为torch张量并移到指定设备上
+    cc = torch.tensor(cc, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    wa1 = torch.tensor(wa1, dtype=torch.float32, device=device)
+    wa2 = torch.tensor(wa2, dtype=torch.float32, device=device)
+    wa3 = torch.tensor(wa3, dtype=torch.float32, device=device)
+    wa4 = torch.tensor(wa4, dtype=torch.float32, device=device)
+
+    tr11 = (-1.0 + torch.sqrt(torch.tensor(5.0))) / 4.0
+    ti11 = torch.sqrt(1.0 - tr11 * tr11)
+    tr12 = (-1.0 - torch.sqrt(torch.tensor(5.0))) / 4.0
+    ti12 = torch.sqrt(1.0 - tr12 * tr12)
 
     for k in range(l1):
         for l in range(lot):
@@ -379,7 +460,7 @@ def radf5m(inc, lot, ido, l1, cc, ch, wa1, wa2, wa3, wa4):
     if ido > 1:
         idp2 = ido + 2
         for k in range(l1):
-            for i in range(2, ido, 2):
+            for i in torch.arange(2, ido, 2).to(device):
                 ic = idp2 - i
                 for l in range(lot):
                     ca2 = wa1[i - 2] * cc[l][i - 1][k][1]
@@ -408,7 +489,7 @@ def radf5m(inc, lot, ido, l1, cc, ch, wa1, wa2, wa3, wa4):
                     ch[l][i][4][k] = cu5 - cb5
 
         for k in range(l1):
-            for i in range(2, ido, 2):
+            for i in torch.arange(2, ido, 2).to(device):
                 ic = idp2 - i
                 for l in range(lot):
                     cc[l][i - 1][k][1] = ch[l][ic - 1][1][k] + ch[l][i - 1][4][k]
@@ -421,7 +502,7 @@ def radf5m(inc, lot, ido, l1, cc, ch, wa1, wa2, wa3, wa4):
                     cc[l][i][k][4] = ch[l][i - 1][4][k] - ch[l][ic - 1][1][k]
 
         for k in range(l1):
-            for i in range(2, ido, 2):
+            for i in torch.arange(2, ido, 2).to(device):
                 ic = idp2 - i
                 for l in range(lot):
                     ctr2 = tr11 * cc[l][i - 1][k][1] + tr12 * cc[l][i - 1][k][2]
@@ -452,10 +533,18 @@ def radf5m(inc, lot, ido, l1, cc, ch, wa1, wa2, wa3, wa4):
 
 
 def radfgm(inc, lot, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa):
-    tpi = 8.0 * math.atan(1.0)
+    # 将相关数据转换为torch张量并移到指定设备上
+    cc = torch.tensor(cc, dtype=torch.complex64, device=device)
+    c1 = torch.tensor(c1, dtype=torch.complex64, device=device)
+    c2 = torch.tensor(c2, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    ch2 = torch.tensor(ch2, dtype=torch.complex64, device=device)
+    wa = torch.tensor(wa, dtype=torch.float32, device=device)
+
+    tpi = 8.0 * torch.atan(torch.tensor(1.0))
     arg = tpi / ip
-    dcp = math.cos(arg)
-    dsp = math.sin(arg)
+    dcp = torch.cos(arg)
+    dsp = torch.sin(arg)
     ipph = (ip + 1) // 2
     ipp2 = ip + 2
     idp2 = ido + 2
@@ -465,11 +554,11 @@ def radfgm(inc, lot, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa):
             for l in range(lot):
                 ch2[l][ik][0] = c2[l][ik][0]
         for j in range(1, ip):
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for l in range(lot):
                     ch[l][0][k][j] = c1[l][0][k][j]
         for j in range(1, ip):
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for i in range(2, ido, 2):
                     idij = i - 1
                     for l in range(lot):
@@ -477,7 +566,7 @@ def radfgm(inc, lot, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa):
                         ch[l][i][k][j] = wa[idij - 1] * c1[l][i][k][j] - wa[idij] * c1[l][i - 1][k][j]
         for j in range(1, ipph):
             jc = ipp2 - j
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for l in range(lot):
                     c1[l][0][k][j] = ch[l][0][k][j] + ch[l][0][k][jc]
                     c1[l][0][k][jc] = ch[l][0][k][jc] - ch[l][0][k][j]
@@ -509,14 +598,14 @@ def radfgm(inc, lot, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa):
             for ik in range(idl1):
                 for l in range(lot):
                     ch2[l][ik][0] = ch2[l][ik][0] + c2[l][ik][j]
-        for k in range(l1):
+        for k in torch.arange(l1).to(device):
             for i in range(ido):
                 for l in range(lot):
                     cc[l][i][0][k] = ch[l][i][k][0]
         for j in range(1, ipph):
             jc = ipp2 - j
             j2 = j * 2
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for l in range(lot):
                     cc[l][ido - 1][j2 - 2][k] = ch[l][0][k][j]
                     cc[l][0][j2 - 1][k] = ch[l][0][k][jc]
@@ -526,13 +615,13 @@ def radfgm(inc, lot, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa):
             for l in range(lot):
                 ch2[l][ik][0] = c2[l][ik][0]
         for j in range(1, ip):
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for l in range(lot):
                     ch[l][0][k][j] = c1[l][0][k][j]
         is_ = -ido
         for j in range(1, ip):
             is_ = is_ + ido
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for i in range(2, ido, 2):
                     idij = is_ + i - 1
                     for l in range(lot):
@@ -540,7 +629,7 @@ def radfgm(inc, lot, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa):
                         ch[l][i][k][j] = wa[idij - 1] * c1[l][i][k][j] - wa[idij] * c1[l][i - 1][k][j]
         for j in range(1, ipph):
             jc = ipp2 - j
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for i in range(2, ido, 2):
                     for l in range(lot):
                         c1[l][i - 1][k][j] = ch[l][i - 1][k][j] + ch[l][i - 1][k][jc]
@@ -575,21 +664,21 @@ def radfgm(inc, lot, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa):
             for ik in range(idl1):
                 for l in range(lot):
                     ch2[l][ik][0] = ch2[l][ik][0] + c2[l][ik][j]
-        for k in range(l1):
+        for k in torch.arange(l1).to(device):
             for i in range(ido):
                 for l in range(lot):
                     cc[l][i][0][k] = ch[l][i][k][0]
         for j in range(1, ipph):
             jc = ipp2 - j
             j2 = j * 2
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for l in range(lot):
                     cc[l][ido - 1][j2 - 2][k] = ch[l][0][k][j]
                     cc[l][0][j2 - 1][k] = ch[l][0][k][jc]
         for j in range(1, ipph):
             jc = ipp2 - j
             j2 = j * 2
-            for k in range(l1):
+            for k in torch.arange(l1).to(device):
                 for i in range(2, ido, 2):
                     ic = idp2 - i
                     for l in range(lot):
@@ -599,11 +688,17 @@ def radfgm(inc, lot, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa):
                         cc[l][ic][j2 - 2][k] = ch[l][i][k][jc] - ch[l][i][k][j]
         return cc, c1, c2, ch, ch2, wa
 
-
-
 def rfftim(n, trigs, ifax):
-    new_trigs = list(trigs)
-    new_ifax = list(ifax)
+    new_trigs = []
+    for trig in trigs:
+        if isinstance(trig, list):
+            new_sub_trig = []
+            for sub_trig in trig:
+                new_sub_trig.append(torch.tensor(sub_trig, dtype=torch.complex64, device=device))
+            new_trigs.append(new_sub_trig)
+        else:
+            new_trigs.append(torch.tensor(trig, dtype=torch.complex64, device=device))
+    new_ifax = torch.tensor(ifax, dtype=torch.int64, device=device)
     if n == 1:
         return new_trigs, new_ifax
     new_trigs, new_ifax = rfti1m(n, new_trigs, new_ifax)
@@ -611,10 +706,21 @@ def rfftim(n, trigs, ifax):
 
 
 def rfti1m(n, wa, ifac):
-    new_wa = list(wa)
-    new_ifac = list(ifac)
-    ntryh = [4, 2, 3, 5]
-    tpi = 8 * np.arctan(1)
+    if isinstance(wa, list):
+        new_wa = []
+        for sub_wa in wa:
+            if isinstance(sub_wa, list):
+                new_sub_wa = []
+                for item in sub_wa:
+                    new_sub_wa.append(torch.tensor(item, dtype=torch.complex64, device=device))
+                new_wa.append(new_sub_wa)
+            else:
+                new_wa.append(torch.tensor(sub_wa, dtype=torch.complex64, device=device))
+    else:
+        new_wa = torch.tensor(wa, dtype=torch.complex64, device=device)
+    new_ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    ntryh = torch.tensor([4, 2, 3, 5], dtype=torch.int64, device=device)
+    tpi = 8 * torch.atan(torch.tensor(1.0))
     nl = n
     nf = 0
     j = 0
@@ -628,16 +734,16 @@ def rfti1m(n, wa, ifac):
         nr = nl - ntry * nq
         if nr == 0:
             nf = nf + 1
-            new_ifac[nf+2] = ntry
+            new_ifac[nf + 2] = ntry
             nl = nq
             if nl > 1:
                 continue
             break
         else:
             continue
-    for i in range(2, nf):
-        if new_ifac[i+2] == 2:
-            new_ifac[i+2] = 4
+    for i in torch.arange(2, nf).to(device):
+        if new_ifac[i + 2] == 2:
+            new_ifac[i + 2] = 4
             new_ifac[3] = 2
     new_ifac[1] = n
     new_ifac[2] = nf
@@ -645,25 +751,39 @@ def rfti1m(n, wa, ifac):
         return new_wa, new_ifac
     l1 = 1
     is_ = 0
-    for k in range(1, nf):
-        ip = new_ifac[k+2]
+    for k in torch.arange(1, nf).to(device):
+        ip = new_ifac[k + 2]
         ido = n // (l1 * ip)
-        for j in range(1, ip):
+        for j in torch.arange(1, ip).to(device):
             arggld = (j * l1) * (tpi / n)
-            for ifi in range(1, (ido - 1) // 2 + 1):
+            for ifi in torch.arange(1, (ido - 1) // 2 + 1).to(device):
                 arg = ifi * arggld
-                new_wa[2*ifi+is_ - 1] = np.cos(arg)
-                new_wa[2*ifi+is_] = np.sin(arg)
+                new_wa[2 * ifi + is_ - 1] = torch.cos(arg)
+                new_wa[2 * ifi + is_] = torch.sin(arg)
             is_ = is_ + ido
         l1 = l1 * ip
     return new_wa, new_ifac
 
-
 def rfftbm(n, inc, jump, lot, r, wa, ifac, wsave):
-    new_r = list(r)
-    new_wa = list(wa)
-    new_ifac = list(ifac)
-    new_wsave = list(wsave)
+    new_r = []
+    for sub_r in r:
+        new_sub_r = []
+        for item in sub_r:
+            new_sub_r.append(torch.tensor(item, dtype=torch.complex64, device=device))
+        new_r.append(new_sub_r)
+    new_wa = []
+    for sub_wa in wa:
+        new_sub_wa = []
+        for item in sub_wa:
+            new_sub_wa.append(torch.tensor(item, dtype=torch.float32, device=device))
+        new_wa.append(new_sub_wa)
+    new_ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    new_wsave = []
+    for sub_wsave in wsave:
+        new_sub_wsave = []
+        for item in sub_wsave:
+            new_sub_wsave.append(torch.tensor(item, dtype=torch.complex64, device=device))
+        new_wsave.append(new_sub_wsave)
     if n == 1:
         return new_r, new_wa, new_ifac, new_wsave
     if jump!= 1:
@@ -673,11 +793,13 @@ def rfftbm(n, inc, jump, lot, r, wa, ifac, wsave):
     return new_r, new_wa, new_ifac, new_wsave
 
 
+
 def rftb2m(n, inc, jump, lot, r, wa, ifac, wsave):
-    new_r = list(r)
-    new_wa = list(wa)
-    new_ifac = list(ifac)
-    new_wsave = list(wsave)
+    r = torch.tensor(r, dtype=torch.complex64, device=device)
+    wa = torch.tensor(wa, dtype=torch.float32, device=device)
+    ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    wsave = torch.tensor(wsave, dtype=torch.complex64, device=device)
+
     if jump > inc:
         incn = (lot * jump) // n
     else:
@@ -697,7 +819,7 @@ def rftb2m(n, inc, jump, lot, r, wa, ifac, wsave):
         jdbase = incn * 3
         inq = 4 * inc
         inqn = 4 * incn
-        for k in range(0, n4, 4):
+        for k in torch.arange(0, n4, 4).to(device):
             ia = iabase
             ib = ibbase
             ic = icbase
@@ -707,10 +829,10 @@ def rftb2m(n, inc, jump, lot, r, wa, ifac, wsave):
             jc = jcbase
             jd = jdbase
             for l in range(lot):
-                new_wsave[ja] = new_r[ia]
-                new_wsave[jb] = new_r[ib]
-                new_wsave[jc] = new_r[ic]
-                new_wsave[jd] = new_r[id]
+                wsave[ja] = r[ia]
+                wsave[jb] = r[ib]
+                wsave[jc] = r[ic]
+                wsave[jd] = r[id]
                 ia = ia + jump
                 ib = ib + jump
                 ic = ic + jump
@@ -730,16 +852,16 @@ def rftb2m(n, inc, jump, lot, r, wa, ifac, wsave):
     if n4!= n:
         iabase = n4 * inc
         jabase = n4 * incn
-        for k in range(n4, n):
+        for k in torch.arange(n4, n).to(device):
             ia = iabase
             ja = jabase
             for l in range(lot):
-                new_wsave[ja] = new_r[ia]
+                wsave[ja] = r[ia]
                 ia = ia + jump
                 ja = ja + 1
             iabase = iabase + inc
             jabase = jabase + incn
-    new_r, new_wa, new_ifac, new_wsave = rftb1m(n, incn, lot, new_wsave, new_wa, new_ifac, new_r)
+    r, wa, ifac, wsave = rftb1m(n, incn, lot, wsave, wa, ifac, r)
     if n4 >= 4:
         iabase = 0
         ibbase = inc
@@ -751,7 +873,7 @@ def rftb2m(n, inc, jump, lot, r, wa, ifac, wsave):
         jdbase = incn * 3
         inq = 4 * inc
         inqn = 4 * incn
-        for k in range(0, n4, 4):
+        for k in torch.arange(0, n4, 4).to(device):
             ia = iabase
             ib = ibbase
             ic = icbase
@@ -761,10 +883,10 @@ def rftb2m(n, inc, jump, lot, r, wa, ifac, wsave):
             jc = jcbase
             jd = jdbase
             for l in range(lot):
-                new_r[ia] = new_wsave[ja]
-                new_r[ib] = new_wsave[jb]
-                new_r[ic] = new_wsave[jc]
-                new_r[id] = new_wsave[jd]
+                r[ia] = wsave[ja]
+                r[ib] = wsave[jb]
+                r[ic] = wsave[jc]
+                r[id] = wsave[jd]
                 ia = ia + jump
                 ib = ib + jump
                 ic = ic + jump
@@ -784,52 +906,55 @@ def rftb2m(n, inc, jump, lot, r, wa, ifac, wsave):
     if n4!= n:
         iabase = n4 * inc
         jabase = n4 * incn
-        for k in range(n4, n):
+        for k in torch.arange(n4, n).to(device):
             ia = iabase
             ja = jabase
             for l in range(lot):
-                new_r[ia] = new_wsave[ja]
+                r[ia] = wsave[ja]
                 ia = ia + jump
                 ja = ja + 1
             iabase = iabase + inc
             jabase = jabase + incn
-    return new_r, new_wa, new_ifac, new_wsave
+    return r, wa, ifac, wsave
 
-
+# jit，numba装饰器中的一种
 def rftb1m(n, inc, lot, c, wa, ifac, ch):
-    new_c = [list(sub_list) for sub_list in c]
-    new_wa = list(wa)
-    new_ifac = list(ifac)
-    new_ch = [list(sub_list) for sub_list in ch]
-    na = rftb9m(n, inc, lot, None, new_c, new_wa, new_ifac, new_ch)
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    wa = torch.tensor(wa, dtype=torch.float32, device=device)
+    ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+
+    na = rftb9m(n, inc, lot, None, c, wa, ifac, ch)
     if na == 1:
-        return new_c, new_wa, new_ifac, new_ch
+        return c, wa, ifac, ch
     n4 = (n // 4) * 4
     if n4 >= 4:
-        for k in range(0, n4, 4):
+        for k in torch.arange(0, n4, 4).to(device):
             for l in range(lot):
-                new_c[l][k] = new_ch[l][k]
-                new_c[l][k+1] = new_ch[l][k+1]
-                new_c[l][k+2] = new_ch[l][k+2]
-                new_c[l][k+3] = new_ch[l][k+3]
+                c[l][k] = ch[l][k]
+                c[l][k + 1] = ch[l][k + 1]
+                c[l][k + 2] = ch[l][k + 2]
+                c[l][k + 3] = ch[l][k + 3]
     if n4!= n:
-        for k in range(n4, n):
+        for k in torch.arange(n4, n).to(device):
             for l in range(lot):
-                new_c[l][k] = new_ch[l][k]
-    return new_c, new_wa, new_ifac, new_ch
-
+                c[l][k] = ch[l][k]
+    return c, wa, ifac, ch
 
 def rftb9m(n, inc, lot, na, c, wa, ifac, ch):
-    new_c = [list(sub_list) for sub_list in c]
-    new_wa = list(wa)
-    new_ifac = list(ifac)
-    new_ch = [list(sub_list) for sub_list in ch]
-    nf = new_ifac[2]
-    na = 1
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    wa = torch.tensor(wa, dtype=torch.float32, device=device)
+    ifac = torch.tensor(ifac, dtype=torch.int64, device=device)
+    if ch is not None:
+        ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+
+    nf = ifac[2]
+    if na is None:
+        na = 1
     l1 = 1
     iw = 1
     for k1 in range(1, nf):
-        ip = new_ifac[k1+2]
+        ip = ifac[k1 + 2]
         l2 = ip * l1
         ido = n // l2
         idl1 = ido * l1
@@ -838,44 +963,49 @@ def rftb9m(n, inc, lot, na, c, wa, ifac, ch):
             ix2 = iw + ido
             ix3 = ix2 + ido
             if na == 0:
-                new_c, new_ch = radb4m(inc, lot, ido, l1, new_c, new_ch, new_wa[iw - 1], new_wa[ix2 - 1], new_wa[ix3 - 1])
+                c, ch = radb4m(inc, lot, ido, l1, c, ch, wa[iw - 1], wa[ix2 - 1], wa[ix3 - 1])
             else:
-                new_c, new_ch = radb4m(inc, lot, ido, l1, new_ch, new_c, new_wa[iw - 1], new_wa[ix2 - 1], new_wa[ix3 - 1])
+                c, ch = radb4m(inc, lot, ido, l1, ch, c, wa[iw - 1], wa[ix2 - 1], wa[ix3 - 1])
         elif ip == 2:
             if na == 0:
-                new_c, new_ch = radb2m(inc, lot, ido, l1, new_c, new_ch, new_wa[iw - 1])
+                c, ch = radb2m(inc, lot, ido, l1, c, ch, wa[iw - 1])
             else:
-                new_c, new_ch = radb2m(inc, lot, ido, l1, new_ch, new_c, new_wa[iw - 1])
+                c, ch = radb2m(inc, lot, ido, l1, ch, c, wa[iw - 1])
         elif ip == 3:
             ix2 = iw + ido
             if na == 0:
-                new_c, new_ch = radb3m(inc, lot, ido, l1, new_c, new_ch, new_wa[iw - 1], new_wa[ix2 - 1])
+                c, ch = radb3m(inc, lot, ido, l1, c, ch, wa[iw - 1], wa[ix2 - 1])
             else:
-                new_c, new_ch = radb3m(inc, lot, ido, l1, new_ch, new_c, new_wa[iw - 1], new_wa[ix2 - 1])
+                c, ch = radb3m(inc, lot, ido, l1, ch, c, wa[iw - 1], wa[ix2 - 1])
         elif ip == 5:
             ix2 = iw + ido
             ix3 = ix2 + ido
             ix4 = ix3 + ido
             if na == 0:
-                new_c, new_ch = radb5m(inc, lot, ido, l1, new_c, new_ch, new_wa[iw - 1], new_wa[ix2 - 1], new_wa[ix3 - 1], new_wa[ix4 - 1])
+                c, ch = radb5m(inc, lot, ido, l1, c, ch, wa[iw - 1], wa[ix2 - 1], wa[ix3 - 1], wa[ix4 - 1])
             else:
-                new_c, new_ch = radb5m(inc, lot, ido, l1, new_ch, new_c, new_wa[iw - 1], new_wa[ix2 - 1], new_wa[ix3 - 1], new_wa[ix4 - 1])
+                c, ch = radb5m(inc, lot, ido, l1, ch, c, wa[iw - 1], wa[ix2 - 1], wa[ix3 - 1], wa[ix4 - 1])
         else:
             if na == 0:
-                new_c, new_ch = radbgm(inc, lot, ido, ip, l1, idl1, new_c, new_c, new_c, new_ch, new_ch, new_wa[iw - 1])
+                c, ch = radbgm(inc, lot, ido, ip, l1, idl1, c, c, c, ch, ch, wa[iw - 1])
                 na = 1
             else:
-                new_c, new_ch = radbgm(inc, lot, ido, ip, l1, idl1, new_ch, new_ch, new_ch, new_c, new_c, new_wa[iw - 1])
+                c, ch = radbgm(inc, lot, ido, ip, l1, idl1, ch, ch, ch, c, c, wa[iw - 1])
                 na = 0
             if ido == 1:
                 na = 1
+    return na, c, wa, ifac, ch
 
 
 def radb4m(inc, lot, ido, l1, c, ch, ca1, ca2, ca3):
-    new_c = [list(sub_list) for sub_list in c]
-    new_ch = [list(sub_list) for sub_list in ch]
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    ca1 = torch.tensor(ca1, dtype=torch.float32, device=device)
+    ca2 = torch.tensor(ca2, dtype=torch.float32, device=device)
+    ca3 = torch.tensor(ca3, dtype=torch.float32, device=device)
+
     for i in range(lot):
-        for j in range(ido):
+        for j in torch.arange(ido).to(device):
             index1 = j * l1 * inc
             index2 = (ido + j) * l1 * inc
             index3 = (2 * ido + j) * l1 * inc
@@ -883,75 +1013,87 @@ def radb4m(inc, lot, ido, l1, c, ch, ca1, ca2, ca3):
             ca = ca1[j]
             cb = ca2[j]
             cc = ca3[j]
-            ch11 = new_c[i][index1] + new_c[i][index3]
-            ch12 = new_c[i][index1] - new_c[i][index3]
-            ch21 = new_c[i][index2] + new_c[i][index4]
-            ch22 = new_c[i][index2] - new_c[i][index4]
-            new_ch[i][index1] = ch11 + ch21
-            new_ch[i][index3] = ch11 - ch21
-            new_ch[i][index2] = (ch12 - ch22) * ca+(ch12 + ch22) * cb
-            new_ch[i][index4] = (ch12 - ch22) * cb-(ch12 + ch22) * ca
-    return new_c, new_ch
+            ch11 = c[i][index1] + c[i][index3]
+            ch12 = c[i][index1] - c[i][index3]
+            ch21 = c[i][index2] + c[i][index4]
+            ch22 = c[i][index2] - c[i][index4]
+            ch[i][index1] = ch11 + ch21
+            ch[i][index3] = ch11 - ch21
+            ch[i][index2] = (ch12 - ch22) * ca+(ch12 + ch22) * cb
+            ch[i][index4] = (ch12 - ch22) * cb-(ch12 + ch22) * ca
+    return c, ch
 
 
 def radb2m(inc, lot, ido, l1, c, ch, ca1):
-    new_c = [list(sub_list) for sub_list in c]
-    new_ch = [list(sub_list) for sub_list in ch]
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    ca1 = torch.tensor(ca1, dtype=torch.float32, device=device)
+
     for i in range(lot):
-        for j in range(ido):
+        for j in torch.arange(ido).to(device):
             index1 = j * l1 * inc
             index2 = (ido + j) * l1 * inc
             ca = ca1[j]
-            ch1 = new_c[i][index1]+new_c[i][index2]
-            ch2 = (new_c[i][index1]-new_c[i][index2]) * ca
-            new_ch[i][index1] = ch1
-            new_ch[i][index2] = ch2
-    return new_c, new_ch
+            ch1 = c[index1] + c[index2]
+            ch2 = (c[index1] - c[index2]) * ca
+            ch[index1] = ch1
+            ch[index2] = ch2
+    return c, ch
 
 
 def radb3m(inc, lot, ido, l1, c, ch, ca1, ca2):
-    new_c = [list(sub_list) for sub_list in c]
-    new_ch = [list(sub_list) for sub_list in ch]
-    tpi = 8 * np.arctan(1)
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    ca1 = torch.tensor(ca1, dtype=torch.float32, device=device)
+    ca2 = torch.tensor(ca2, dtype=torch.float32, device=device)
+
+    tpi = 8 * torch.atan(torch.tensor(1.0))
     arg1 = tpi / 3
-    ca1_ = np.cos(arg1)
-    sa1 = np.sin(arg1)
-    ca2_ = np.cos(2 * arg1)
-    sa2 = np.sin(2 * arg1)
+    ca1_ = torch.cos(arg1)
+    sa1 = torch.sin(arg1)
+    ca2_ = torch.cos(2 * arg1)
+    sa2 = torch.sin(2 * arg1)
+
     for i in range(lot):
-        for j in range(ido):
+        for j in torch.arange(ido).to(device):
             index1 = j * l1 * inc
             index2 = (ido + j) * l1 * inc
             index3 = (2 * ido + j) * l1 * inc
             ca = ca1[j]
             cb = ca2[j]
-            ch1 = new_c[i][index1]+new_c[i][index2]+new_c[i][index3]
-            ch2 = new_c[i][index1]+new_c[i][index2]*ca1_+new_c[i][index3]*ca2_
-            ch3 = new_c[i][index1]+new_c[i][index2]*ca2_+new_c[i][index3]*ca1_
-            new_ch[i][index1] = ch1
-            new_ch[i][index2] = (ch2 - ch3) * sa1
-            new_ch[i][index3] = (ch3 - ch2) * sa2
-    return new_c, new_ch
+            ch1 = c[index1] + c[index2] + c[index3]
+            ch2 = c[index1] + c[index2] * ca1_ + c[index3] * ca2_
+            ch3 = c[index1] + c[index2] * ca2_ + c[index3] * ca1_
+            ch[index1] = ch1
+            ch[index2] = (ch2 - ch3) * sa1
+            ch[index3] = (ch3 - ch2) * sa2
+    return c, ch
 
 
 def radb5m(inc, lot, ido, l1, c, ch, ca1, ca2, ca3, ca4):
-    new_c = [list(sub_list) for sub_list in c]
-    new_ch = [list(sub_list) for sub_list in ch]
-    tpi = 8 * np.arctan(1)
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    ch = torch.tensor(ch, dtype=torch.complex64, device=device)
+    ca1 = torch.tensor(ca1, dtype=torch.float32, device=device)
+    ca2 = torch.tensor(ca2, dtype=torch.float32, device=device)
+    ca3 = torch.tensor(ca3, dtype=torch.float32, device=device)
+    ca4 = torch.tensor(ca4, dtype=torch.float32, device=device)
+
+    tpi = 8 * torch.atan(torch.tensor(1.0))
     arg1 = tpi / 5
-    ca1_ = np.cos(arg1)
-    sa1 = np.sin(arg1)
+    ca1_ = torch.cos(arg1)
+    sa1 = torch.sin(arg1)
     arg2 = 2 * arg1
-    ca2_ = np.cos(arg2)
-    sa2 = np.sin(arg2)
+    ca2_ = torch.cos(arg2)
+    sa2 = torch.sin(arg2)
     arg3 = 3 * arg1
-    ca3_ = np.cos(arg3)
-    sa3 = np.sin(arg3)
+    ca3_ = torch.cos(arg3)
+    sa3 = torch.sin(arg3)
     arg4 = 4 * arg1
-    ca4_ = np.cos(arg4)
-    sa4 = np.sin(arg4)
+    ca4_ = torch.cos(arg4)
+    sa4 = torch.sin(arg4)
+
     for i in range(lot):
-        for j in range(ido):
+        for j in torch.arange(ido).to(device):
             index1 = j * l1 * inc
             index2 = (ido + j) * l1 * inc
             index3 = (2 * ido + j) * l1 * inc
@@ -961,42 +1103,42 @@ def radb5m(inc, lot, ido, l1, c, ch, ca1, ca2, ca3, ca4):
             cb = ca2[j]
             cc = ca3[j]
             cd = ca4[j]
-            ch1 = new_c[i][index1]+new_c[i][index2]+new_c[i][index3]+new_c[i][index4]+new_c[i][index5]
-            ch2 = new_c[i][index1]+new_c[i][index2]*ca1_+new_c[i][index3]*ca2_+new_c[i][index4]*ca3_+new_c[i][index5]*ca4_
-            ch3 = new_c[i][index1]+new_c[i][index2]*ca2_+new_c[i][index3]*ca4_+new_c[i][index4]*ca1_+new_c[i][index5]*ca3_
-            ch4 = new_c[i][index1]+new_c[i][index2]*ca3_+new_c[i][index3]*ca1_+new_c[i][index4]*ca4_+new_c[i][index5]*ca2_
-            ch5 = new_c[i][index1]+new_c[i][index2]*ca4_+new_c[i][index3]*ca3_+new_c[i][index4]*ca2_+new_c[i][index5]*ca1_
-            new_ch[i][index1] = ch1
-            new_ch[i][index2] = (ch2 - ch5) * sa1
-            new_ch[i][index3] = (ch3 - ch4) * sa2
-            new_ch[i][index4] = (ch4 - ch3) * sa3
-            new_ch[i][index5] = (ch5 - ch2) * sa4
-    return new_c, new_ch
-
+            ch1 = c[index1] + c[index2] + c[index3] + c[index4] + c[index5]
+            ch2 = c[index1] + c[index2] * ca1_ + c[index3] * ca2_ + c[index4] * ca3_ + c[index5] * ca4_
+            ch3 = c[index1] + c[index2] * ca2_ + c[index3] * ca4_ + c[index4] * ca1_ + c[index5] * ca3_
+            ch4 = c[index1] + c[index2] * ca3_ + c[index3] * ca1_ + c[index4] * ca4_ + c[index5] * ca2_
+            ch5 = c[index1] + c[index2] * ca4_ + c[index3] * ca3_ + c[index4] * ca2_ + c[index5] * ca1_
+            ch[index1] = ch1
+            ch[index2] = (ch2 - ch5) * sa1
+            ch[index3] = (ch3 - ch4) * sa2
+            ch[index4] = (ch4 - ch3) * sa3
+            ch[index5] = (ch5 - ch2) * sa4
+    return c, ch
 
 def radbgm(inc, lot, ido, ip, l1, idl1, c, ch1, ch2, ch3, cg1, cg2, ca1):
-    new_c = [list(sub_list) for sub_list in c]
-    new_ch1 = [list(sub_list) for sub_list in ch1]
-    new_ch2 = [list(sub_list) for sub_list in ch2]
-    new_ch3 = [list(sub_list) for sub_list in ch3]
-    new_cg1 = [list(sub_list) for sub_list in cg1]
-    new_cg2 = [list(sub_list) for sub_list in cg2]
-    tpi = 8 * np.arctan(1)
+    c = torch.tensor(c, dtype=torch.complex64, device=device)
+    ch1 = torch.tensor(ch1, dtype=torch.complex64, device=device)
+    ch2 = torch.tensor(ch2, dtype=torch.complex64, device=device)
+    ch3 = torch.tensor(ch3, dtype=torch.complex64, device=device)
+    cg1 = torch.tensor(cg1, dtype=torch.complex64, device=device)
+    cg2 = torch.tensor(cg2, dtype=torch.complex64, device=device)
+    ca1 = torch.tensor(ca1, dtype=torch.float32, device=device)
+
+    tpi = 8 * torch.atan(torch.tensor(1.0))
     for i in range(lot):
-        for j in range(ido):
+        for j in torch.arange(ido).to(device):
             index = j * l1 * inc
             index1 = j * idl1 * inc
             arg = j * tpi / ip
-            ca = np.cos(arg)
-            sa = np.sin(arg)
-            for k in range(ip):
+            ca = torch.cos(arg)
+            sa = torch.sin(arg)
+            for k in torch.arange(ip).to(device):
                 indexk = (index + k * ido * l1)
                 indexk1 = (index1 + k * ido)
-                ch1 = new_c[i][indexk]
-                ch2 = new_cg1[i][indexk1] * ca - new_cg2[i][indexk1] * sa
-                ch3 = new_cg1[i][indexk1] * sa + new_cg2[i][indexk1] * ca
-                new_ch1[i][indexk] = ch1+ch2
-                new_ch2[i][indexk] = ch1 - ch2
-                new_ch3[i][indexk] = ch3
-    return new_c, new_ch1, new_ch2, new_ch3
-
+                ch1_val = c[indexk]
+                ch2_val = cg1[indexk1] * ca - cg2[indexk1] * sa
+                ch3_val = cg1[indexk1] * sa + cg2[indexk1] * ca
+                ch1[indexk] = ch1_val + ch2_val
+                ch2[indexk] = ch1_val - ch2_val
+                ch3[indexk] = ch3_val
+    return c, ch1, ch2, ch3

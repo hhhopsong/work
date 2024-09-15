@@ -1,27 +1,42 @@
 import numpy as np
+import numba
+from numba import jit
+from f2py.usphe import SPW2G, SPG2W
+from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+import torch
+
+
+device = torch.device('cuda')
+
+
+def copy(datai, idim):
+    if isinstance(datai, torch.Tensor):
+        device = datai.device
+        datai = datai.cpu().numpy()
+        result = np.array(datai[:idim])
+        return torch.tensor(result, dtype=datai.dtype, device=device)
+    else:
+        return np.array(datai[:idim])
 
 
 def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
-    from f2py.usphe import SPW2G, SPG2W
-    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
-
-
     # 初始化内部工作变量
-    ZDATA = np.zeros((IDIM * JDIM, KMAXD))
-    WORK = np.zeros((IDIM * JDIM, KMAXD))
-    QSINLA = np.zeros(JDIM)
-    QGW = np.zeros(JDIM)
-    QPNM = np.zeros((NMAX + 2, MMAX + 1))
-    QDPNM = np.zeros((NMAX + 2, MMAX + 1))
+    device = WDATA.device
+    ZDATA = torch.zeros((IDIM * JDIM, KMAXD), device=device)
+    WORK = torch.zeros((IDIM * JDIM, KMAXD), device=device)
+    QSINLA = torch.zeros(JDIM, device=device)
+    QGW = torch.zeros(JDIM, device=device)
+    QPNM = torch.zeros((NMAX + 2, MMAX + 1), device=device)
+    QDPNM = torch.zeros((NMAX + 2, MMAX + 1), device=device)
 
     # 初始化内部保存变量
-    PNM = np.zeros(JMXHF * NMDIM)
-    DPNM = np.zeros(JMXHF * NMDIM)
-    TRIGS = np.zeros(IDIM * 2)
-    IFAX = np.zeros(10, dtype=np.int32)
-    NMO = np.zeros((2, MMAX + 1, LMAX + 1), dtype=np.int32)
-    GWX = np.zeros(JDIM)
-    GWDEL = np.zeros(JDIM)
+    PNM = torch.zeros(JMXHF * NMDIM, device=device)
+    DPNM = torch.zeros(JMXHF * NMDIM, device=device)
+    TRIGS = torch.zeros(IDIM * 2, device=device)
+    IFAX = torch.zeros(10, dtype=torch.int32, device=device)
+    NMO = torch.zeros((2, MMAX + 1, LMAX + 1), dtype=torch.int32, device=device)
+    GWX = torch.zeros(JDIM, device=device)
+    GWDEL = torch.zeros(JDIM, device=device)
 
     OSET = False
     OFIRST = True
@@ -44,20 +59,17 @@ def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
 
 
 def G2W(WDATA, GDATA, HGRAD, HFUNC, KMAXD):
-    from f2py.usphe import SPW2G, SPG2W
-    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
-
-
     # 初始化内部保存变量
-    PNM = np.zeros((NMDIM, JMXHF))
-    DPNM = np.zeros((NMDIM, JMXHF))
-    TRIGS = np.zeros(IDIM * 2)
-    IFAX = np.zeros(10, dtype=np.int32)
-    NMO = np.zeros((2, MMAX + 1, LMAX + 1), dtype=np.int32)
-    GWX = np.zeros(JDIM)
-    GWDEL = np.zeros(JDIM)
-    ZDATA = np.zeros((IDIM * JDIM, KMAX), dtype=np.float64)
-    WORK = np.zeros((IDIM * JDIM, KMAX), dtype=np.float64)
+    device = GDATA.device
+    PNM = torch.zeros((NMDIM, JMXHF), device=device)
+    DPNM = torch.zeros((NMDIM, JMXHF), device=device)
+    TRIGS = torch.zeros(IDIM * 2, device=device)
+    IFAX = torch.zeros(10, dtype=torch.int32, device=device)
+    NMO = torch.zeros((2, MMAX + 1, LMAX + 1), dtype=torch.int32, device=device)
+    GWX = torch.zeros(JDIM, device=device)
+    GWDEL = torch.zeros(JDIM, device=device)
+    ZDATA = torch.zeros((IDIM * JDIM, KMAX), device=device)
+    WORK = torch.zeros((IDIM * JDIM, KMAX), device=device)
     OSET = True  # 逻辑变量，用于判断是否已经使用球谐函数
 
     if not OSET:

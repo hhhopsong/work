@@ -1,22 +1,33 @@
 import numpy as np
-#from ufftp import fft99x
-#from copy import copy
+import numba
+from numba import jit
+from f2py.ufftp import fft99x
+from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+import torch
 
 
 # 全局常量
-KMAXD = 100
-NMDIMD = 12000
+KMAXD = 20
+NMDIMD = NMDIM
 OLSET = False
-MLIST = np.zeros(NMDIMD, dtype=np.int32)
-JLIST = np.zeros(NMDIMD, dtype=np.int32)
+MLIST = torch.zeros(NMDIMD, dtype=torch.int32)
+JLIST = torch.zeros(NMDIMD, dtype=torch.int32)
+device = torch.device('cuda')
+
+
+ # jit，numba装饰器中的一种
+def copy(datai, idim):
+    if isinstance(datai, torch.Tensor):
+        device = datai.device
+        datai = datai.cpu().numpy()
+        result = np.array(datai[:idim])
+        return torch.tensor(result, dtype=datai.dtype, device=device)
+    else:
+        return np.array(datai[:idim])
+
 
 
 def SPW2G(GDATA, WDATA, PNM, NMO, TRIGS, IFAX, HGRAD, HFUNC, IMAX, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMAX, MINT, NMDIM, JMXHF, ZDATA, WORK):
-    from f2py.ufftp import fft99x
-    from f2py.copy import copy
-    from f2py.usphe import SPW2G, SPG2W
-    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
-
     if IMAX == 1 or JMAX == 1:
         print(' ### SPW2G: THIS ROUTINE IS FOR 3 DIM.')
         return
@@ -24,12 +35,14 @@ def SPW2G(GDATA, WDATA, PNM, NMO, TRIGS, IFAX, HGRAD, HFUNC, IMAX, JMAX, KMAX, I
     # 处理LOFFS和LDPNM标志
     LOFFS = HFUNC[-1] == 'O'
     if LOFFS:
+        # 假设这里的KMAXD是一个预定义的常量或者全局变量
+        # 如果不是，需要正确定义它
         if KMAXD < KMAX:
             print(' ### SPW2G: WORK AREA(KMAXD) TOO SMALL < ', KMAX)
             return
     LDPNM = HGRAD[0] == 'Y'
 
-    DOFFS = np.zeros(KMAXD)
+    DOFFS = torch.zeros(KMAX, device=WDATA.device)
     if LOFFS:
         for K in range(KMAX):
             DOFFS[K] = WDATA[NMO[1, 0, 0], K]
@@ -81,11 +94,6 @@ def SPW2G(GDATA, WDATA, PNM, NMO, TRIGS, IFAX, HGRAD, HFUNC, IMAX, JMAX, KMAX, I
 
 
 def SPG2W(WDATA, GDATA, PNM, NMO, TRIGS, IFAX, GW, HGRAD, HFUNC, IMAX, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMAX, MINT, NMDIM, JMXHF, ZDATA, WORK):
-    from f2py.ufftp import fft99x
-    from f2py.copy import copy
-    from f2py.usphe import SPW2G, SPG2W
-    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
-
     if IMAX == 1 or JMAX == 1:
         print(' ### SPG2W: THIS ROUTINE IS FOR 3 DIM.')
         return
@@ -97,18 +105,16 @@ def SPG2W(WDATA, GDATA, PNM, NMO, TRIGS, IFAX, GW, HGRAD, HFUNC, IMAX, JMAX, KMA
             return
     LDPNM = HGRAD[0] == 'Y'
 
-    DOFFS = np.zeros(KMAXD)
+    DOFFS = torch.zeros(KMAX, device=GDATA.device)
     if LOFFS:
-        for K in range(KMAX):
-            DOFFS[K] = GDATA[0, K]
-            for IJ in range(IDIM * JDIM):
-                WORK[IJ, K] = GDATA[IJ, K] - DOFFS[K]
+        DOFFS = GDATA[0, :KMAX]
+        WORK[:, :KMAX] = GDATA[:, :KMAX] - DOFFS.view(1, -1).repeat(IDIM * JDIM, 1)
     else:
-        WORK = copy(GDATA, IDIM * JDIM * KMAX)
+        WORK = GDATA.clone()
 
     new_work, new_zdata = fft99x(WORK, ZDATA, TRIGS, IFAX, 1, IDIM, IMAX, JDIM * KMAX, 0)
-    WORK = new_work.reshape(WORK.shape)
-    ZDATA = new_zdata.reshape(ZDATA.shape)
+    WORK = new_work.view(WORK.shape)
+    ZDATA = new_zdata.view(ZDATA.shape)
 
     if HGRAD[0] == 'X':
         ZDATA = GRADX(ZDATA, IDIM, JDIM, KMAX, MMAX, MINT, WORK)
@@ -118,21 +124,16 @@ def SPG2W(WDATA, GDATA, PNM, NMO, TRIGS, IFAX, GW, HGRAD, HFUNC, IMAX, JMAX, KMA
 
     if LOFFS:
         if HFUNC[0] == 'N' or HFUNC[0] == 'S':
-            for K in range(KMAX):
-                WDATA[NMO[0, 0, 0], K] = WDATA[NMO[0, 0, 0], K] - DOFFS[K]
+            WDATA[NMO[0, 0, 0], :KMAX] = WDATA[NMO[0, 0, 0], :KMAX] - DOFFS
         else:
-            for K in range(KMAX):
-                WDATA[NMO[0, 0, 0], K] = WDATA[NMO[0, 0, 0], K] + DOFFS[K]
+            WDATA[NMO[0, 0, 0], :KMAX] = WDATA[NMO[0, 0, 0], :KMAX] + DOFFS
 
-    for K in range(KMAX):
-        WDATA[NMO[1, 0, 0] , K] = 0.0
+    WDATA[NMO[1, 0, 0], :KMAX] = 0.0
 
     return WDATA
 
 
 def SPW2Z(ZDATA, WDATA, PNM, NMO, LDPNM, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMAX, MINT, NMDIM, JMXHF, ZDW):
-    from f2py.usphe import SPW2G, SPG2W
-    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
     global OLSET, MLIST, JLIST
     if not OLSET:
         OLSET = True
@@ -155,8 +156,8 @@ def SPW2Z(ZDATA, WDATA, PNM, NMO, LDPNM, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMA
                     JLIST[index + 1] = (JMAX + 1) // 2
                 index += 2
 
-    ZDW = np.zeros((IDIM, JDIM, KMAX))
-    ZDATA = np.zeros((IDIM, JDIM, KMAX))
+    ZDW = torch.zeros((IDIM, JDIM, KMAX), device=WDATA.device)
+    ZDATA = torch.zeros((IDIM, JDIM, KMAX), device=WDATA.device)
 
     if KMAX < (JMAX + 1) // 2:
         for NM in range(NMDIM):
@@ -194,9 +195,8 @@ def SPW2Z(ZDATA, WDATA, PNM, NMO, LDPNM, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMA
     return ZDATA
 
 
+
 def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMAX, MINT, NMDIM, JMXHF, ZDW):
-    from f2py.usphe import SPW2G, SPG2W
-    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
     global OLSET, MLIST, JLIST
     if not OLSET:
         OLSET = True
@@ -220,71 +220,95 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
                 index += 2
 
     if HFUNC[0]!= 'A' and HFUNC[0]!= 'S':
-        WDATA = np.zeros((NMDIM, KMAX))
+        WDATA = torch.zeros((NMDIM, KMAX), device=ZDATA.device)
 
-    ZDW = ZDW.reshape(IDIM, JDIM, KMAX)
-    for J in range(1, (JMAX + 1) // 2 + 1):
-        JN = J
-        JS = JMAX + 1 - J
-        if not LDPNM:
-            JE = J
-            JO = (JMAX + 1) // 2 + J
-        else:
-            JE = (JMAX + 1) // 2 + J
-            JO = JN
-        for K in range(1, KMAX + 1):
-            for IM in range(1, IDIM + 1):
-                ZDW[IM-1, JE-1, K-1] = GW[J-1] * (ZDATA.reshape(IDIM, JDIM, KMAX)[IM-1, JN-1, K-1] + ZDATA.reshape(IDIM, JDIM, KMAX)[IM-1, JS-1, K-1])
-                ZDW[IM-1, JO-1, K-1] = GW[J-1] * (ZDATA.reshape(IDIM, JDIM, KMAX)[IM-1, JN-1, K-1] - ZDATA.reshape(IDIM, JDIM, KMAX)[IM-1, JS-1, K-1])
+    ZDW = ZDW.view(IDIM, JDIM, KMAX)
+    # 创建索引张量
+    Js = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
+    JNs = Js
+    JSs = JMAX + 1 - Js
+    if not LDPNM:
+        JEs = Js
+        JOs = (JMAX + 1) // 2 + Js
+    else:
+        JEs = (JMAX + 1) // 2 + Js
+        JOs = JNs
+    Ks = torch.arange(1, KMAX + 1).cuda()
+    IMs = torch.arange(1, IDIM + 1).cuda()
+
+    # 使用广播机制计算
+    for J in range(len(Js)):
+        JE = JEs[J] - 1
+        JO = JOs[J] - 1
+        JN = JNs[J] - 1
+        JS = JSs[J] - 1
+        part1 = GW[J - 1] * (ZDATA.view(IDIM, JDIM, KMAX)[:, JN, :] + ZDATA.view(IDIM, JDIM, KMAX)[:, JS, :])
+        part2 = GW[J - 1] * (ZDATA.view(IDIM, JDIM, KMAX)[:, JN, :] - ZDATA.view(IDIM, JDIM, KMAX)[:, JS, :])
+        ZDW[:, JE, :] = part1
+        ZDW[:, JO, :] = part2
 
     if HFUNC[0] == 'N' or HFUNC[0] == 'S':
         if KMAX < NMDIM:
-            for J in range(1, (JMAX + 1) // 2 + 1):
-                for K in range(1, KMAX + 1):
-                    for NM in range(1, NMDIM + 1):
-                        IM = MLIST[NM]
-                        JP = JLIST[NM] + J
-                        WDATA[NM - 1, K - 1] = WDATA[NM - 1, K - 1] - PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1, K - 1]
+            Js = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
+            JLIST = torch.tensor(JLIST, dtype=torch.long).cuda()
+            MLIST = torch.tensor(MLIST, dtype=torch.long).cuda()
+            Ks = torch.arange(1, KMAX + 1).cuda()
+            NMs = torch.arange(1, NMDIM + 1).cuda()
+            for J in range(len(Js)):
+                JP = JLIST[NMs - 1] + Js[J]
+                IM = MLIST[NMs - 1]
+                part = PNM[:, J] * ZDW[IM - 1, JP - 1, :]
+                WDATA[:, :] = WDATA[:, :] - part
         else:
-            for J in range(1, (JMAX + 1) // 2 + 1):
-                for NM in range(1, NMDIM + 1):
-                    for K in range(1, KMAX + 1):
-                        IM = MLIST[NM]
-                        JP = JLIST[NM] + J
-                        WDATA[NM - 1, K - 1] = WDATA[NM - 1, K - 1] - PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1, K - 1]
+            MLIST = torch.tensor(MLIST, dtype=torch.long).cuda()
+            JLIST = torch.tensor(JLIST, dtype=torch.long).cuda()
+            WDATA = torch.tensor(WDATA, dtype=torch.float32).cuda()
+
+            Js = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
+
+            JP = JLIST + Js
+            IM = MLIST
+            part = PNM[:, Js - 1].unsqueeze(1) * ZDW[IM - 1, JP - 1]
+            WDATA = WDATA - part.sum(dim=1)
     else:
         if KMAX < NMDIM:
-            for J in range(1, (JMAX + 1) // 2 + 1):
-                for K in range(1, KMAX + 1):
-                    for NM in range(1, NMDIM + 1):
-                        IM = MLIST[NM]
-                        JP = JLIST[NM] + J
-                        WDATA[NM - 1, K - 1] = WDATA[NM - 1, K - 1] + PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1, K - 1]
+            Js = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
+            JLIST = torch.tensor(JLIST, dtype=torch.long).cuda()
+            MLIST = torch.tensor(MLIST, dtype=torch.long).cuda()
+            for J in range(len(Js)):
+                JP = JLIST + Js[J]
+                IM = MLIST
+                part = PNM[:, J - 1].unsqueeze(1) * ZDW[IM - 1, JP - 1]
+                WDATA = WDATA + part
         else:
-            for J in range(1, (JMAX + 1) // 2 + 1):
-                for NM in range(1, NMDIM + 1):
-                    for K in range(1, KMAX + 1):
-                        IM = MLIST[NM]
-                        JP = JLIST[NM] + J
-                        WDATA[NM - 1, K - 1] = WDATA[NM - 1, K - 1] + PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1, K - 1]
+            # 将数据移动到GPU
+            MLIST = torch.tensor(MLIST, dtype=torch.long).cuda()
+            JLIST = torch.tensor(JLIST, dtype=torch.long).cuda()
+            WDATA = torch.tensor(WDATA, dtype=torch.float).cuda()
 
+            J_indices = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
+            NM_indices = torch.arange(1, NMDIM + 1).cuda()
+
+            # 使用广播机制计算结果
+            for J in J_indices:
+                JP = JLIST[:, None] + J
+                for NM in NM_indices:
+                    IM = MLIST[NM - 1]
+                    # 使用广播计算乘法和加法
+                    WDATA[NM - 1] += (PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1]).sum(dim=1)
     return WDATA
 
 
 def GRADX(ZDATA, IDIM, JDIM, KMAX, MMAX, MINT, ZDW):
-    from f2py.ufftp import fft99x
-    from f2py.copy import copy
-    from f2py.usphe import SPW2G, SPG2W
-    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
-
-
-    ZDW = copy(ZDATA, IDIM * JDIM * KMAX)
-    for M in range(0, MMAX, MINT):
-        MM = M // MINT
-        MR = 2 * MM + 1
-        MI = 2 * MM + 2
-        for K in range(KMAX):
-            for J in range(JDIM):
-                ZDATA[MR, J, K] = -float(M) * ZDW[MI, J, K]
-                ZDATA[MI, J, K] = float(M) * ZDW[MR, J, K]
+    ZDW = ZDATA.clone()
+    ZDATA = torch.tensor(ZDATA, dtype = torch.float32).cuda()
+    ZDW = torch.tensor(ZDW, dtype = torch.float32).cuda()
+    Ms = torch.arange(0, MMAX, MINT).cuda()
+    MMs = Ms // MINT
+    MRs = 2 * MMs + 1
+    MIs = 2 * MMs + 2
+    ZDATA[MRs[:, None, None], torch.arange(JDIM)[None, :, None], torch.arange(KMAX)[None, None, :]] = -Ms[:, None, None] * ZDW[MIs[:, None, None], torch.arange(JDIM)[None, :, None], torch.arange(KMAX)[None, None, :]]
+    ZDATA[MIs[:, None, None], torch.arange(JDIM)[None, :, None], torch.arange(KMAX)[None, None, :]] = Ms[:, None, None] * ZDW[MRs[:, None, None], torch.arange(JDIM)[None, :, None], torch.arange(KMAX)[None, None, :]]
     return ZDATA
+
+
