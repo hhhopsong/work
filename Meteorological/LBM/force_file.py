@@ -58,7 +58,7 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='
             return Z
     except:
         raise ValueError('G2W函数运行失败')
-    Z = np.zeros((lat * M, len(data)), dtype=complex)
+    '''Z = np.zeros((lat * M, len(data)), dtype=complex)
     Z.fill(complex(0, 0))
     if data is None:
         raise ValueError('data参数不能为空')
@@ -83,7 +83,7 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='
                 for j in range(N):
                     Z[ilat * M + k, K] += data[K, ilat, j] * one[K, ilat, j]
     Z = Z / N
-    return Z
+    return Z'''
 
 
 
@@ -343,7 +343,7 @@ def SetNMO2(Mmax, Lmax, Nmax, Mint):
 
 
 #PWM 的强迫向量被重新排序，由 owall=f 定义的边界条件控制。在这种情况下，强迫向量的顺序是：v, d, t, p, q。
-def mk_wave(Gfrct, Mmax=None, Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=False, ops=False, osh=False, owall=True, oclassic=True):
+def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=False, ops=False, osh=False, owall=True, oclassic=True):
     """
     生成谱资料
     :param Gfrct: np.array, 强迫场
@@ -388,7 +388,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, 
         Lend = np.min([Lmax, Nmax - m])
         for iK in tq.trange(K_):
             iW = -1
-            for l in range(Lend + 1):
+            for l in tq.trange(Lend + 1):
                 if m == 0 and l == 0:
                     continue
                 i = NMO[0, m, l]

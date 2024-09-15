@@ -21,6 +21,7 @@ KMAX = 20
 MINT = 1  # interval of zonal wave number
 
 
+
 MMAX = NMAX  # maximum zonal wave number
 LMAX = NMAX  # maximum meridional wave number
 IDIM = IMAX + 1  # size of longitude dimension
@@ -30,5 +31,6 @@ IJSDIM = IJDIM  # size of physical process
 KDIM = KMAX  # vertical dimension size
 IJKDIM = IJDIM * KDIM  # total size of matrix
 MMXMI = MMAX // MINT
+NTR = MMAX
 NMDIM = (MMXMI + 1) * (2 * (NMAX + 1) - MMXMI * MINT) - (NMAX - LMAX) // MINT * (NMAX - LMAX + 1)  # of horizontal wave
 JMXHF = JMAX // 2 + 1  # JMAX/2+1
