@@ -119,13 +119,13 @@ def SPG2W(WDATA, GDATA, PNM, NMO, TRIGS, IFAX, GW, HGRAD, HFUNC, IMAX, JMAX, KMA
     if LOFFS:
         if HFUNC[0] == 'N' or HFUNC[0] == 'S':
             for K in range(KMAX):
-                WDATA[NMO[1, 0, 0], K] = WDATA[NMO[1, 0, 0], K] - DOFFS[K]
+                WDATA[NMO[0, 0, 0], K] = WDATA[NMO[0, 0, 0], K] - DOFFS[K]
         else:
             for K in range(KMAX):
-                WDATA[NMO[1, 0, 0], K] = WDATA[NMO[1, 0, 0], K] + DOFFS[K]
+                WDATA[NMO[0, 0, 0], K] = WDATA[NMO[0, 0, 0], K] + DOFFS[K]
 
     for K in range(KMAX):
-        WDATA[NMO[2, 0, 0], K] = 0.0
+        WDATA[NMO[1, 0, 0] , K] = 0.0
 
     return WDATA
 
@@ -222,6 +222,7 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
     if HFUNC[0]!= 'A' and HFUNC[0]!= 'S':
         WDATA = np.zeros((NMDIM, KMAX))
 
+    ZDW = ZDW.reshape(IDIM, JDIM, KMAX)
     for J in range(1, (JMAX + 1) // 2 + 1):
         JN = J
         JS = JMAX + 1 - J
@@ -233,14 +234,8 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
             JO = JN
         for K in range(1, KMAX + 1):
             for IM in range(1, IDIM + 1):
-                ZDW[IM, JE, K] = GW[J] * (ZDATA[IM, JN, K] + ZDATA[IM, JS, K])
-                ZDW[IM, JO, K] = GW[J] * (ZDATA[IM, JN, K] - ZDATA[IM, JS, K])
-                '''ZDW[(IM - 1) * (JE - 1) * (K - 1) + (JE - 1) * (K - 1) + (K - 1)] = GW[J] * (
-                            ZDATA[(IM - 1) * (JN - 1) * (K - 1) + (JN - 1) * (K - 1) + (K - 1)] + ZDATA[
-                        (IM - 1) * (JS - 1) * (K - 1) + (JS - 1) * (K - 1) + (K - 1)])
-                ZDW[IM * JO * K + JO * K + K][(IM - 1) * (JN - 1) * (K - 1) + (JN - 1) * (K - 1) + (K - 1)] = GW[J] * (
-                            ZDATA[(IM - 1) * (JN - 1) * (K - 1) + (JN - 1) * (K - 1) + (K - 1)] - ZDATA[
-                        (IM - 1) * (JS - 1) * (K - 1) + (JS - 1) * (K - 1) + (K - 1)])'''
+                ZDW[IM-1, JE-1, K-1] = GW[J-1] * (ZDATA.reshape(IDIM, JDIM, KMAX)[IM-1, JN-1, K-1] + ZDATA.reshape(IDIM, JDIM, KMAX)[IM-1, JS-1, K-1])
+                ZDW[IM-1, JO-1, K-1] = GW[J-1] * (ZDATA.reshape(IDIM, JDIM, KMAX)[IM-1, JN-1, K-1] - ZDATA.reshape(IDIM, JDIM, KMAX)[IM-1, JS-1, K-1])
 
     if HFUNC[0] == 'N' or HFUNC[0] == 'S':
         if KMAX < NMDIM:
@@ -249,14 +244,14 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
                     for NM in range(1, NMDIM + 1):
                         IM = MLIST[NM]
                         JP = JLIST[NM] + J
-                        WDATA[NM, K] = WDATA[NM, K] - PNM[NM, J] * ZDW[IM, JP, K]
+                        WDATA[NM - 1, K - 1] = WDATA[NM - 1, K - 1] - PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1, K - 1]
         else:
             for J in range(1, (JMAX + 1) // 2 + 1):
                 for NM in range(1, NMDIM + 1):
                     for K in range(1, KMAX + 1):
                         IM = MLIST[NM]
                         JP = JLIST[NM] + J
-                        WDATA[NM, K] = WDATA[NM, K] - PNM[NM, J] * ZDW[IM, JP, K]
+                        WDATA[NM - 1, K - 1] = WDATA[NM - 1, K - 1] - PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1, K - 1]
     else:
         if KMAX < NMDIM:
             for J in range(1, (JMAX + 1) // 2 + 1):
@@ -264,14 +259,14 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
                     for NM in range(1, NMDIM + 1):
                         IM = MLIST[NM]
                         JP = JLIST[NM] + J
-                        WDATA[NM, K] = WDATA[NM, K] + PNM[NM, J] * ZDW[IM, JP, K]
+                        WDATA[NM - 1, K - 1] = WDATA[NM - 1, K - 1] + PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1, K - 1]
         else:
             for J in range(1, (JMAX + 1) // 2 + 1):
                 for NM in range(1, NMDIM + 1):
                     for K in range(1, KMAX + 1):
                         IM = MLIST[NM]
                         JP = JLIST[NM] + J
-                        WDATA[NM, K] = WDATA[NM, K] + PNM[NM, J] * ZDW[IM, JP, K]
+                        WDATA[NM - 1, K - 1] = WDATA[NM - 1, K - 1] + PNM[NM - 1, J - 1] * ZDW[IM - 1, JP - 1, K - 1]
 
     return WDATA
 

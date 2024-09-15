@@ -40,6 +40,7 @@ def read_force_file(address=force_file_address):
 
 
 def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='POSO', ):
+    from f2py.dim import NMDIM, KMAX
     """
     格点数据转谱系数
     :param lat: int, 纬向格点数
@@ -47,7 +48,7 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='
     :param data: np.array, 格点数据(lev, 64, 128)
     :return: np.array, 谱系数
     """
-    Z = np.zeros((lat * M, len(data)))
+    Z = np.zeros((NMDIM, KMAX))
     try:
         if ops:
             Z = G2W(Z, GDATA=data, HGRAD='    ', HFUNC='POSO', KMAXD=1)

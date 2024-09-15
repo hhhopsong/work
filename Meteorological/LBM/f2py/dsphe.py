@@ -49,8 +49,8 @@ def G2W(WDATA, GDATA, HGRAD, HFUNC, KMAXD):
 
 
     # 初始化内部保存变量
-    PNM = np.zeros(JMXHF * NMDIM)
-    DPNM = np.zeros(JMXHF * NMDIM)
+    PNM = np.zeros((NMDIM, JMXHF))
+    DPNM = np.zeros((NMDIM, JMXHF))
     TRIGS = np.zeros(IDIM * 2)
     IFAX = np.zeros(10, dtype=np.int32)
     NMO = np.zeros((2, MMAX + 1, LMAX + 1), dtype=np.int32)
