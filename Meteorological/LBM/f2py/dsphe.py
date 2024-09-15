@@ -58,7 +58,7 @@ def G2W(WDATA, GDATA, HGRAD, HFUNC, KMAXD):
     GWDEL = np.zeros(JDIM)
     ZDATA = np.zeros((IDIM * JDIM, KMAX), dtype=np.float64)
     WORK = np.zeros((IDIM * JDIM, KMAX), dtype=np.float64)
-    OSET = False
+    OSET = True  # 逻辑变量，用于判断是否已经使用球谐函数
 
     if not OSET:
         print(' ### G2W: SPSTUP MUST BE CALLED BEFORE')
