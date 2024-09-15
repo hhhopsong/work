@@ -2,8 +2,8 @@ import numpy as np
 
 
 def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
-    from usphe import SPW2G, SPG2W
-    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+    from f2py.usphe import SPW2G, SPG2W
+    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
 
 
     # 初始化内部工作变量
@@ -44,8 +44,8 @@ def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
 
 
 def G2W(WDATA, GDATA, HGRAD, HFUNC, KMAXD):
-    from usphe import SPW2G, SPG2W
-    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+    from f2py.usphe import SPW2G, SPG2W
+    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
 
 
     # 初始化内部保存变量

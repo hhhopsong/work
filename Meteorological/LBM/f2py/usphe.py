@@ -12,10 +12,10 @@ JLIST = np.zeros(NMDIMD, dtype=np.int32)
 
 
 def SPW2G(GDATA, WDATA, PNM, NMO, TRIGS, IFAX, HGRAD, HFUNC, IMAX, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMAX, MINT, NMDIM, JMXHF, ZDATA, WORK):
-    from ufftp import fft99x
-    from copy import copy
-    from usphe import SPW2G, SPG2W
-    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+    from f2py.ufftp import fft99x
+    from f2py.copy import copy
+    from f2py.usphe import SPW2G, SPG2W
+    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
 
     if IMAX == 1 or JMAX == 1:
         print(' ### SPW2G: THIS ROUTINE IS FOR 3 DIM.')
@@ -81,10 +81,10 @@ def SPW2G(GDATA, WDATA, PNM, NMO, TRIGS, IFAX, HGRAD, HFUNC, IMAX, JMAX, KMAX, I
 
 
 def SPG2W(WDATA, GDATA, PNM, NMO, TRIGS, IFAX, GW, HGRAD, HFUNC, IMAX, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMAX, MINT, NMDIM, JMXHF, ZDATA, WORK):
-    from ufftp import fft99x
-    from copy import copy
-    from usphe import SPW2G, SPG2W
-    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+    from f2py.ufftp import fft99x
+    from f2py.copy import copy
+    from f2py.usphe import SPW2G, SPG2W
+    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
 
     if IMAX == 1 or JMAX == 1:
         print(' ### SPG2W: THIS ROUTINE IS FOR 3 DIM.')
@@ -131,8 +131,8 @@ def SPG2W(WDATA, GDATA, PNM, NMO, TRIGS, IFAX, GW, HGRAD, HFUNC, IMAX, JMAX, KMA
 
 
 def SPW2Z(ZDATA, WDATA, PNM, NMO, LDPNM, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMAX, MINT, NMDIM, JMXHF, ZDW):
-    from usphe import SPW2G, SPG2W
-    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+    from f2py.usphe import SPW2G, SPG2W
+    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
     global OLSET, MLIST, JLIST
     if not OLSET:
         OLSET = True
@@ -195,8 +195,8 @@ def SPW2Z(ZDATA, WDATA, PNM, NMO, LDPNM, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMA
 
 
 def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMAX, MINT, NMDIM, JMXHF, ZDW):
-    from usphe import SPW2G, SPG2W
-    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+    from f2py.usphe import SPW2G, SPG2W
+    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
     global OLSET, MLIST, JLIST
     if not OLSET:
         OLSET = True
@@ -271,10 +271,10 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
 
 
 def GRADX(ZDATA, IDIM, JDIM, KMAX, MMAX, MINT, ZDW):
-    from ufftp import fft99x
-    from copy import copy
-    from usphe import SPW2G, SPG2W
-    from dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+    from f2py.ufftp import fft99x
+    from f2py.copy import copy
+    from f2py.usphe import SPW2G, SPG2W
+    from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
 
 
     ZDW = copy(ZDATA, IDIM * JDIM * KMAX)
