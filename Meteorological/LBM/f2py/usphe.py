@@ -1,8 +1,8 @@
 import numpy as np
 import numba
 from numba import jit
-from f2py.ufftp import fft99x
-from f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
+from LBM.f2py.ufftp import fft99x
+from LBM.f2py.dim import IDIM, JDIM, IMAX, JMAX, LMAX, MMAX, NMAX, MINT, JMXHF, NMDIM, KMAX, KDIM, IJKDIM, MMXMI
 import torch
 
 

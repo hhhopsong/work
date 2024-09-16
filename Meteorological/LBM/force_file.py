@@ -11,14 +11,14 @@ from cartopy.util import add_cyclic_point
 from scipy.interpolate import interpolate
 from tqdm import tqdm
 import tqdm as tq
-from f2py.dsphe import G2W
+from LBM.f2py.dsphe import G2W
 from cartopy.util import add_cyclic_point
-from f2py.dim import NTR, NMDIM, KMAX, NMAX, NVAR, MMAX, LMAX
+from LBM.f2py.dim import NTR, NMDIM, KMAX, NMAX, NVAR, MMAX, LMAX
 import torch
 
 
 device = torch.device('cuda')
-force_file_address = '//wsl.localhost/Ubuntu-20.04/home/hopsong/lbm/data/frc'
+force_file_address = '//wsl.localhost/Ubuntu-20.04/home/hopsong/lbm/data/FRC_STY'
 
 # LBM网格
 lbm_lon = [i * 2.8125 for i in range(128)]
@@ -326,7 +326,7 @@ def mk_grads(data=None, url=None, structure=None, hor_structure=None, ver_struct
             return frc
         else:
             print("强迫场数据已写入GrADS文件")
-            frc.to_netcdf(url+r'\frc.nc')
+            frc.to_netcdf(url+r'/frc.nc')
             return frc
 
 
