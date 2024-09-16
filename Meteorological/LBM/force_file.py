@@ -13,7 +13,7 @@ from tqdm import tqdm
 import tqdm as tq
 from f2py.dsphe import G2W
 from cartopy.util import add_cyclic_point
-from f2py.dim import NTR, NMDIM, KMAX
+from f2py.dim import NTR, NMDIM, KMAX, NMAX
 import torch
 
 
@@ -386,6 +386,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
         raise ValueError('Gfrct垂直层次错误')
     Ntr = NTR# 三角形截断谱分量个数
     Jw = np.zeros((Ntr+1))
+    MAXN = 2 * Nmax * (NVAR * KMAX + 1)
     Wfrcf = np.zeros(((Lmax+1) * (Nmax+1), K_))
     Wxvor = np.zeros((Nmax, K_, Ntr + 1))
     Wxdiv = np.zeros((Nmax, K_, Ntr + 1))
@@ -397,7 +398,13 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     result = []
     # 先调整维度顺序
     Gfrct = Gfrct.transpose(0, 1, 3, 2).reshape(Gfrct.shape[0], Gfrct.shape[1], (128+1) * 64)
-    
+
+    g2w_ovor = grid2wave(Gfrct[0, :K_, :].T, ops=ops, debug=debug)
+    g2w_div = grid2wave(Gfrct[1, :K_, :].T, ops=ops, debug=debug)
+    g2w_temp = grid2wave(Gfrct[2, :K_, :].T, ops=ops, debug=debug)
+    g2w_ps = grid2wave(Gfrct[3, :K_, :].T, ops=ops, debug=debug)
+    g2w_sph = grid2wave(Gfrct[4, :K_, :].T, ops=ops, debug=debug)
+
     for m in range(Ntr + 1):
         Lend = np.min(np.array([int(Lmax), int(Nmax - m)]))
         for iK in range(K_):
@@ -408,39 +415,29 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
                 i = NMO[0, m, l]
                 j = NMO[1, m, l]
                 iW += 1
-                Wxvor[iW, iK, m] = Wfrcf[i, iK]
-                Wxdiv[iW, iK, m] = Wfrcf[i, iK]
-                Wxtemp[iW, iK, m] = Wfrcf[i, iK]
-                Wxps[iW, m] = Wfrcf[i, 0]
-                Wxsph[iW, iK, m] = Wfrcf[i, iK]
                 if ovor:
-                    Wxvor[iW, iK, m] = grid2wave(Gfrct[0, :K_, :].T, ops=ops, debug=debug)[i, iK]
+                    Wxvor[iW, iK, m] = g2w_ovor[i, iK]
                 if odiv:
-                    Wxdiv[iW, iK, m] = grid2wave(Gfrct[1, :K_, :].T, ops=ops, debug=debug)[i, iK]
+                    Wxdiv[iW, iK, m] = g2w_div[i, iK]
                 if otmp:
-                    Wxtemp[iW, iK, m] = grid2wave(Gfrct[2, :K_, :].T, ops=ops, debug=debug)[i, iK]
+                    Wxtemp[iW, iK, m] = g2w_temp[i, iK]
                 if ops:
-                    Wxps[iW, m] = grid2wave(Gfrct[3, :K_, :].T, ops=ops, debug=debug)[i, 0]
+                    Wxps[iW, m] = g2w_ps[i, 0]
                 if osh:
-                    Wxsph[iW, iK, m] = grid2wave(Gfrct[4, :K_, :].T, ops=ops, debug=debug)[i, iK]
+                    Wxsph[iW, iK, m] = g2w_sph[i, iK]
                 if m==0:
                     continue
                 iW += 1
-                Wxvor[iW, iK, m] = Wfrcf[j, iK]
-                Wxdiv[iW, iK, m] = Wfrcf[j, iK]
-                Wxtemp[iW, iK, m] = Wfrcf[j, iK]
-                Wxps[iW, m] = Wfrcf[j, 0]
-                Wxsph[iW, iK, m] = Wfrcf[j, iK]
                 if ovor:
-                    Wxvor[iW, iK, m] = grid2wave(Gfrct[0, :K_, :].T, ops=ops, debug=debug)[j, iK]
+                    Wxvor[iW, iK, m] = g2w_ovor[j, iK]
                 if odiv:
-                    Wxdiv[iW, iK, m] = grid2wave(Gfrct[1, :K_, :].T, ops=ops, debug=debug)[j, iK]
+                    Wxdiv[iW, iK, m] = g2w_div[j, iK]
                 if otmp:
-                    Wxtemp[iW, iK, m] = grid2wave(Gfrct[2, :K_, :].T, ops=ops, debug=debug)[j, iK]
+                    Wxtemp[iW, iK, m] = g2w_temp[j, iK]
                 if ops:
-                    Wxps[iW, m] = grid2wave(Gfrct[3, :K_, :].T, ops=ops, debug=debug)[j, 0]
+                    Wxps[iW, m] = g2w_ps[j, 0]
                 if osh:
-                    Wxsph[iW, iK, m] = grid2wave(Gfrct[4, :K_, :].T, ops=ops, debug=debug)[j, iK]
+                    Wxsph[iW, iK, m] = g2w_sph[j, iK]
         if not owall:
             if oclassic:
                 result.append(Wxvor[0:iW, :K_, m].tolist())
@@ -482,5 +479,5 @@ if __name__ == '__main__':
     v = vertical_profile(kvpr=2, vamp=8., vdil=20., vcnt=0.45)  # 生成强迫场的理想化垂直结构
     h = horizontal_profile(khpr=1, hamp=0.25, xdil=23., ydil=6.5, xcnt=77., ycnt=-1.5)  # 生成强迫场的理想化水平结构
     frc = mk_grads(hor_structure=h, ver_structure=v, ovor=0, odiv=0, otmp=1, ops=0, osh=0)  # 生成强迫场
-    frc_mat = mk_wave(np.array(add_cyclic_point(frc.to_dataarray()[0], coord=frc['lon'])[0]), Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=True, ops=False, osh=False, owall=True, oclassic=True, debug=True)  # 生成谱资料
+    frc_mat = mk_wave(np.array(add_cyclic_point(frc.to_dataarray()[0], coord=frc['lon'])[0]), Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=True, ops=False, osh=False, owall=True, oclassic=True, debug=False)  # 生成谱资料
 pass

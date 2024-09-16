@@ -19,6 +19,11 @@ JMAX = 64  # number of latitude grid
 NMAX = 42  # maximum total wave number
 KMAX = 20
 MINT = 1  # interval of zonal wave number
+NVAR = 4
+MAXH = 2
+MAXV=3
+NOMIT=NMAX + 2
+MSIZR=1
 
 
 
@@ -34,3 +39,5 @@ MMXMI = MMAX // MINT
 NTR = MMAX
 NMDIM = (MMXMI + 1) * (2 * (NMAX + 1) - MMXMI * MINT) - (NMAX - LMAX) // MINT * (NMAX - LMAX + 1)  # of horizontal wave
 JMXHF = JMAX // 2 + 1  # JMAX/2+1
+MSIZ=(NMDIM - NOMIT) * (KMAX * NVAR + 1)
+MSIZ2=(NMDIM - NOMIT) * KMAX
