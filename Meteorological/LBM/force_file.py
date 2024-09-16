@@ -14,7 +14,7 @@ from cartopy.util import add_cyclic_point
 from f2py.dim import NTR, NMDIM, KMAX
 import torch
 
-device = torch.device('cuda')
+device = torch.device('cpu')
 force_file_address = '//wsl.localhost/Ubuntu-20.04/home/hopsong/lbm/data/frc'
 
 # LBM网格
@@ -386,6 +386,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     result = []
     # 先调整维度顺序
     Gfrct = Gfrct.transpose(0, 1, 3, 2).reshape(Gfrct.shape[0], Gfrct.shape[1], (128+1) * 64)
+    
     for m in range(Ntr + 1):
         Lend = np.min(np.array([int(Lmax), int(Nmax - m)]))
         for iK in tq.trange(K_):

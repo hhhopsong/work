@@ -224,7 +224,7 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
 
     ZDW = ZDW.view(IDIM, JDIM, KMAX)
     # 创建索引张量
-    Js = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
+    Js = torch.arange(1, (JMAX + 1) // 2 + 1, device=device)
     JNs = Js
     JSs = JMAX + 1 - Js
     if not LDPNM:
@@ -233,8 +233,8 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
     else:
         JEs = (JMAX + 1) // 2 + Js
         JOs = JNs
-    Ks = torch.arange(1, KMAX + 1).cuda()
-    IMs = torch.arange(1, IDIM + 1).cuda()
+    Ks = torch.arange(1, KMAX + 1, device=device)
+    IMs = torch.arange(1, IDIM + 1, device=device)
 
     # 使用广播机制计算
     for J in range(len(Js)):
@@ -249,22 +249,22 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
 
     if HFUNC[0] == 'N' or HFUNC[0] == 'S':
         if KMAX < NMDIM:
-            Js = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
-            JLIST = torch.tensor(JLIST, dtype=torch.long).cuda()
-            MLIST = torch.tensor(MLIST, dtype=torch.long).cuda()
-            Ks = torch.arange(1, KMAX + 1).cuda()
-            NMs = torch.arange(1, NMDIM + 1).cuda()
+            Js = torch.arange(1, (JMAX + 1) // 2 + 1, device=device)
+            JLIST = torch.tensor(JLIST, dtype=torch.long, device=device)
+            MLIST = torch.tensor(MLIST, dtype=torch.long, device=device)
+            Ks = torch.arange(1, KMAX + 1, device=device)
+            NMs = torch.arange(1, NMDIM + 1, device=device)
             for J in range(len(Js)):
                 JP = JLIST[NMs - 1] + Js[J]
                 IM = MLIST[NMs - 1]
                 part = PNM[:, J] * ZDW[IM - 1, JP - 1, :]
                 WDATA[:, :] = WDATA[:, :] - part
         else:
-            MLIST = torch.tensor(MLIST, dtype=torch.long).cuda()
-            JLIST = torch.tensor(JLIST, dtype=torch.long).cuda()
-            WDATA = torch.tensor(WDATA, dtype=torch.float32).cuda()
+            MLIST = torch.tensor(MLIST, dtype=torch.long, device=device)
+            JLIST = torch.tensor(JLIST, dtype=torch.long, device=device)
+            WDATA = torch.tensor(WDATA, dtype=torch.float32, device=device)
 
-            Js = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
+            Js = torch.arange(1, (JMAX + 1) // 2 + 1, device=device)
 
             JP = JLIST + Js
             IM = MLIST
@@ -272,9 +272,9 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
             WDATA = WDATA - part.sum(dim=1)
     else:
         if KMAX < NMDIM:
-            Js = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
-            JLIST = torch.tensor(JLIST, dtype=torch.long).cuda()
-            MLIST = torch.tensor(MLIST, dtype=torch.long).cuda()
+            Js = torch.arange(1, (JMAX + 1) // 2 + 1, device=device)
+            JLIST = torch.tensor(JLIST, dtype=torch.long, device=device)
+            MLIST = torch.tensor(MLIST, dtype=torch.long, device=device)
             for J in range(len(Js)):
                 JP = JLIST + Js[J]
                 IM = MLIST
@@ -282,12 +282,12 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
                 WDATA = WDATA + part
         else:
             # 将数据移动到GPU
-            MLIST = torch.tensor(MLIST, dtype=torch.long).cuda()
-            JLIST = torch.tensor(JLIST, dtype=torch.long).cuda()
-            WDATA = torch.tensor(WDATA, dtype=torch.float).cuda()
+            MLIST = torch.tensor(MLIST, dtype=torch.long, device=device)
+            JLIST = torch.tensor(JLIST, dtype=torch.long, device=device)
+            WDATA = torch.tensor(WDATA, dtype=torch.float, device=device)
 
-            J_indices = torch.arange(1, (JMAX + 1) // 2 + 1).cuda()
-            NM_indices = torch.arange(1, NMDIM + 1).cuda()
+            J_indices = torch.arange(1, (JMAX + 1) // 2 + 1, device=device)
+            NM_indices = torch.arange(1, NMDIM + 1, device=device)
 
             # 使用广播机制计算结果
             for J in J_indices:
@@ -301,9 +301,9 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
 
 def GRADX(ZDATA, IDIM, JDIM, KMAX, MMAX, MINT, ZDW):
     ZDW = ZDATA.clone()
-    ZDATA = torch.tensor(ZDATA, dtype = torch.float32).cuda()
-    ZDW = torch.tensor(ZDW, dtype = torch.float32).cuda()
-    Ms = torch.arange(0, MMAX, MINT).cuda()
+    ZDATA = torch.tensor(ZDATA, dtype = torch.float32, device=device)
+    ZDW = torch.tensor(ZDW, dtype = torch.float32, device=device)
+    Ms = torch.arange(0, MMAX, MINT, device=device)
     MMs = Ms // MINT
     MRs = 2 * MMs + 1
     MIs = 2 * MMs + 2
