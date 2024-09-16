@@ -42,7 +42,7 @@ def SPW2G(GDATA, WDATA, PNM, NMO, TRIGS, IFAX, HGRAD, HFUNC, IMAX, JMAX, KMAX, I
             return
     LDPNM = HGRAD[0] == 'Y'
 
-    DOFFS = torch.zeros(KMAX, device=WDATA.device)
+    DOFFS = torch.zeros(KMAX, device=device)
     if LOFFS:
         for K in range(KMAX):
             DOFFS[K] = WDATA[NMO[1, 0, 0], K]
@@ -105,7 +105,7 @@ def SPG2W(WDATA, GDATA, PNM, NMO, TRIGS, IFAX, GW, HGRAD, HFUNC, IMAX, JMAX, KMA
             return
     LDPNM = HGRAD[0] == 'Y'
 
-    DOFFS = torch.zeros(KMAX, device=GDATA.device)
+    DOFFS = torch.zeros(KMAX, device=device)
     if LOFFS:
         DOFFS = GDATA[0, :KMAX]
         WORK[:, :KMAX] = GDATA[:, :KMAX] - DOFFS.view(1, -1).repeat(IDIM * JDIM, 1)
@@ -156,8 +156,8 @@ def SPW2Z(ZDATA, WDATA, PNM, NMO, LDPNM, JMAX, KMAX, IDIM, JDIM, LMAX, MMAX, NMA
                     JLIST[index + 1] = (JMAX + 1) // 2
                 index += 2
 
-    ZDW = torch.zeros((IDIM, JDIM, KMAX), device=WDATA.device)
-    ZDATA = torch.zeros((IDIM, JDIM, KMAX), device=WDATA.device)
+    ZDW = torch.zeros((IDIM, JDIM, KMAX), device=device)
+    ZDATA = torch.zeros((IDIM, JDIM, KMAX), device=device)
 
     if KMAX < (JMAX + 1) // 2:
         for NM in range(NMDIM):
@@ -220,7 +220,7 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
                 index += 2
 
     if HFUNC[0]!= 'A' and HFUNC[0]!= 'S':
-        WDATA = torch.zeros((NMDIM, KMAX), device=ZDATA.device)
+        WDATA = torch.zeros((NMDIM, KMAX), device=device)
 
     ZDW = ZDW.view(IDIM, JDIM, KMAX)
     # 创建索引张量
@@ -242,6 +242,7 @@ def SPZ2W(WDATA, ZDATA, PNM, NMO, GW, LDPNM, HFUNC, JMAX, KMAX, IDIM, JDIM, LMAX
         JO = JOs[J] - 1
         JN = JNs[J] - 1
         JS = JSs[J] - 1
+        PNM = torch.tensor(PNM, device=device)
         part1 = GW[J - 1] * (ZDATA.view(IDIM, JDIM, KMAX)[:, JN, :] + ZDATA.view(IDIM, JDIM, KMAX)[:, JS, :])
         part2 = GW[J - 1] * (ZDATA.view(IDIM, JDIM, KMAX)[:, JN, :] - ZDATA.view(IDIM, JDIM, KMAX)[:, JS, :])
         ZDW[:, JE, :] = part1

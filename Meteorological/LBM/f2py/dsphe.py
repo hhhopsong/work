@@ -21,7 +21,6 @@ def copy(datai, idim):
 
 def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
     # 初始化内部工作变量
-    device = WDATA.device
     ZDATA = torch.zeros((IDIM * JDIM, KMAXD), device=device)
     WORK = torch.zeros((IDIM * JDIM, KMAXD), device=device)
     QSINLA = torch.zeros(JDIM, device=device)
@@ -60,7 +59,6 @@ def W2G(GDATA, WDATA, HGRAD, HFUNC, KMAXD):
 
 def G2W(WDATA, GDATA, HGRAD, HFUNC, KMAXD):
     # 初始化内部保存变量
-    device = GDATA.device
     PNM = torch.zeros((NMDIM, JMXHF), device=device)
     DPNM = torch.zeros((NMDIM, JMXHF), device=device)
     TRIGS = torch.zeros(IDIM * 2, device=device)
