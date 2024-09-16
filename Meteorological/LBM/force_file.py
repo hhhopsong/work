@@ -13,7 +13,7 @@ from tqdm import tqdm
 import tqdm as tq
 from f2py.dsphe import G2W
 from cartopy.util import add_cyclic_point
-from f2py.dim import NTR, NMDIM, KMAX, NMAX
+from f2py.dim import NTR, NMDIM, KMAX, NMAX, NVAR, MMAX, LMAX
 import torch
 
 
@@ -360,7 +360,7 @@ def SetNMO2(Mmax, Lmax, Nmax, Mint):
 
 def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=False, ops=False, osh=False, owall=True, oclassic=True, debug=False):
     """
-    生成谱资料
+    进行强迫场的谱系数计算
     :param Gfrct: np.array, 强迫场
     :param Mmax: int, 纬向波数
     :param Lmax: int, 最大垂直波数
@@ -373,7 +373,8 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     :param osh: bool, 水汽强迫
     :param owall: bool, 矩阵求解器应用于整个矩阵/对角矩阵
     :param oclassic: bool, 是否为经典强迫（不含水汽)
-    :return:
+    :param debug: bool, 调试模式
+    :return: 二进制文件: frc.mat
     """
     K_ = K
     if ops:
@@ -385,14 +386,15 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     if len(Gfrct[0, :K_, :, :]) != K_:
         raise ValueError('Gfrct垂直层次错误')
     Ntr = NTR# 三角形截断谱分量个数
-    Jw = np.zeros((Ntr+1))
+    Jw = np.zeros((Ntr+1), dtype=int)
     MAXN = 2 * Nmax * (NVAR * KMAX + 1)
     Wfrcf = np.zeros(((Lmax+1) * (Nmax+1), K_))
-    Wxvor = np.zeros((Nmax, K_, Ntr + 1))
-    Wxdiv = np.zeros((Nmax, K_, Ntr + 1))
-    Wxtemp = np.zeros((Nmax, K_, Ntr + 1))
-    Wxps = np.zeros((Nmax, Ntr + 1))
-    Wxsph = np.zeros((Nmax, K_, Ntr + 1))
+    Wxvor = np.zeros((MAXN, K_, Ntr + 1))
+    Wxdiv = np.zeros((MAXN, K_, Ntr + 1))
+    Wxtemp = np.zeros((MAXN, K_, Ntr + 1))
+    Wxps = np.zeros((MAXN, Ntr + 1))
+    Wxsph = np.zeros((MAXN, K_, Ntr + 1))
+    NMO = np.zeros((2, MMAX + 1, LMAX + 1), dtype=int)
     NMO = SetNMO2(Mmax, Lmax, Nmax, Mint)
     iW = -1
     result = []
@@ -405,11 +407,11 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     g2w_ps = grid2wave(Gfrct[3, :K_, :].T, ops=ops, debug=debug)
     g2w_sph = grid2wave(Gfrct[4, :K_, :].T, ops=ops, debug=debug)
 
-    for m in range(Ntr + 1):
+    for m in tq.trange(Ntr + 1):
         Lend = np.min(np.array([int(Lmax), int(Nmax - m)]))
         for iK in range(K_):
             iW = -1
-            for l in tq.trange(Lend + 1):
+            for l in range(Lend + 1):
                 if m == 0 and l == 0:
                     continue
                 i = NMO[0, m, l]
@@ -440,33 +442,33 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
                     Wxsph[iW, iK, m] = g2w_sph[j, iK]
         if not owall:
             if oclassic:
-                result.append(Wxvor[0:iW, :K_, m].tolist())
-                result.append(Wxdiv[0:iW, :K_, m].tolist())
-                result.append(Wxtemp[0:iW, :K_, m].tolist())
-                result.append(Wxps[0:iW, m].tolist())
+                result.append(Wxvor[0:iW, :K_, m])
+                result.append(Wxdiv[0:iW, :K_, m])
+                result.append(Wxtemp[0:iW, :K_, m])
+                result.append(Wxps[0:iW, m])
             else:
-                result.append(Wxvor[0:iW, :K_, m].tolist())
-                result.append(Wxdiv[0:iW, :K_, m].tolist())
-                result.append(Wxtemp[0:iW, :K_, m].tolist())
-                result.append(Wxps[0:iW, m].tolist())
-                result.append(Wxsph[0:iW, :K_, m].tolist())
+                result.append(Wxvor[0:iW, :K_, m])
+                result.append(Wxdiv[0:iW, :K_, m])
+                result.append(Wxtemp[0:iW, :K_, m])
+                result.append(Wxps[0:iW, m])
+                result.append(Wxsph[0:iW, :K_, m])
         else:
             Jw[m] = iW
     if owall:
         if oclassic:
             for m in range(Ntr + 1):
-                result.append(Wxvor[0:iW, :K_, m].tolist())
-                result.append(Wxdiv[0:iW, :K_, m].tolist())
-                result.append(Wxtemp[0:iW, :K_, m].tolist())
-                result.append(Wxps[0:iW, m].tolist())
+                result.append(Wxvor[0:Jw[m], :K_, m])
+                result.append(Wxdiv[0:Jw[m], :K_, m])
+                result.append(Wxtemp[0:Jw[m], :K_, m])
+                result.append(Wxps[0:Jw[m], m])
         else:
             for m in range(Ntr + 1):
-                result.append(Wxvor[0:iW, :K_, m].tolist())
-                result.append(Wxdiv[0:iW, :K_, m].tolist())
-                result.append(Wxtemp[0:iW, :K_, m].tolist())
-                result.append(Wxps[0:iW, m].tolist())
-                result.append(Wxsph[0:iW, :K_, m].tolist())
-    np.array(result, dtype=np.float64).tofile(force_file_address+'/frc.mat')
+                result.append(Wxvor[0:Jw[m], :K_, m])
+                result.append(Wxdiv[0:Jw[m], :K_, m])
+                result.append(Wxtemp[0:Jw[m], :K_, m])
+                result.append(Wxps[0:Jw[m], m])
+                result.append(Wxsph[0:Jw[m], :K_, m])
+    np.concatenate([arr.ravel() for arr in result], dtype=np.float64).tofile(force_file_address+'/frc.mat')
     if owall:
         print('Get matrix file (all)')
     else:
@@ -480,4 +482,3 @@ if __name__ == '__main__':
     h = horizontal_profile(khpr=1, hamp=0.25, xdil=23., ydil=6.5, xcnt=77., ycnt=-1.5)  # 生成强迫场的理想化水平结构
     frc = mk_grads(hor_structure=h, ver_structure=v, ovor=0, odiv=0, otmp=1, ops=0, osh=0)  # 生成强迫场
     frc_mat = mk_wave(np.array(add_cyclic_point(frc.to_dataarray()[0], coord=frc['lon'])[0]), Lmax=64, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=True, ops=False, osh=False, owall=True, oclassic=True, debug=False)  # 生成谱资料
-pass
