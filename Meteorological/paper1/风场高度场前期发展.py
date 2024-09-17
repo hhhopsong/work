@@ -124,7 +124,7 @@ if __name__ == '__main__':
             v_diff = xr.open_dataset(fr"cache\uvz\v\diff\v_{num}_{m1}_{m2}.nc")['v'].sel(p=p).transpose('lat', 'lon', 'time')
             v_corr_1 = np.load(fr"cache\uvz\v\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
             v_corr_2 = np.load(fr"cache\uvz\v\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
-            z_diff = xr.open_dataset(fr"cache\uvz\z\diff\z_{num}_{m1}_{m2}.nc")['z'].sel(p=p).transpose('lat', 'lon', 'time')
+            z_diff = xr.open_dataset(fr"cache\uvz\z\diff\z_{num}_{m1}_{m2}.nc")['z'].sel(p=p, time=z_diff['time.month'].isin([m1])).transpose('lat', 'lon', 'time')
             z_corr_1 = np.load(fr"cache\uvz\z\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
             z_corr_2 = np.load(fr"cache\uvz\z\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
             if p == 200:

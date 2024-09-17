@@ -61,6 +61,5 @@ V, lon_UV = add_cyclic_point(v.sel(lev=lev), coord=lon)
 t850 = ax3.contourf(lon_Z, lat, T, levels=lev_T, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree())
 wind850 = ax3.quiver(lon_UV, lat, U, V, transform=ccrs.PlateCarree(), scale=15, color='black', regrid_shape=20)
 wind850 = ax3.streamplot(lon_T[::n], lat[::n], U[::n, ::n], V[::n, ::n], density=2, linewidth=0.3, arrowsize=0.5, transform=ccrs.PlateCarree())
-plt.savefig(r'C:\Users\10574\OneDrive\File\Graduation Thesis\论文配图\LBM-AST.png', dpi=1000, bbox_inches='tight')
+plt.savefig(r'C:\Users\10574\Desktop\LBM_test.png', dpi=1000, bbox_inches='tight')
 plt.show()
-pass
