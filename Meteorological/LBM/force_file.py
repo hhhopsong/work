@@ -289,28 +289,32 @@ def mk_grads(data=None, url=None, structure=None, hor_structure=None, ver_struct
         else:
             GFrct = structure
     # 写入GrADS文件
+    frc = np.zeros((5, Kv, len(lbm_lat), len(lbm_lon)))
     for iK in range(K):
-        frc = np.zeros((5, Kv, len(lbm_lat), len(lbm_lon)))
         if ovor:
-            frc[0, iK, :, :] = GFrct[0, iK, :, :] * ovor
+            frc[0, iK, :, :] = GFrct[0, iK, :, :] * ovor * 10 ** 10  # 乘一个大数，防止数据过小丢失精度
         if odiv:
-            frc[1, iK, :, :] = GFrct[1, iK, :, :] * odiv
+            frc[1, iK, :, :] = GFrct[1, iK, :, :] * odiv * 10 ** 10
         if otmp:
-            frc[2, iK, :, :] = GFrct[2, iK, :, :] * otmp
+            frc[2, iK, :, :] = GFrct[2, iK, :, :] * otmp * 10 ** 10
         if ops:
-            frc[3, iK, :, :] = GFrct[3, iK, :, :] * ops
+            frc[3, iK, :, :] = GFrct[3, iK, :, :] * ops * 10 ** 10
         if osh:
-            frc[4, iK, :, :] = GFrct[4, iK, :, :] * osh
-        frc = frc.astype(np.float32)
-        frc = xr.DataArray(frc, coords=[['v', 'd', 't', 'p', 'q'], range(Kv), lbm_lat, lbm_lon],
+            frc[4, iK, :, :] = GFrct[4, iK, :, :] * osh * 10 ** 10
+    frc = xr.DataArray(frc/10 ** 10, coords=[['v', 'd', 't', 'p', 'q'], range(Kv), lbm_lat, lbm_lon],
                            dims=['var', 'lev', 'lat', 'lon']).to_dataset(name='frc')
+    frc = xr.Dataset({'v': (['lev', 'lat', 'lon'], frc['frc'].sel(var='v').to_numpy()),
+                                       'd': (['lev', 'lat', 'lon'], frc['frc'].sel(var='d').to_numpy()),
+                                       't': (['lev', 'lat', 'lon'], frc['frc'].sel(var='t').to_numpy()),
+                                       'p': (['lev', 'lat', 'lon'], frc['frc'].sel(var='p').to_numpy()),},
+                             coords={'lev': level_p, 'lat': lbm_lat, 'lon': lbm_lon}).astype(np.float32)
+    print("强迫场数据已写入GrADS文件")
+    if url is None:
+        return frc
+    else:
         print("强迫场数据已写入GrADS文件")
-        if url is None:
-            return frc
-        else:
-            print("强迫场数据已写入GrADS文件")
-            frc.to_netcdf(url+r'/frc.nc')
-            return frc
+        frc.to_netcdf(url+r'/frc.nc')
+        return frc
 
 
 def SetNMO2(Mmax, Lmax, Nmax, Mint):
@@ -483,7 +487,7 @@ def interp3d_lbm(data, lat_num=64, lon_num=128, level_num=20):
         for var in ['v', 'd', 't', 'p']:
             try:
                 data_var_test = data[var]
-                data_vars = np.append(var)
+                data_vars.append(var)
             except KeyError:
                 print('Interp LBM Waring: {} is undefined.'.format(var))
                 continue
