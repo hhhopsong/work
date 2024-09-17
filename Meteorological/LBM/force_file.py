@@ -30,8 +30,10 @@ lbm_lat = [-87.8638, -85.0965, -82.3129, -79.5256, -76.7369, -73.9475, -71.1577,
            57.2066, 59.9970, 62.7873, 65.5776, 68.3678, 71.1577, 73.9475, 76.7369, 79.5256, 82.3129, 85.0965,
            87.86384]
 lon_grid, lat_grid = np.meshgrid(lbm_lon, lbm_lat)
-level_sig = [0.99500, 0.97999, 0.94995, 0.89988, 0.82977, 0.74468, 0.64954, 0.54946, 0.45447, 0.36948, 0.29450,
-             0.22953, 0.17457, 0.12440, 0.0846830, 0.0598005, 0.0449337, 0.0349146, 0.0248800, 0.00829901]
+level_sig = [0.9950000047683716, 0.9799900054931641, 0.9499499797821045, 0.8998799920082092, 0.829770028591156,
+             0.7446799874305725, 0.6495400071144104, 0.5494599938392639, 0.4544700086116791, 0.3694800138473511,
+             0.2944999933242798, 0.22953000664710999, 0.1745699942111969, 0.12439999729394913, 0.08468300104141235,
+             0.05980049818754196, 0.04493369907140732, 0.03491460159420967, 0.024879999458789825, 0.008299009874463081]
 level_sigp = [isig * (1000 - 1) + 1 for isig in level_sig]
 level_p = [1000, 950, 900, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10, 7, 5]
 S2D = 86400.
@@ -331,7 +333,6 @@ def SetNMO2(Mmax, Lmax, Nmax, Mint):
 
 
 #PWM 的强迫向量被重新排序，由 owall=f 定义的边界条件控制。在这种情况下，强迫向量的顺序是：v, d, t, p, q。
-
 def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, otmp=False, ops=False, osh=False, owall=True, oclassic=True, debug=False):
     """
     进行强迫场的谱系数计算
@@ -344,7 +345,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     :param odiv: bool, 散度强迫
     :param otmp: bool, 温度强迫
     :param ops: bool, 海平面气压强迫
-    :param osh: bool, 水汽强迫
+    :param osh: bool, 水汽强迫(实验为干模型,不含水汽,默认为False)
     :param owall: bool, 矩阵求解器应用于整个矩阵/对角矩阵
     :param oclassic: bool, 是否为经典强迫（不含水汽)
     :param debug: bool, 调试模式
@@ -450,8 +451,53 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     return result
 
 
+def interp3d_lbm(lat_num=64, lon_num=128, level_num=20, data=None):
+    """
+    LBM三维网格插值函数
+    :param lat_num: int, LBM模式纬向格点数
+    :param lon_num: int, LBM模式经向格点数
+    :param level_num: int, LBM模式垂直层数
+    :param data: xr.DataArray, 自定义强迫场数据, 数据顺序为(lev, lat, lon), lev为P坐标系
+    :return: np.array, 插值后的数据
+    """
+    ## time只有一维[np.array([0], dtype=int64)]
+    ## lev为P坐标系[1000, 950, 900, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10, 7, 5],输出时写level_sig
+    ## lat为64个纬度lbm_lat,是否反序尚不清楚
+    ## lon为128个经度lbm_lon
+    ## Variables on the dataset include ['v', 'd', 't', 'p']")
+    if data is None:
+        raise ValueError('data参数不能为空')
+    elif len(data['lev']) < 1:
+        raise ValueError('data垂直层次错误')
+    elif len(data['lev']) >= 1:
+        data_vars = []
+        dim = np.zeros((len(level_p), lat_num, lon_num))
+        v_dim, d_dim, t_dim, p_dim = dim, dim, dim, dim
+        for var in ['v', 'd', 't', 'p']:
+            try:
+                data_var_test = data[var]
+                data_vars = np.append(var)
+            except KeyError:
+                print('Interp LBM Waring: {} is undefined.'.format(var))
+                continue
+        if 'v' in data_vars:
+            v_dim = data['v'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+        if 'd' in data_vars:
+            d_dim = data['d'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+        if 't' in data_vars:
+            t_dim = data['t'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+        if 'p' in data_vars:
+            p_dim = data['p'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+        out_put = xr.Dataset({'v': (['lev', 'lat', 'lon'], v_dim),
+                                       'd': (['lev', 'lat', 'lon'], d_dim),
+                                       't': (['lev', 'lat', 'lon'], t_dim),
+                                       'p': (['lev', 'lat', 'lon'], p_dim)},
+                             coords={'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon})
+        return out_put
+
 
 if __name__ == '__main__':
+
     v = vertical_profile(kvpr=2, vamp=8., vdil=20., vcnt=0.45)  # 生成强迫场的理想化垂直结构
     h = horizontal_profile(khpr=1, hamp=0.25, xdil=23., ydil=6.5, xcnt=77., ycnt=-1.5)  # 生成强迫场的理想化水平结构
     frc = mk_grads(hor_structure=h, ver_structure=v, ovor=0, odiv=0, otmp=1, ops=0, osh=0)  # 生成强迫场
