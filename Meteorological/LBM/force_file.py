@@ -84,7 +84,6 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='
         raise ValueError('G2W函数运行失败')
 
 
-
 def vertical_structure(data=force_file_address, element='t', show=False):
     """
     Show the vertical structure of the element.
