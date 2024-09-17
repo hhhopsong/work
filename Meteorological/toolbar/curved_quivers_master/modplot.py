@@ -90,12 +90,31 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     if masked:
         u = np.where(np.isnan(u), 0, u)
         v = np.where(np.isnan(v), 0, v)
+
     # 检查y是否升序
     if y[0] > y[-1]:
         print('Velovect Waring: Y reversed, because y is descending.')
         y = y[::-1]
         u = u[::-1]
         v = v[::-1]
+
+    # 数据类型转化
+    try:
+        x = x.data
+    except:
+        pass
+    try:
+        y = y.data
+    except:
+        pass
+    try:
+        u = u.data
+    except:
+        pass
+    try:
+        v = v.data
+    except:
+        pass
 
     grid = Grid(x, y)
     mask = StreamMask(10)
