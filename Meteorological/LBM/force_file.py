@@ -462,7 +462,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     return result
 
 
-def interp3d_lbm(data, lat_num=64, lon_num=128, level_num=20):
+def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
     """
     LBM三维网格插值函数
     :param lat_num: int, LBM模式纬向格点数
@@ -499,12 +499,20 @@ def interp3d_lbm(data, lat_num=64, lon_num=128, level_num=20):
             t_dim = data['t'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if 'p' in data_vars:
             p_dim = data['p'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
-        out_put = xr.Dataset({'v': (['lev', 'lat', 'lon'], v_dim),
-                                       'd': (['lev', 'lat', 'lon'], d_dim),
-                                       't': (['lev', 'lat', 'lon'], t_dim),
-                                       'p': (['lev', 'lat', 'lon'], p_dim)},
-                             coords={'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon})
-        return out_put
+        if coor_sys == 'sigma':
+            out_put = xr.Dataset({'v': (['lev', 'lat', 'lon'], v_dim),
+                                 'd': (['lev', 'lat', 'lon'], d_dim),
+                                 't': (['lev', 'lat', 'lon'], t_dim),
+                                 'p': (['lev', 'lat', 'lon'], p_dim)},
+                                 coords={'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon})
+            return out_put
+        elif coor_sys == 'pressure' or coor_sys == 'p':
+            out_put = xr.Dataset({'v': (['lev', 'lat', 'lon'], v_dim),
+                                 'd': (['lev', 'lat', 'lon'], d_dim),
+                                 't': (['lev', 'lat', 'lon'], t_dim),
+                                 'p': (['lev', 'lat', 'lon'], p_dim)},
+                                 coords={'lev': level_p, 'lat': lbm_lat, 'lon': lbm_lon})
+            return out_put
 
 
 if __name__ == '__main__':
