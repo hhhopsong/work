@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import t
 
 
-def ols_test(pc, data, alpha=0.05):
+def ols_test(pc, data, alpha=0.05, other=np.nan):
     """
     :param pc: 时间序列
     :param data: 线性回归数据(lat, lon)
@@ -23,7 +23,7 @@ def ols_test(pc, data, alpha=0.05):
     return test_results
 
 
-def corr_test(pc, data, alpha=0.05):
+def corr_test(pc, data, alpha=0.05, other=np.nan):
     """
     :param pc: 时间序列
     :param data: np.array 相关系数数据
@@ -35,6 +35,6 @@ def corr_test(pc, data, alpha=0.05):
     r_critical = np.sqrt(t_critical**2 / (t_critical**2 + n - 2))
     # 进行显著性检验
     test_results = np.zeros(data.shape)
-    test_results.fill(np.nan)
+    test_results.fill(other)
     test_results[np.abs(data) >= r_critical] = 1
     return test_results
