@@ -95,3 +95,7 @@ def draw_frc():
                         color='black', transform=ccrs.PlateCarree(central_longitude=0))
     plt.savefig(r'D:\CODES\Python\Meteorological\frc_nc\Output.png', dpi=1000, bbox_inches='tight')
     plt.show()
+
+
+if __name__ == '__main__':
+    draw_frc()
