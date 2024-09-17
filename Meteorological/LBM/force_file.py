@@ -72,32 +72,6 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='
 
     except:
         raise ValueError('G2W函数运行失败')
-    '''Z = np.zeros((lat * M, len(data)), dtype=complex)
-    Z.fill(complex(0, 0))
-    if data is None:
-        raise ValueError('data参数不能为空')
-    try:
-        one = np.load(f'D:\CODES\Python\Meteorological\LBM\g2w.npy')
-    except:
-        if not re:
-            one = np.ones((K_, lat, N), dtype=complex)
-            for K in tqdm(range(len(data)), desc='Grid to Wave(PRE):', unit='层', position=0, colour='green'):
-                for ilat in range(lat):
-                    for k in range(M):
-                        for j in range(N):
-                            λ = 2 * np.pi * j / N
-                            one[K, ilat, j] = one[K, ilat, j] * (np.cos(k * λ) * complex(1, 0) - np.sin(k * λ) * complex(0, 1))
-            np.save(f'D:\CODES\Python\Meteorological\LBM\g2w.npy', one)
-            one = np.load(f'D:\CODES\Python\Meteorological\LBM\g2w.npy')
-        if re:
-            raise ValueError('逆向功能尚未开发')
-    for K in range(len(data)):
-        for ilat in range(lat):
-            for k in range(M):
-                for j in range(N):
-                    Z[ilat * M + k, K] += data[K, ilat, j] * one[K, ilat, j]
-    Z = Z / N
-    return Z'''
 
 
 
