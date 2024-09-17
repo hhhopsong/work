@@ -39,7 +39,15 @@ level_p = [1000, 950, 900, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70,
 S2D = 86400.
 K = 20  # 垂直层数
 
-""":param address: str, 强迫场文件地址"""
+
+def change_address(address):
+    """
+    更改强迫场文件地址
+    :param address: str, 强迫场文件地址
+    :return: None
+    """
+    global force_file_address
+    force_file_address = address
 
 
 def read_force_file(address=force_file_address):
