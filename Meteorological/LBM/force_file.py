@@ -458,7 +458,7 @@ def mk_wave(Gfrct, Mmax=None, Lmax=42, Nmax=42, Mint=1, ovor=False, odiv=False, 
     return result
 
 
-def interp3d_lbm(lat_num=64, lon_num=128, level_num=20, data=None):
+def interp3d_lbm(data, lat_num=64, lon_num=128, level_num=20):
     """
     LBM三维网格插值函数
     :param lat_num: int, LBM模式纬向格点数
