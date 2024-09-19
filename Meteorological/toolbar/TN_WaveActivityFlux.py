@@ -202,7 +202,7 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
     UVc =np.array(UVc )
     GEOc=np.array(GEOc)
     GEOa=np.array(GEOa)
-    PSI_global = np.array(PSI_global)
+
 
     if not data_shape[0]==1:
         Tc  =np.where(Uc>=0,Tc  ,np.nan)
@@ -231,7 +231,8 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
 
     ## PSI
     PSIa=GEOa/f
-    PSI_global = PSI_global/f
+    PSI_global = (PSI_global.where(PSI_global['lat']>=0, 0) - PSI_global.where(PSI_global['lat']<0, 0))/f
+    PSI_global = np.array(PSI_global)
 
     ### 差分、计算TN通量三个分量
     ## 差分
