@@ -5,11 +5,9 @@ Streamline plotting for 2D vector fields.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import six
 from matplotlib.streamplot import TerminateTrajectory
 
-from six.moves import xrange
-from scipy.interpolate import interp1d
+import xarray as xr
 
 import numpy as np
 import matplotlib
@@ -100,19 +98,31 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
 
     # 数据类型转化
     try:
-        x = x.data
+        if isinstance(x, xr.DataArray):
+            pass
+        else:
+            x = x.data
     except:
         pass
     try:
-        y = y.data
+        if isinstance(y, xr.DataArray):
+            pass
+        else:
+            y = y.data
     except:
         pass
     try:
-        u = u.data
+        if isinstance(u, xr.DataArray):
+            pass
+        else:
+            u = u.data
     except:
         pass
     try:
-        v = v.data
+        if isinstance(v, xr.DataArray):
+            pass
+        else:
+            v = v.data
     except:
         pass
 
