@@ -5,7 +5,7 @@ from cartopy.io.shapereader import Reader
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter  # 专门提供经纬度的
 import numpy as np
 from cartopy.util import add_cyclic_point
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import filters
 import pymannkendall as mk
 import xarray as xr
 import matplotlib.pyplot as plt
@@ -30,25 +30,51 @@ import multiprocessing
 
 
 # 多核计算部分函数
-def multi_core(num, m1, m2, var, p, ols, sen):
+def multi_core(var, p, ols, sen):
+    import numpy as np
     print(f"{p}hPa层{var}相关系数计算中...")
-    pre_diff = xr.open_dataset(fr"cache\uvz\{var}\diff\{var}_{num}_{m1}_{m2}.nc")[var].sel(p=p).transpose('lat', 'lon', 'time')  # 读取缓存
+    if var == 'u' or var == 'v' or var == 'z':
+        pre_diff = xr.open_dataset(fr"cache\uvz\{var}\diff\{var}_same.nc")[var].sel(p=p).transpose('lat', 'lon', 'year')
+    elif var == 'sst':
+        pre_diff = xr.open_dataset(fr"cache\sst_diff\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
+    elif var == 'precip':
+        pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_same.nc")['precip'].transpose('lat', 'lon', 'year')
     try:
-        corr_1 = np.load(fr"cache\uvz\{var}\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+        if var == 'u' or var == 'v' or var == 'z':
+            corr_1 = np.load(fr"cache\uvz\{var}\corr1\corr_{p}_same.npy")  # 读取缓存
+        elif var == 'sst':
+            corr_1 = np.load(fr"cache\corr_sst_1\corr_same.npy")
+        elif var == 'precip':
+            corr_1 = np.load(fr"cache\corr_glopre_1\corr_same.npy")
     except:
         corr_1 = np.array([[np.corrcoef(ols, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
-        np.save(fr"cache\uvz\{var}\corr1\corr_{p}_{num}_{m1}_{m2}.npy", corr_1)  # 保存缓存
+        if var == 'u' or var == 'v' or var == 'z':
+            np.save(fr"cache\uvz\{var}\corr1\corr_{p}_same.npy", corr_1)  # 保存缓存
+        elif var == 'sst':
+            np.save(fr"cache\corr_sst_1\corr_same.npy", corr_1)
+        elif var == 'precip':
+            np.save(fr"cache\corr_glopre_1\corr_same.npy", corr_1)
     try:
-        corr_2 = np.load(fr"cache\uvz\{var}\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+        if var == 'u' or var == 'v' or var == 'z':
+            corr_2 = np.load(fr"cache\uvz\{var}\corr2\corr_{p}_same.npy")  # 读取缓存
+        elif var == 'sst':
+            corr_2 = np.load(fr"cache\corr_sst_2\corr_same.npy")
+        elif var == 'precip':
+            corr_2 = np.load(fr"cache\corr_glopre_2\corr_same.npy")
     except:
         corr_2 = np.array([[np.corrcoef(sen, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
-        np.save(fr"cache\uvz\{var}\corr2\corr_{p}_{num}_{m1}_{m2}.npy", corr_2)
+        if var == 'u' or var == 'v' or var == 'z':
+            np.save(fr"cache\uvz\{var}\corr2\corr_same.npy", corr_2)  # 保存缓存
+        elif var == 'sst':
+            np.save(fr"cache\corr_sst_2\corr_same.npy", corr_2)
+        elif var == 'precip':
+            np.save(fr"cache\corr_glopre_2\corr_same.npy", corr_2)
     if var == 'z' and p == 200:
         try:
-            reg_z = np.load(fr"cache\uvz\{var}\reg\{var}_{num}_{m1}_{m2}.npy")
+            reg_z = np.load(fr"cache\uvz\{var}\reg\{var}_same.npy")
         except:
-            reg_z = np.array([[np.polyfit(ols, pre_diff.sel(lon=ilon, lat=ilat), 1)[0] for ilon in pre_diff['lon']] for ilat in tqdm.tqdm((pre_diff['lat']), desc=f'计算reg {m1} {p}{var}', position=0, leave=True)])
-            np.save(fr"cache\uvz\{var}\reg\{var}_{num}_{m1}_{m2}.npy", reg_z)
+            reg_z = np.array([[np.polyfit(ols, pre_diff.sel(lon=ilon, lat=ilat), 1)[0] for ilon in pre_diff['lon']] for ilat in tqdm.tqdm((pre_diff['lat']), desc=f'计算reg  {p}{var}', position=0, leave=True)])
+            np.save(fr"cache\uvz\{var}\reg\{var}_same.npy", reg_z)
     print(f"{p}hPa层{var}相关系数完成。")
 
 
@@ -61,21 +87,12 @@ if __name__ == '__main__':
     if eval(input("是否进行相关系数计算(0/1):")):
         Ncpu = multiprocessing.cpu_count()
         data_pool = []
-        for p in [200, 500, 600, 700, 850]:
-            for var in ['u', 'v', 'z']:
-                num = 0
-                for x in range(11, -1, -1):
-                    m1 = M + x + 1
-                    if m1 > 12:
-                        m1 -= 12
-                    for y in range(11 - x, 12):
-                        num += 1
-                        m2 = M - y
-                        if m2 <= 0:
-                            m2 += 12
-                        if m1 == m2:
-                            data_pool.append([num, m1, m2, var, p, ols, sen])
-
+        for var in ['u', 'v', 'z', 'sst', 'precip']:
+            if var == 'u' or var == 'v' or var == 'z':
+                for p in [200, 500, 600, 700, 850]:
+                    data_pool.append([var, p, ols, sen])
+            else:
+                data_pool.append([var, 0, ols, sen])
         p = multiprocessing.Pool()
         p.starmap(multi_core, data_pool)
         p.close()
@@ -90,28 +107,10 @@ if __name__ == '__main__':
     lev = 15
     select = eval(input("选择回归方案(1 OLS 2 SEN):"))
     p = [200, 500, 600, 700, 850]
-    time = [4, 5, 6] ## 选择时间
-    spec = gridspec.GridSpec(nrows=len(p), ncols=len(time))  # 设置子图比例
-    date_pool = []
-    for date in time:
-        num = 0
-        for x in range(11, -1, -1):
-            m1 = M + x + 1
-            if m1 > 12:
-                m1 -= 12
-            for y in range(11 - x, 12):
-                num += 1
-                m2 = M - y
-                if m2 <= 0:
-                    m2 += 12
-                if m1 == m2:
-                    if m1 == date:
-                        date_pool.append([num, m1, m2]) # 保存文件名称索引
-                        break
+    spec = gridspec.GridSpec(nrows=len(p), ncols=1)  # 设置子图比例
     col = -1
-    alpha = 0.10
-    for date in date_pool:
-        num, m1, m2 = date
+    alpha = 0.05
+    for date in [0]:
         col += 1
         x = 0.92
         y = 1.04
@@ -120,15 +119,15 @@ if __name__ == '__main__':
         xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
         yticks1 = np.arange(extent1[2], extent1[3] + 1, 30)
         for p in [200, 500, 600, 700, 850]:
-            u_diff = xr.open_dataset(fr"cache\uvz\u\diff\u_{num}_{m1}_{m2}.nc")['u'].sel(p=p).transpose('lat', 'lon', 'time')
-            u_corr_1 = np.load(fr"cache\uvz\u\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
-            u_corr_2 = np.load(fr"cache\uvz\u\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
-            v_diff = xr.open_dataset(fr"cache\uvz\v\diff\v_{num}_{m1}_{m2}.nc")['v'].sel(p=p).transpose('lat', 'lon', 'time')
-            v_corr_1 = np.load(fr"cache\uvz\v\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
-            v_corr_2 = np.load(fr"cache\uvz\v\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
-            z_diff = xr.open_dataset(fr"cache\uvz\z\diff\z_{num}_{m1}_{m2}.nc")['z'].sel(p=p).transpose('lat', 'lon', 'time')
-            z_corr_1 = np.load(fr"cache\uvz\z\corr1\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
-            z_corr_2 = np.load(fr"cache\uvz\z\corr2\corr_{p}_{num}_{m1}_{m2}.npy")  # 读取缓存
+            u_diff = xr.open_dataset(fr"cache\uvz\u\diff\u_same.nc")['u'].sel(p=p).transpose('lat', 'lon', 'year')
+            u_corr_1 = np.load(fr"cache\uvz\u\corr1\corr_{p}_same.npy")  # 读取缓存
+            u_corr_2 = np.load(fr"cache\uvz\u\corr2\corr_{p}_same.npy")  # 读取缓存
+            v_diff = xr.open_dataset(fr"cache\uvz\v\diff\v_same.nc")['v'].sel(p=p).transpose('lat', 'lon', 'year')
+            v_corr_1 = np.load(fr"cache\uvz\v\corr1\corr_{p}_same.npy")  # 读取缓存
+            v_corr_2 = np.load(fr"cache\uvz\v\corr2\corr_{p}_same.npy")  # 读取缓存
+            z_diff = xr.open_dataset(fr"cache\uvz\z\diff\z_same.nc")['z'].sel(p=p).transpose('lat', 'lon', 'year')
+            z_corr_1 = np.load(fr"cache\uvz\z\corr1\corr_{p}_same.npy")  # 读取缓存
+            z_corr_2 = np.load(fr"cache\uvz\z\corr2\corr_{p}_same.npy")  # 读取缓存
             if p == 200:
                 if select == 1:
                     u_corr = u_corr_1
@@ -147,16 +146,16 @@ if __name__ == '__main__':
                     z显著性检验结果 = corr_test(sen, z_corr, alpha=alpha)
                     pc = sen
                 # 计算TN波作用通量
-                reg_z200 = np.load(fr"cache\uvz\z\reg\z_{num}_{m1}_{m2}.npy")
-                Geoc = xr.DataArray(z_diff.mean('time').data[np.newaxis, :, :],
+                reg_z200 = np.load(fr"cache\uvz\z\reg\z_same.npy")
+                Geoc = xr.DataArray(z_diff.mean('year').data[np.newaxis, :, :],
                                     coords=[('level', [200]),
                                             ('lat', z_diff['lat'].data),
                                             ('lon', z_diff['lon'].data)])
-                Uc = xr.DataArray(u_diff.mean('time').data[np.newaxis, :, :],
+                Uc = xr.DataArray(u_diff.mean('year').data[np.newaxis, :, :],
                                     coords=[('level', [200]),
                                             ('lat', u_diff['lat'].data),
                                             ('lon', u_diff['lon'].data)])
-                Vc = xr.DataArray(v_diff.mean('time').data[np.newaxis, :, :],
+                Vc = xr.DataArray(v_diff.mean('year').data[np.newaxis, :, :],
                                     coords=[('level', [200]),
                                             ('lat', v_diff['lat'].data),
                                             ('lon', v_diff['lon'].data)])
@@ -175,24 +174,15 @@ if __name__ == '__main__':
                 显著性检验图层 = ax1.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='black', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))'''
-                waf_x = gaussian_filter(waf_x[0], 3)
-                waf_y = gaussian_filter(waf_y[0], 3)
+                waf_x = filters.gaussian_filter(waf_x[0], 3)
+                waf_y = filters.gaussian_filter(waf_y[0], 3)
                 waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
                 waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
-                if m1 != 4:
-                    WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
-                    WAF图层_ = velovect(ax1, z_diff['lon'], z_diff['lat'][:180], np.array(waf_x.tolist())[:180, :],
-                                     np.array(waf_y.tolist())[:180, :], arrowstyle='fancy', arrowsize=.3, scale=6, grains=23, linewidth=0.75,
+                WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
+                WAF图层_ = velovect(ax1, z_diff['lon'], z_diff['lat'][:180], np.array(waf_x.tolist())[:180, :],
+                                     np.array(waf_y.tolist())[:180, :], arrowstyle='fancy', arrowsize=.3, scale=6, grains=26, linewidth=0.75,
                                      color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                    ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
-                                  labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
-                    pass
-                else:
-                    WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=10, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
-                    WAF图层_ = velovect(ax1, z_diff['lon'], z_diff['lat'][:180], np.array(waf_x.tolist())[:180, :],
-                                     np.array(waf_y.tolist())[:180, :], arrowstyle='fancy', arrowsize=.3, scale=2, grains=23,linewidth=0.75,
-                                     color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                    ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.5, angle=0, label='0.5 m$^2$/s$^2$',
+                ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
                                   labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
@@ -261,18 +251,22 @@ if __name__ == '__main__':
                                            color='white', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 uv显著性检验结果 = np.where(np.where(u显著性检验结果 == 1, 1, 0) + np.where(v显著性检验结果 == 1, 1, 0) >= 1, 1, np.nan)
-                u_np = np.where(uv显著性检验结果 != 1, u_corr, 0)
-                v_np = np.where(uv显著性检验结果 != 1, v_corr, 0)
-                u_np = np.where(u_np**2 + v_np**2 >= 0.15**2, u_np, 0)
-                v_np = np.where(u_np**2 + v_np**2 >= 0.15**2, v_np, 0)
-                u_corr = np.where(uv显著性检验结果 == 1, u_corr, 0)
-                v_corr = np.where(uv显著性检验结果 == 1, v_corr, 0)
+                u_np = np.where(uv显著性检验结果 != 1, u_corr, np.nan)
+                v_np = np.where(uv显著性检验结果 != 1, v_corr, np.nan)
+                u_np = np.where(u_np**2 + v_np**2 >= 0.15**2, u_np, np.nan)
+                v_np = np.where(u_np**2 + v_np**2 >= 0.15**2, v_np, np.nan)
+                u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
+                v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv = ax.quiver(u_diff['lon'][0:3], u_diff['lat'][0:3], u_corr[0:3, 0:3], v_corr[0:3, 0:3], scale=10, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
-                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np,
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=30, linewidth=0.75,
+                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
+                               np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
+                               np.array(np.where(np.isnan(v_np), 0, v_np).tolist()),
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=32, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
-                uv_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=27,linewidth=0.75,
+                uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
+                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
+                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
+                               arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=29,linewidth=0.75,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
@@ -317,8 +311,8 @@ if __name__ == '__main__':
                     u_corr = u_corr_1
                     v_corr = v_corr_1
                     z_corr = z_corr_1
-                    sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_{num}_{m1}_{m2}.nc")['sst'].transpose('lat', 'lon', 'time')
-                    sst_corr = np.load(fr"cache\corr_sst_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+                    sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
+                    sst_corr = np.load(fr"cache\corr_sst_1\corr_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(ols, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(ols, v_corr, alpha=alpha)
                     sst显著性检验结果 = corr_test(ols, sst_corr, alpha=alpha)
@@ -327,8 +321,8 @@ if __name__ == '__main__':
                     u_corr = u_corr_2
                     v_corr = v_corr_2
                     z_corr = z_corr_2
-                    sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_{num}_{m1}_{m2}.nc")['sst'].sel(p=p).transpose('lat', 'lon', 'time')
-                    sst_corr = np.load(fr"cache\corr_sst_2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+                    sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_same.nc")['sst'].sel(p=p).transpose('lat', 'lon', 'year')
+                    sst_corr = np.load(fr"cache\corr_sst_2\corr_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     sst显著性检验结果 = corr_test(sen, sst_corr, alpha=alpha)
@@ -340,7 +334,7 @@ if __name__ == '__main__':
                                            cmap=cmaps.BlueWhiteOrangeRed,
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                z_corr = gaussian_filter(z_corr, 4)
+                z_corr = filters.gaussian_filter(z_corr, 4)
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
                 z相关系数图层_low = ax.contour(lon, z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:4],
                                      linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
@@ -356,12 +350,12 @@ if __name__ == '__main__':
                                            color='white', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 uv显著性检验结果 = np.where(np.where(u显著性检验结果 == 1, 1, 0) + np.where(v显著性检验结果 == 1, 1, 0) >= 1, 1, np.nan)
-                u_np = np.where(uv显著性检验结果 != 1, u_corr, 0)
-                v_np = np.where(uv显著性检验结果 != 1, v_corr, 0)
-                u_np = np.where(u_np**2 + v_np**2 >= 0.15**2, u_np, 0)
-                v_np = np.where(u_np**2 + v_np**2 >= 0.15**2, v_np, 0)
-                u_corr = np.where(uv显著性检验结果 == 1, u_corr, 0)
-                v_corr = np.where(uv显著性检验结果 == 1, v_corr, 0)
+                u_np = np.where(uv显著性检验结果 != 1, u_corr, np.nan)
+                v_np = np.where(uv显著性检验结果 != 1, v_corr, np.nan)
+                u_np = np.where(u_np**2 + v_np**2 >= 0.15**2, u_np, np.nan)
+                v_np = np.where(u_np**2 + v_np**2 >= 0.15**2, v_np, np.nan)
+                u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
+                v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv = ax.quiver(u_diff['lon'][0:3], u_diff['lat'][0:3], u_corr[0:3, 0:3], v_corr[0:3, 0:3], scale=10, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
@@ -369,8 +363,8 @@ if __name__ == '__main__':
                                arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=31, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
-                               np.array(np.where(np.isnan(u_corr), 0, u_corr).tolist()),
-                               np.array(np.where(np.isnan(v_corr), 0, v_corr).tolist()),
+                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
+                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
                                arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=29,linewidth=0.75,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
@@ -414,8 +408,8 @@ if __name__ == '__main__':
                 if select == 1:
                     u_corr = u_corr_1
                     v_corr = v_corr_1
-                    pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_{num}_{m1}_{m2}.nc")['precip'].transpose('lat', 'lon', 'time')
-                    pre_corr = np.load(fr"cache\corr_glopre_1\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+                    pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_same.nc")['precip'].transpose('lat', 'lon', 'year')
+                    pre_corr = np.load(fr"cache\corr_glopre_1\corr_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(ols, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(ols, v_corr, alpha=alpha)
                     pre显著性检验结果 = corr_test(ols, pre_corr, alpha=alpha)
@@ -423,8 +417,8 @@ if __name__ == '__main__':
                 else:
                     u_corr = u_corr_2
                     v_corr = v_corr_2
-                    pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_{num}_{m1}_{m2}.nc")['precip'].sel(p=p).transpose('lat', 'lon', 'time')
-                    pre_corr = np.load(fr"cache\corr_glopre_2\corr_{num}_{m1}_{m2}.npy")  # 读取缓存
+                    pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_same.nc")['precip'].sel(p=p).transpose('lat', 'lon', 'year')
+                    pre_corr = np.load(fr"cache\corr_glopre_2\corr_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     pre显著性检验结果 = corr_test(sen, pre_corr, alpha=alpha)
@@ -451,12 +445,12 @@ if __name__ == '__main__':
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist()),
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=27, linewidth=0.75,
+                               arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=29, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
-                               np.array(np.where(np.isnan(u_corr), 0, u_corr).tolist()),
-                               np.array(np.where(np.isnan(v_corr), 0, v_corr).tolist()),
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=30,linewidth=0.75,
+                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
+                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=32,linewidth=0.75,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
@@ -495,5 +489,5 @@ if __name__ == '__main__':
                 cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
                 cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
 
-    plt.savefig(fr"C:\Users\10574\Desktop\pic\uvz_corr{select}.png", dpi=2000, bbox_inches='tight')
+    plt.savefig(fr"C:\Users\10574\Desktop\pic\uvz_corr_same.png", dpi=2000, bbox_inches='tight')
     plt.show()

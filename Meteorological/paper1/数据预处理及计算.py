@@ -303,4 +303,31 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
                 times += 1
                 del output, forward, backfore
     send_wechat("运算状态通知",f"各气压层{var_name}时间滚动差值运算结束")
+
+if eval(input("10)是否计算同期(0/1)?\n")):
+    var_name = input("计算各气压层u?v?z?sst?pre?\n")
+    if var_name == 'u' or var_name == 'v' or var_name == 'z':
+        pre = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev.nc").sel(
+            date=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'),
+            pressure_level=[200, 500, 600, 700, 850],
+            latitude=[90 - i*0.5 for i in range(361)], longitude=[i*0.5 for i in range(720)])[var_name]
+        pre = xr.DataArray(pre.data, coords=[('time', pd.to_datetime(pre['date'], format="%Y%m%d")),
+                                             ('p', pre['pressure_level'].data),
+                                             ('lat', pre['latitude'].data),
+                                             ('lon', pre['longitude'].data)]).to_dataset(name=var_name)
+        pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+        pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+        pre.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_same.nc")
+    elif var_name == 'sst':
+        pre = xr.open_dataset(r"E:\data\NOAA\ERSSTv5\sst.mnmean.nc")['sst']
+        pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+        pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+        pre.to_netcdf(r"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_same.nc")
+    elif var_name == 'pre':
+        pre = xr.open_dataset(r"E:\data\NOAA\PREC\precip.mon.anom.nc")['precip']
+        pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+        pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+        pre.to_netcdf(r"D:\CODES\Python\Meteorological\paper1\cache\glopre_diff\pre_same.nc")
+    else:
+        raise ValueError("输入错误")
 print("数据处理完成")
