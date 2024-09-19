@@ -482,7 +482,7 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
         raise ValueError('data垂直层次错误')
     elif len(data['lev']) >= 1:
         data_vars = []
-        dim = np.zeros((len(level_p), lat_num, lon_num))
+        dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
         v_dim, d_dim, t_dim, p_dim = dim, dim, dim, dim
         for var in ['v', 'd', 't', 'p']:
             try:
@@ -492,26 +492,26 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
                 print('Interp LBM Waring: {} is undefined.'.format(var))
                 continue
         if 'v' in data_vars:
-            v_dim = data['v'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            v_dim[0, :, :, :, 0] = data['v'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if 'd' in data_vars:
-            d_dim = data['d'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            d_dim[0, :, :, :, 0] = data['d'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if 't' in data_vars:
-            t_dim = data['t'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            t_dim[0, :, :, :, 0] = data['t'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if 'p' in data_vars:
-            p_dim = data['p'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            p_dim[0, :, :, :, 0] = data['p'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if coor_sys == 'sigma':
-            out_put = xr.Dataset({'v': (['lev', 'lat', 'lon'], v_dim),
-                                 'd': (['lev', 'lat', 'lon'], d_dim),
-                                 't': (['lev', 'lat', 'lon'], t_dim),
-                                 'p': (['lev', 'lat', 'lon'], p_dim)},
-                                 coords={'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon})
+            out_put = xr.Dataset({'v': (['time', 'lev', 'lat', 'lon', 'lev2'], v_dim),
+                                 'd': (['time', 'lev', 'lat', 'lon', 'lev2'], d_dim),
+                                 't': (['time', 'lev', 'lat', 'lon', 'lev2'], t_dim),
+                                 'p': (['time', 'lev', 'lat', 'lon', 'lev2'], p_dim)},
+                                 coords={'time': [0], 'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': [0.995]})
             return out_put
         elif coor_sys == 'pressure' or coor_sys == 'p':
-            out_put = xr.Dataset({'v': (['lev', 'lat', 'lon'], v_dim),
-                                 'd': (['lev', 'lat', 'lon'], d_dim),
-                                 't': (['lev', 'lat', 'lon'], t_dim),
-                                 'p': (['lev', 'lat', 'lon'], p_dim)},
-                                 coords={'lev': level_p, 'lat': lbm_lat, 'lon': lbm_lon})
+            out_put = xr.Dataset({'v': (['time', 'lev', 'lat', 'lon', 'lev2'], v_dim),
+                                 'd': (['time', 'lev', 'lat', 'lon', 'lev2'], d_dim),
+                                 't': (['time', 'lev', 'lat', 'lon', 'lev2'], t_dim),
+                                 'p': (['time', 'lev', 'lat', 'lon', 'lev2'], p_dim)},
+                                 coords={'time': [0], 'lev': level_p, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': [0.995]})
             return out_put
 
 

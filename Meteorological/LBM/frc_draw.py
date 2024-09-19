@@ -1,4 +1,5 @@
 import xarray as xr
+import xgrads
 import cmaps
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,7 +33,7 @@ def draw_frc():
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.70), 1, 0)
+    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.3), 1, 0)
     U, V = U * W, V * W
     t200 = ax1.contourf(lon_Z, lat, Z, levels=lev_Z, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind200 = velovect(ax1, lon_UV, lat, U, V, arrowstyle='fancy', arrowsize=.3, scale=5, grains=30, linewidth=0.75,
@@ -50,7 +51,7 @@ def draw_frc():
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.70), 1, 0)
+    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.3), 1, 0)
     U, V = U * W, V * W
     t500 = ax2.contourf(lon_Z, lat, Z, levels=lev_Z, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind500 = velovect(ax2, lon_UV, lat, U, V, arrowstyle='fancy', arrowsize=.3, scale=5, grains=30, linewidth=0.75,
@@ -68,7 +69,7 @@ def draw_frc():
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.70), 1, 0)
+    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.3), 1, 0)
     U, V = U * W, V * W
     t850 = ax3.contourf(lon_Z, lat, T, levels=lev_T, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     z850 = ax3.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
@@ -87,7 +88,7 @@ def draw_frc():
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.70), 1, 0)
+    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.3), 1, 0)
     U, V = U * W, V * W
     t850 = ax4.contourf(lon_Z, lat, T, levels=lev_T, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
