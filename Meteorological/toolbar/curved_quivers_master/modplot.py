@@ -99,30 +99,38 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     # 数据类型转化
     try:
         if isinstance(x, xr.DataArray):
+            x = x.data
+        elif isinstance(x, np.ndarray):
             pass
         else:
-            x = x.data
+            raise ValueError('x must be a xarray.DataArray or numpy.ndarray')
     except:
         pass
     try:
         if isinstance(y, xr.DataArray):
+            y = y.data
+        elif isinstance(y, np.ndarray):
             pass
         else:
-            y = y.data
+            raise ValueError('y must be a xarray.DataArray or numpy.ndarray')
     except:
         pass
     try:
         if isinstance(u, xr.DataArray):
+            u = u.data
+        elif isinstance(u, np.ndarray):
             pass
         else:
-            u = u.data
+            raise ValueError('u must be a xarray.DataArray or numpy.ndarray')
     except:
         pass
     try:
         if isinstance(v, xr.DataArray):
+            v = v.data
+        elif isinstance(v, np.ndarray):
             pass
         else:
-            v = v.data
+            raise ValueError('v must be a xarray.DataArray or numpy.ndarray')
     except:
         pass
 
