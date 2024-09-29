@@ -5,21 +5,62 @@ import numpy as np
 import tqdm as tq
 import warnings
 import cartopy.crs as ccs
+import scipy.ndimage as scind
+from scipy.interpolate import interpolate
 
-
-def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direction='backward', density=10, scale=20, scaling=False):
+def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direction='backward', density=10, scale=10, scaling=False):
     """
-    Warning:务必在调用函数前设置经纬度范围(set_exten)!
+    Warning:务必在调用函数前设置经纬度范围(set_exten)!网格间距需要各自等差!
     """
     # 数据检查
     if len(x) * len(y) != U.shape[0] * U.shape[1] or len(x) * len(y) != V.shape[0] * V.shape[1]:
         raise ValueError('风速场维度与格点维度不匹配!')
+    if x[0] > x[-1] or y[0] > y[-1]:
+        warnings.warn('RuntimeWarning: 经纬度序列非严格增长,将进行重排列!')
+        x = x[::-1] if x[0] > x[-1] else x
+        y = y[::-1] if y[0] > y[-1] else y
+        U = U[::-1, :] if x[0] > x[-1] else U
+        U = U[:, ::-1] if y[0] > y[-1] else U
+        V = V[::-1, :] if x[0] > x[-1] else V
+        V = V[:, ::-1] if y[0] > y[-1] else V
+
+    # 将网格插值为正方形等间隔网格
+    if np.abs(x[0] - x[1]) != np.abs(y[0] - y[1]):
+        warnings.warn('RuntimeWarning: 非正方形格点，将进行插值!')
+        if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
+            U = interpolate.RegularGridInterpolator((x, y), U, method='linear')
+            V = interpolate.RegularGridInterpolator((x, y), V, method='linear')
+            y = np.arange(y[0], y[-1] + np.abs(x[0] - x[1]), np.abs(x[0] - x[1]))
+            X, Y = np.meshgrid(x, y)
+            U = U((X, Y))
+            V = V((X, Y))
+        else:
+            U = interpolate.RegularGridInterpolator((x, y), U, method='linear')
+            V = interpolate.RegularGridInterpolator((x, y), V, method='linear')
+            x = np.arange(x[0], x[-1] + np.abs(y[0] - y[1]), np.abs(y[0] - y[1]))
+            X, Y = np.meshgrid(x, y)
+            U = U((X, Y))
+            V = V((X, Y))
+    else:
+        X, Y = np.meshgrid(x, y)
+    
     if len(x) * len(y) >= 3000:
         warnings.warn('RuntimeWarning: 格点过多，可能导致计算速度过慢!')
-    X, Y = np.meshgrid(x, y)
+
+    # 初始化
     wind_speed = np.sqrt(U**2 + V**2) # 风速
     norm_flat = wind_speed.flatten()/np.max(wind_speed) # 归一化展平
     start_points = np.array([X.flatten(), Y.flatten()]).T # 起始点
+
+    Q1 = axes.quiver(X, Y, np.full(U.shape, np.nan), np.full(V.shape, np.nan), scale=scale/315, scale_units='xy', color='blue', transform=transform, headaxislength=0, headlength=0, headwidth=0)
+    axes.quiverkey(Q1, X=0.9, Y=0.9, U=1, angle=0, label=f'{np.max(wind_speed)} m/s',
+                                  labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
+    # 横纵画图单位同化
+    y2x = (x[-1] - x[0]) / (y[-1] - y[0])
+    V_trans = V * y2x
+    wind_speed = np.sqrt(U**2 + V_trans**2) # 风速
+    norm_flat = wind_speed.flatten()/np.max(wind_speed) # 归一化展平
+
     # 参数配置
     if transform is None:
         transform = axes.projection
@@ -27,7 +68,6 @@ def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direc
         linewidth = matplotlib.rcParams['lines.linewidth']
     if scaling:
         linewidth=.5*norm_flat[i]  # 缩放线宽
-    axes.quiver(X,Y,U/np.max(wind_speed), V/np.max(wind_speed), scale=scale*1.1, color='blue', transform=transform, headaxislength=0, headlength=0, headwidth=0)
     for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=False):
         arrow_start = start_points[i, :]
         arrow_end = arrow_start + np.array([U.flatten()[i], V.flatten()[i]]) / np.max(wind_speed)
@@ -47,19 +87,12 @@ if __name__ == '__main__':
     y = np.linspace(-90, 90, 10)
 
     X, Y = np.meshgrid(x, y)
-    U = np.zeros(Y.shape)
+    U = -Y*10
+    #U = np.zeros_like(X)
     V = X
+    #V = np.zeros_like(Y)
     fig = plt.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccs.PlateCarree())
     ax1.set_extent([-180, 180, -90, 90])
     curly_vector(ax1, x, y, U, V)
-    plt.savefig("C:/Users/86136/Desktop/curly_vector.png", dpi=1000)
-
-
-'''plt.subplot(121)
-plt.title('scaling only the length')
-for i in tq.trange(start_points.shape[0]):
-    plt.streamplot(X,Y,U,V, color='k', start_points=np.array([start_points[i,:]]),minlength=.95*norm_flat[i]*scale, maxlength=1.0*norm_flat[i]*scale,
-                integration_direction='backward', density=10, arrowsize=0.0)
-arrows = patches.FancyArrowPatch((X,Y), (U,V), color='k', arrowstyle='->', mutation_scale=10)
-plt.add_patch(arrows)'''
+    plt.savefig("C:/Users/10574/Desktop/curly_vector.png", dpi=1000)
