@@ -51,10 +51,11 @@ def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direc
     wind_speed = np.sqrt(U**2 + V**2) # 风速
     norm_flat = wind_speed.flatten()/np.max(wind_speed) # 归一化展平
     start_points = np.array([X.flatten(), Y.flatten()]).T # 起始点
-
+    ###################################################箭头防异常!!!!
     Q1 = axes.quiver(X, Y, np.full(U.shape, np.nan), np.full(V.shape, np.nan), scale=scale/315, scale_units='xy', color='blue', transform=transform, headaxislength=0, headlength=0, headwidth=0)
     axes.quiverkey(Q1, X=0.9, Y=0.9, U=1, angle=0, label=f'{np.max(wind_speed)} m/s',
                                   labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
+    ##################################################
     # 横纵画图单位同化
     y2x = (x[-1] - x[0]) / (y[-1] - y[0])
     V_trans = V * y2x
@@ -70,7 +71,7 @@ def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direc
         linewidth=.5*norm_flat[i]  # 缩放线宽
     for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=False):
         arrow_start = start_points[i, :]
-        arrow_end = arrow_start + np.array([U.flatten()[i], V.flatten()[i]]) / np.max(wind_speed)
+        arrow_end = arrow_start + np.array([U.flatten()[i], V.flatten()[i]]) / np.max(wind_speed)*10**(-5)
         arrow_delta = np.sqrt((arrow_end[0] - arrow_start[0])**2 + (arrow_end[1] - arrow_start[1])**2)
         axes.streamplot(X,Y,U,V, color=color, start_points=np.array([start_points[i,:]]), minlength=.1*norm_flat[i]/scale, maxlength=1*norm_flat[i]/scale,
                 integration_direction=direction, density=density, arrowsize=0.0, transform=transform, linewidth=linewidth)
@@ -78,7 +79,7 @@ def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direc
         arrow_start_display = axes.projection.transform_point(arrow_start[0], arrow_start[1], transform)
         arrow_end_display = axes.projection.transform_point(arrow_end[0], arrow_end[1], transform)
         arrows = patches.FancyArrowPatch(arrow_start_display, arrow_end_display, color=color, arrowstyle='->', mutation_scale=scale, transform=transform)
-        #axes.add_patch(arrows)
+        axes.add_patch(arrows)
     #axes.quiver(X,Y,U/np.max(wind_speed), V/np.max(wind_speed), scale=scale*1.2, color=color, transform=transform, headaxislength=0, headlength=0, headwidth=0)
 
 if __name__ == '__main__':
