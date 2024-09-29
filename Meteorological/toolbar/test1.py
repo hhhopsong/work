@@ -8,7 +8,7 @@ import cartopy.crs as ccs
 import scipy.ndimage as scind
 from scipy.interpolate import interpolate
 
-def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direction='backward', density=10, scale=10, scaling=False):
+def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direction='backward', density=10, scale=20, arrowsize=7, arrowstyle='->', scaling=False):
     """
     Warning:务必在调用函数前设置经纬度范围(set_exten)!网格间距需要各自等差!
     """
@@ -72,15 +72,13 @@ def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direc
     for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=False):
         arrow_start = start_points[i, :]
         arrow_end = arrow_start + np.array([U.flatten()[i], V.flatten()[i]]) / np.max(wind_speed)*10**(-5)
-        arrow_delta = np.sqrt((arrow_end[0] - arrow_start[0])**2 + (arrow_end[1] - arrow_start[1])**2)
-        axes.streamplot(X,Y,U,V, color=color, start_points=np.array([start_points[i,:]]), minlength=.1*norm_flat[i]/scale, maxlength=1*norm_flat[i]/scale,
+        axes.streamplot(X,Y,U,V, color=color, start_points=np.array([start_points[i,:]]), minlength=.01*norm_flat[i]/scale, maxlength=1*norm_flat[i]/scale,
                 integration_direction=direction, density=density, arrowsize=0.0, transform=transform, linewidth=linewidth)
         # 将地理坐标转换为显示坐标
         arrow_start_display = axes.projection.transform_point(arrow_start[0], arrow_start[1], transform)
         arrow_end_display = axes.projection.transform_point(arrow_end[0], arrow_end[1], transform)
-        arrows = patches.FancyArrowPatch(arrow_start_display, arrow_end_display, color=color, arrowstyle='->', mutation_scale=scale, transform=transform)
+        arrows = patches.FancyArrowPatch(arrow_start_display, arrow_end_display, color=color, arrowstyle=arrowstyle, mutation_scale=arrowsize, transform=transform)
         axes.add_patch(arrows)
-    #axes.quiver(X,Y,U/np.max(wind_speed), V/np.max(wind_speed), scale=scale*1.2, color=color, transform=transform, headaxislength=0, headlength=0, headwidth=0)
 
 if __name__ == '__main__':
     w = 3
