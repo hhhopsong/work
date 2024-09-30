@@ -8,7 +8,7 @@ import cartopy.crs as ccs
 import scipy.ndimage as scind
 from scipy.interpolate import interpolate
 
-def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direction='backward', density=10, scale=20, arrowsize=7, arrowstyle='->', scaling=False):
+def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direction='backward', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, scaling=False):
     """
     Warning:务必在调用函数前设置经纬度范围(set_exten)!网格间距需要各自等差!
     """
@@ -51,11 +51,7 @@ def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direc
     wind_speed = np.sqrt(U**2 + V**2) # 风速
     norm_flat = wind_speed.flatten()/np.max(wind_speed) # 归一化展平
     start_points = np.array([X.flatten(), Y.flatten()]).T # 起始点
-    ###################################################箭头防异常!!!!
-    Q1 = axes.quiver(X, Y, np.full(U.shape, np.nan), np.full(V.shape, np.nan), scale=scale/315, scale_units='xy', color='blue', transform=transform, headaxislength=0, headlength=0, headwidth=0)
-    axes.quiverkey(Q1, X=0.9, Y=0.9, U=1, angle=0, label=f'{np.max(wind_speed)} m/s',
-                                  labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
-    ##################################################
+
     # 横纵画图单位同化
     y2x = (x[-1] - x[0]) / (y[-1] - y[0])
     V_trans = V * y2x
@@ -72,13 +68,25 @@ def curly_vector(axes, x, y, U, V, transform=None, color='k', linewidth=1, direc
     for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=False):
         arrow_start = start_points[i, :]
         arrow_end = arrow_start + np.array([U.flatten()[i], V.flatten()[i]]) / np.max(wind_speed)*10**(-5)
-        axes.streamplot(X,Y,U,V, color=color, start_points=np.array([start_points[i,:]]), minlength=.01*norm_flat[i]/scale, maxlength=1*norm_flat[i]/scale,
+        axes.streamplot(X,Y,U,V, color=color, start_points=np.array([start_points[i,:]]), minlength=.05*norm_flat[i]/scale, maxlength=1*norm_flat[i]/scale,
                 integration_direction=direction, density=density, arrowsize=0.0, transform=transform, linewidth=linewidth)
-        # 将地理坐标转换为显示坐标
-        arrow_start_display = axes.projection.transform_point(arrow_start[0], arrow_start[1], transform)
-        arrow_end_display = axes.projection.transform_point(arrow_end[0], arrow_end[1], transform)
-        arrows = patches.FancyArrowPatch(arrow_start_display, arrow_end_display, color=color, arrowstyle=arrowstyle, mutation_scale=arrowsize, transform=transform)
+        arrows = patches.FancyArrowPatch(arrow_start, arrow_end, color=color, shrinkA=0, shrinkB=0,mutation_scale=arrowsize, transform=transform)
+        # 只显示箭头头部
+        arrows.set_arrowstyle(arrowstyle+f', head_length={head_length}, head_width={head_width}')
         axes.add_patch(arrows)
+    return axes.quiver(X, Y, np.full(U.shape, np.nan), np.full(V.shape, np.nan), scale=scale/315, scale_units='xy', color='blue', transform=transform, headaxislength=0, headlength=0, headwidth=0), np.max(wind_speed)
+
+
+def curly_vector_key(axes, quiver, X=.9, Y=.9, U=None, angle=0, label='', labelpos='E', color='k', fontproperties={'size': 5}, linewidth=None):
+    if linewidth is None:
+        linewidth = matplotlib.rcParams['lines.linewidth']
+    if U is None:
+        U = 1
+    else:
+        U = U / quiver[1]   
+    axes.quiverkey(quiver[0], X=X, Y=Y, U=U, angle=angle, label=label,
+                                  labelpos=labelpos, color=color, fontproperties={'size': 5}, linewidth=linewidth)
+
 
 if __name__ == '__main__':
     w = 3
@@ -86,12 +94,13 @@ if __name__ == '__main__':
     y = np.linspace(-90, 90, 10)
 
     X, Y = np.meshgrid(x, y)
-    U = -Y*10
+    U = -Y
     #U = np.zeros_like(X)
     V = X
     #V = np.zeros_like(Y)
     fig = plt.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccs.PlateCarree())
     ax1.set_extent([-180, 180, -90, 90])
-    curly_vector(ax1, x, y, U, V)
-    plt.savefig("C:/Users/10574/Desktop/curly_vector.png", dpi=1000)
+    a1 = curly_vector(ax1, x, y, U, V)
+    curly_vector_key(ax1, a1, U=200,label='200 m/s')
+    plt.savefig("C:/Users/86136/Desktop/curly_vector.png", dpi=1000)
