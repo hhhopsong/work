@@ -6,7 +6,7 @@ import tqdm as tq
 import warnings
 import cartopy.crs as ccs
 import scipy.ndimage as scind
-from scipy.interpolate import interpolate
+from scipy.interpolate import RegularGridInterpolator
 from sub_adjust import adjust_sub_axes
 
 def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', linewidth=1, direction='backward', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
@@ -29,15 +29,15 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', linewid
     if np.abs(x[0] - x[1]) != np.abs(y[0] - y[1]):
         warnings.warn('RuntimeWarning: 非正方形格点，将进行插值!')
         if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
-            U = interpolate.RegularGridInterpolator((x, y), U, method='linear')
-            V = interpolate.RegularGridInterpolator((x, y), V, method='linear')
+            U = RegularGridInterpolator((x, y), U, method='linear')
+            V = RegularGridInterpolator((x, y), V, method='linear')
             y = np.arange(y[0], y[-1] + np.abs(x[0] - x[1]), np.abs(x[0] - x[1]))
             X, Y = np.meshgrid(x, y)
             U = U((X, Y))
             V = V((X, Y))
         else:
-            U = interpolate.RegularGridInterpolator((x, y), U, method='linear')
-            V = interpolate.RegularGridInterpolator((x, y), V, method='linear')
+            U = RegularGridInterpolator((x, y), U, method='linear')
+            V = RegularGridInterpolator((x, y), V, method='linear')
             x = np.arange(x[0], x[-1] + np.abs(y[0] - y[1]), np.abs(y[0] - y[1]))
             X, Y = np.meshgrid(x, y)
             U = U((X, Y))
@@ -45,7 +45,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', linewid
     else:
         X, Y = np.meshgrid(x, y)
     
-    if len(x) * len(y) >= 3000:
+    if len(x) * len(y) >= 500:
         warnings.warn('RuntimeWarning: 格点过多，可能导致计算速度过慢!')
 
     # 初始化
@@ -66,7 +66,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', linewid
     if scaling:
         linewidth=.5*norm_flat[i]  # 缩放线宽
     warnings.filterwarnings('ignore', category=RuntimeWarning)
-    for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=False):
+    for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=True):
         arrow_start = start_points[i, :]
         arrow_end = arrow_start + np.array([U.flatten()[i], V.flatten()[i]]) / np.max(wind_speed)*10**(-5)
         a_start = arrow_start[0] - 360 + lon_trunc if arrow_start[0] + lon_trunc > 180 else arrow_start[0] + lon_trunc
@@ -117,11 +117,10 @@ def curly_vector_key(fig, axes, quiver, X=.93, Y=.105, U=None, angle=0, label=''
 if __name__ == '__main__':
     "test"
     x = np.linspace(-180, 180, 10)
-    y = np.linspace(-90, 90, 10)
+    y = np.linspace(-90, 90, 20)
     X, Y = np.meshgrid(x, y)
-    U = np.random.randn(*X.shape)
-    V = np.random.randn(*Y.shape)
-    #V = np.zeros_like(Y)
+    U = np.random.randn(*X.shape).T
+    V = np.random.randn(*X.shape).T
     fig = plt.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccs.PlateCarree())
     ax1.set_extent([-180, 180, -90, 90])
