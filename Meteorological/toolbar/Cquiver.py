@@ -7,9 +7,12 @@ import warnings
 import cartopy.crs as ccs
 import scipy.ndimage as scind
 from scipy.interpolate import RegularGridInterpolator
-from sub_adjust import adjust_sub_axes
 
-def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', linewidth=1, direction='backward', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
+import sys
+sys.path.append('d:/CODES/Python/Meteorological')
+from toolbar.sub_adjust import adjust_sub_axes
+
+def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, linewidth=1, direction='backward', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
     """
     Warning:务必在调用函数前设置经纬度范围(set_exten)!网格间距需要各自等差!
     """
@@ -17,7 +20,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', linewid
     if len(x) * len(y) != U.shape[0] * U.shape[1] or len(x) * len(y) != V.shape[0] * V.shape[1]:
         raise ValueError('风速场维度与格点维度不匹配!')
     if x[0] > x[-1] or y[0] > y[-1]:
-        warnings.warn('RuntimeWarning: 经纬度序列非严格增长,将进行重排列!')
+        warnings.warn('经纬度序列非严格增长,将进行重排列!')
         x = x[::-1] if x[0] > x[-1] else x
         y = y[::-1] if y[0] > y[-1] else y
         U = U[::-1, :] if x[0] > x[-1] else U
@@ -26,27 +29,28 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', linewid
         V = V[:, ::-1] if y[0] > y[-1] else V
 
     # 将网格插值为正方形等间隔网格
-    if np.abs(x[0] - x[1]) != np.abs(y[0] - y[1]):
-        warnings.warn('RuntimeWarning: 非正方形格点，将进行插值!')
+    warnings.warn('非正方形格点，将进行插值!')
+    error = 10 ** (-3)  # 网格偏移避免异常箭头
+    if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
+        U = RegularGridInterpolator((x, y), U, method='linear')
+        V = RegularGridInterpolator((x, y), V, method='linear')
+        x = np.linspace(x[0], x[-1], regrid)
+        y = np.linspace(y[0], y[-1], regrid)
         if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
-            U = RegularGridInterpolator((x, y), U, method='linear')
-            V = RegularGridInterpolator((x, y), V, method='linear')
-            y = np.arange(y[0], y[-1] + np.abs(x[0] - x[1]), np.abs(x[0] - x[1]))
+            x = np.arange(x[0] + error, x[-1] + error, np.abs(x[0] - x[1]))
+            y = np.arange(y[0], y[-1], np.abs(x[0] - x[1]))
             X, Y = np.meshgrid(x, y)
             U = U((X, Y))
             V = V((X, Y))
         else:
-            U = RegularGridInterpolator((x, y), U, method='linear')
-            V = RegularGridInterpolator((x, y), V, method='linear')
-            x = np.arange(x[0], x[-1] + np.abs(y[0] - y[1]), np.abs(y[0] - y[1]))
+            x = np.arange(x[0] + error, x[-1] + error, np.abs(y[0] - y[1]))
+            y = np.arange(y[0], y[-1], np.abs(y[0] - y[1]))
             X, Y = np.meshgrid(x, y)
             U = U((X, Y))
             V = V((X, Y))
-    else:
-        X, Y = np.meshgrid(x, y)
     
     if len(x) * len(y) >= 500:
-        warnings.warn('RuntimeWarning: 格点过多，可能导致计算速度过慢!')
+        warnings.warn('格点过多，可能导致计算速度过慢!', RuntimeWarning)
 
     # 初始化
     wind_speed = np.sqrt(U**2 + V**2) # 风速
@@ -73,11 +77,11 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', linewid
         a_end = arrow_end[0] - 360 + lon_trunc if arrow_end[0] + lon_trunc > 180 else arrow_end[0] + lon_trunc
         axes.streamplot(X,Y,U,V, color=color, start_points=np.array([start_points[i,:]]), minlength=.05*norm_flat[i]/scale, maxlength=1*norm_flat[i]/scale, 
                 integration_direction=direction, density=density, arrowsize=0, transform=transform, linewidth=linewidth)
-        arrows = patches.FancyArrowPatch(arrow_start, arrow_end, color=color,mutation_scale=arrowsize, transform=transform)
-        # 只显示箭头头部
+        # 绘制箭头
         if np.abs(a_start - a_end) < 90:
             if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]):
                 continue  # 跨越截断精度不绘制箭头
+        arrows = patches.FancyArrowPatch(arrow_start, arrow_end, color=color,mutation_scale=arrowsize, transform=transform)
         arrows.set_arrowstyle(arrowstyle+f', head_length={head_length}, head_width={head_width}')
         axes.add_patch(arrows)
     return axes.quiver(X, Y, np.full(U.shape, np.nan), np.full(V.shape, np.nan), scale=scale/315, scale_units='xy', color='blue', transform=transform), np.max(wind_speed)
@@ -117,13 +121,13 @@ def curly_vector_key(fig, axes, quiver, X=.93, Y=.105, U=None, angle=0, label=''
 if __name__ == '__main__':
     "test"
     x = np.linspace(-180, 180, 10)
-    y = np.linspace(-90, 90, 20)
+    y = np.linspace(-90, 90, 10)
     X, Y = np.meshgrid(x, y)
     U = np.random.randn(*X.shape).T
     V = np.random.randn(*X.shape).T
     fig = plt.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccs.PlateCarree())
     ax1.set_extent([-180, 180, -90, 90])
-    a1 = curly_vector(ax1, x, y, U, V, lon_trunc=180)
+    a1 = curly_vector(ax1, x, y, U, V, regrid=2,lon_trunc=180)
     curly_vector_key(fig, ax1, a1,U=4, label='4 m/s')
     plt.show()
