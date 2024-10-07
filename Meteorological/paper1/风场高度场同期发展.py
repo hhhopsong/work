@@ -18,16 +18,19 @@ import matplotlib.patheffects as path_effects
 import matplotlib.colors as colors
 from cnmaps import get_adm_maps, draw_maps
 import cmaps
+import seaborn as sns
+import tqdm
+import multiprocessing
+
+import sys
+sys.path.append('d:/CODES/Python/Meteorological')
 from toolbar.masked import masked  # 气象工具函数
 from toolbar.sub_adjust import adjust_sub_axes
 from toolbar.pre_whitening import ws2001
 from toolbar.significance_test import corr_test
 from toolbar.TN_WaveActivityFlux import TN_WAF, TN_WAF_3D
+from toolbar.Cquiver import curly_vector
 from toolbar.curved_quivers_master.modplot import velovect
-import seaborn as sns
-import tqdm
-import multiprocessing
-
 
 # 多核计算部分函数
 def multi_core(var, p, ols, sen):
@@ -105,7 +108,7 @@ if __name__ == '__main__':
     plt.rcParams['axes.unicode_minus'] = False
     fig = plt.figure(figsize=(16, 9))  # 创建画布
     lev = 15
-    select = eval(input("选择回归方案(1 OLS 2 SEN):"))
+    select = 1
     p = [200, 500, 600, 700, 850]
     spec = gridspec.GridSpec(nrows=len(p), ncols=1)  # 设置子图比例
     col = -1
@@ -176,12 +179,11 @@ if __name__ == '__main__':
                                            transform=ccrs.PlateCarree(central_longitude=0))'''
                 waf_x = filters.gaussian_filter(waf_x[0], 3)
                 waf_y = filters.gaussian_filter(waf_y[0], 3)
-                waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
+                # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
                 waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
                 WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层_ = velovect(ax1, z_diff['lon'], z_diff['lat'][:180], np.array(waf_x.tolist())[:180, :],
-                                     np.array(waf_y.tolist())[:180, :], arrowstyle='fancy', arrowsize=.3, scale=6, grains=26, linewidth=0.75,
-                                     color='black', transform=ccrs.PlateCarree(central_longitude=0))
+                WAF图层_ = curly_vector(ax1, z_diff['lon'], z_diff['lat'][:180], np.array(waf_x.tolist())[:180, :].T, np.array(waf_y.tolist())[:180, :].T,
+                                      lon_trunc=-67.5, linewidth=0.5, arrowsize=3, scale=3, regrid=40, color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
                                   labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
@@ -263,6 +265,9 @@ if __name__ == '__main__':
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist()),
                                arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=32, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
+                uv_np_ = curly_vector(ax, u_diff['lon'], u_diff['lat'], u_np.T,  v_np.T,
+                             lon_trunc=-67.5, linewidth=0.5, arrowsize=3, scale=3, regrid=40, color='black',
+                             transform=ccrs.PlateCarree(central_longitude=-67.5))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),

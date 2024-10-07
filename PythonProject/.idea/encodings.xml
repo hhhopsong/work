@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding">
-    <file url="file://$APPLICATION_CONFIG_DIR$/scratches/123.py" charset="UTF-8" />
-    <file url="file://$APPLICATION_CONFIG_DIR$/scratches/scratch.py" charset="UTF-8" />
-    <file url="file://$APPLICATION_CONFIG_DIR$/scratches/？？？.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/copy.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/dim.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/LBM/f2py/dsphe.py" charset="UTF-8" />
@@ -17,7 +14,6 @@
     <file url="file://$PROJECT_DIR$/../Meteorological/LBM/frc_draw.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/paper1/EHD夏季发展图.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/paper1/EHD阈值图.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../Meteorological/paper1/EHD高发期EOF图.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/paper1/两米气温因子备择.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/paper1/全球降水因子备择.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/paper1/数据预处理及计算.py" charset="UTF-8" />
@@ -28,7 +24,6 @@
     <file url="file://$PROJECT_DIR$/../Meteorological/paper1/风场高度场前期发展.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/paper1/风场高度场同期发展.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/pytorch_test.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../Meteorological/sfm/240911.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/TN_WaveActivityFlux.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/curved_quiver.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../Meteorological/toolbar/curved_quivers_master/modplot.py" charset="UTF-8" />
@@ -52,7 +47,6 @@
     <file url="file://$PROJECT_DIR$/app/大气探测/全年处理结果.csv" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/app/大气探测/平均风向.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/app/大气探测/风向玫瑰图.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/大气探测/风向玫瑰图画图.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/app/学习强国/学习强国app刷课.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/app/密码箱/LoginPage.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/app/密码箱/MainPage.py" charset="UTF-8" />
@@ -81,7 +75,6 @@
     <file url="file://$PROJECT_DIR$/map/river.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/pyapp/nuist/main.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/pyapp/nuist/my.kv" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/teeset.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/tools/TN_WaveActivityFlux.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/临时文件/4.21数值天气计算.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/临时文件/test.py" charset="UTF-8" />
@@ -118,7 +111,6 @@
     <file url="file://$PROJECT_DIR$/毕业设计/文献图表复现/图4.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/文献图表复现/图5.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/文献图表复现/图6.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/毕业设计/文献图表复现/缓存文件/q_78.npy" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/配图/LBM.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/配图/LBM强迫场.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/毕业设计/配图/test.py" charset="UTF-8" />
@@ -150,13 +142,11 @@
     <file url="file://$PROJECT_DIR$/短期气候预测/实习3/t1601.txt" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/短期气候预测/实习3/实习3.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/短期气候预测/实习5.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/蓝桥杯/1.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/蓝桥杯/test/承压测试.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/蓝桥杯/模拟赛1/1.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/蓝桥杯/模拟赛1/10.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/蓝桥杯/模拟赛1/3.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/蓝桥杯/模拟赛1/9.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/计算方法/0.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/计算方法/21.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/计算方法/22.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/计算方法/31.py" charset="UTF-8" />
@@ -183,13 +173,6 @@
     <file url="file://$PROJECT_DIR$/雷达与卫星气象学/雷达实习1/11.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/雷达与卫星气象学/雷达实习1/12.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/雷达与卫星气象学/雷达实习1/13.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../../../lanqiaobei/1.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../../../lanqiaobei/10.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../../../lanqiaobei/3.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../../../lanqiaobei/4.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../../../lanqiaobei/5.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../../../lanqiaobei/6.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/../../../lanqiaobei/9.py" charset="UTF-8" />
-    <file url="PROJECT" charset="GBK" />
+    <file url="PROJECT" charset="UTF-8" />
   </component>
 </project>
