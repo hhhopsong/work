@@ -12,41 +12,53 @@ from eofs.standard import Eof
 from matplotlib import ticker
 import cmaps
 from matplotlib.ticker import MultipleLocator
-from toolbar.masked import masked   # 气象工具函数
-from toolbar.pre_whitening import ws2001
-from toolbar.send_wechat import send_wechat
+from Meteorological.toolbar.masked import masked   # 气象工具函数
+from Meteorological.toolbar.pre_whitening import ws2001
+from Meteorological.toolbar.send_wechat import send_wechat
 import pandas as pd
 import tqdm
 import seaborn as sns
 
 
 # 数据读取
-data_year = ['1979', '2022']
+data_year = ['1961', '2023']
 # 读取CN05.1逐日最高气温数据
 CN051_1 = xr.open_dataset(r"E:\data\CN05.1\1961_2021\CN05.1_Tmax_1961_2021_daily_025x025.nc")
 CN051_2 = xr.open_dataset(r"E:\data\CN05.1\2022\CN05.1_Tmax_2022_daily_025x025.nc")
-Tmax_cn051 = xr.concat([CN051_1, CN051_2], dim='time')
+CN051_3 = xr.open_dataset(r"E:\data\CN05.1\2023\CN05.1_Tmax_2023_daily_025x025.nc")
+Tmax_cn051 = xr.concat([CN051_1, CN051_2, CN051_3], dim='time')
 if eval(input("1)是否计算全国极端高温95分位相对阈值(0/1)?\n")):
     Tmax_sort95 = Tmax_cn051['tmax'].sel(time=slice(data_year[0]+'-01-01', data_year[1]+'-12-31')).quantile(0.95, dim='time')     # 全国极端高温95分位相对阈值
-    Tmax_sort95.to_netcdf(r"D:\CODES\Python\Meteorological\paper1\cache\NationalHighTemp_95threshold.nc")
+    Tmax_sort95.to_netcdf(r"D:\PyFile\paper1\NationalHighTemp_95threshold.nc")
     del Tmax_sort95     # 释放Tmax_sort95占用内存,优化代码性能
-Tmax_sort95 = xr.open_dataset(r"cache\NationalHighTemp_95threshold.nc")  # 读取缓存
+Tmax_sort95 = xr.open_dataset(r"D:\PyFile\paper1\NationalHighTemp_95threshold.nc")  # 读取缓存
 if eval(input("2)是否计算全国极端高温日温度距平(0/1)?\n")):
-    EHD = Tmax_cn051.sel(time=slice(data_year[0]+'-01-01', data_year[1]+'-12-31')) - Tmax_sort95  # 温度距平
-    EHD = EHD.where(EHD >= 0, np.nan)  # 极端高温日温度距平
-    EHD = EHD-EHD+1  # 数据二值化处理(1:极端高温,np.nan:非极端高温)
-    EHD.to_netcdf(r"D:\CODES\Python\Meteorological\paper1\cache\EHD.nc")
+    info = eval(input("相对阈值0/绝对阈值（摄氏度）?\n"))
+    if info == 0:
+        EHD = Tmax_cn051.sel(time=slice(data_year[0]+'-01-01', data_year[1]+'-12-31')) - Tmax_sort95  # 温度距平
+        EHD = EHD.where(EHD >= 0, np.nan)  # 极端高温日温度距平
+        EHD = EHD-EHD+1  # 数据二值化处理(1:极端高温,np.nan:非极端高温)
+        EHD.to_netcdf(r"D:\PyFile\paper1\EHD.nc")
+    else:
+        EHD = Tmax_cn051.sel(time=slice(data_year[0]+'-01-01', data_year[1]+'-12-31')) - info
+        EHD = EHD.where(EHD >= 0, np.nan)  # 极端高温日温度距平
+        EHD = EHD-EHD+1  # 数据二值化处理(1:极端高温,np.nan:非极端高温)
+        EHD.to_netcdf(fr"D:\PyFile\paper1\EHD{info}.nc")
     del EHD  # 释放EHD占用内存,优化代码性能
-if eval(input("3)是否计算长江流域极端高温地区占比(0/1)?\n")):
-    EHD = xr.open_dataset(r"cache\EHD.nc")  # 读取缓存
-    EHD = masked(EHD, r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
-    EHD = EHD.sel(time=EHD['time.month'].isin([6, 7, 8, 9]))  # 选择6、7、8、9月数据  # 格点数
-    station_num = masked((CN051_2-CN051_2+1).sel(time='2022-01-01'), r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域站点数
+info = eval(input("3)是否计算长江流域极端高温地区占比(0/1/摄氏度)?\n"))
+if info:
+    if info == 1:
+        EHD = xr.open_dataset(r"D:\PyFile\paper1\EHD.nc")
+    else:
+        EHD = xr.open_dataset(fr"D:\PyFile\paper1\EHD{info}.nc")
+    EHD = masked(EHD, r"E:\data\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
+    EHD = EHD.sel(time=EHD['time.month'].isin([6, 7, 8]))  # 选择6、7、8月数据  # 格点数
+    station_num = masked((CN051_2-CN051_2+1).sel(time='2022-01-01'), r"E:\data\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域站点数
     station_num = station_num.sum()  # 长江流域格点数
     EHDstations_zone = EHD.sum(dim=['lat', 'lon'])/station_num  # 长江流域逐日极端高温格点占比
     # 将数据按日序分组，并转换为DataArray格式
-    EHDstations_zone = xr.DataArray(EHDstations_zone['tmax'].to_numpy().reshape([44, 122]), coords=[[str(i) for i in range(eval(data_year[0]), eval(data_year[1]) + 1)], [str(i) for i in range(1, 122 + 1)]], dims=['year', 'day'])
-    EHDstations_zone.to_netcdf(r"D:\CODES\Python\Meteorological\paper1\cache\EHDstations_zone.nc")
+    EHDstations_zone = xr.DataArray(EHDstations_zone['tmax'].to_numpy().reshape([eval(data_year[0]) - eval(data_year[1]) + 1, 92]), coords=[[str(i) for i in range(eval(data_year[0]), eval(data_year[1]) + 1)], [str(i) for i in range(1, 92 + 1)]], dims=['year', 'day'])
+    EHDstations_zone.to_netcdf(fr"D:\PyFile\paper1\EHD{info}stations_zone.nc")
     del EHDstations_zone  # 释放EHDstations_zone占用内存,优化代码性能
 if eval(input("4)是否计算长江流域极端高温日数高发期去趋势变率(0/1)?\n")):
     EHD = xr.open_dataset(r"cache\EHD.nc")  # 读取缓存

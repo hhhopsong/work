@@ -12,14 +12,15 @@ from matplotlib import gridspec
 import matplotlib.colors as colors
 from cnmaps import get_adm_maps, draw_maps
 import cmaps
-from toolbar.masked import masked   # 气象工具函数
+from Meteorological.toolbar.masked import masked   # 气象工具函数
 import pandas as pd
 import tqdm
 import seaborn as sns
 
 
 # 数据读取
-EHDstations_zone = xr.open_dataset(r"cache\EHDstations_zone.nc")  # 读取缓存
+time = [1961, 2023]
+EHDstations_zone = xr.open_dataset(r"D:\PyFile\paper1\EHDstations_zone.nc")  # 读取缓存
 # 绘图
 sns.set(style='ticks')
 fig = plt.figure()
@@ -38,16 +39,16 @@ ax1.invert_yaxis()  # 热力图y轴反向
 # ax1.collections[0].colorbar.remove()  # 隐藏ax1的色标colormap
 ax = plt.gca()
 # 设置横坐标的刻度范围和标记
-x = np.arange(1979, 2023, 1)
-ax.set_xlim(0, 44)
+x = np.arange(time[0], time[1] + 1, 1)
+ax.set_xlim(0, time[1] - time[0] + 1)
 ax.set_xticks([1.5, 6.5, 11.5, 16.5, 21.5, 26.5, 31.5, 36.5, 41.5])
 ax.set_xticklabels(["1980", "1985", "1990", "1995", "2000", "2005", "2010", "2015", "2020"])
 
 # 设置纵坐标的刻度范围和标记
-y = np.arange(0, 121, 1)
-ax.set_ylim(0, 122)
-ax.set_yticks([0.5, 14.5, 30.5, 44.5, 61.5, 75.5, 92.5, 106.5, 121.5])
-ax.set_yticklabels(["06/01", "06/15", "07/01", "07/15", "08/01", "08/15", "09/01", "09/15", "09/30"])
+y = np.arange(0, 91, 1)
+ax.set_ylim(0, 92)
+ax.set_yticks([0.5, 14.5, 30.5, 44.5, 61.5, 75.5, 91.5])
+ax.set_yticklabels(["06/01", "06/15", "07/01", "07/15", "08/01", "08/15", "08/30"])
 ax.spines['top'].set_visible(True)  # 显示上边框
 ax.spines['right'].set_visible(True)  # 显示右边框
 ax.spines['bottom'].set_visible(True)  # 显示下边框
@@ -81,7 +82,7 @@ plt.ylabel('Annual mean')
 ##设置ax2坐标结束##
 
 ax2_reg = ax2.twinx()
-ax2_reg = sns.regplot(data=EHDstations_zone.mean('day')*100, x=[i for i in range(44)], y="__xarray_dataarray_variable__", ax=ax2_reg, scatter=False, color='#74C476')  # 长江流域极端高温格点逐年占比
+ax2_reg = sns.regplot(data=EHDstations_zone.mean('day')*100, x=[i for i in range(time[1] - time[0] + 1)], y="__xarray_dataarray_variable__", ax=ax2_reg, scatter=False, color='#74C476')  # 长江流域极端高温格点逐年占比
 ##设置ax2_reg坐标##
 ax2_reg.yaxis.set_visible(False)  # ax2隐藏y轴标签
 ax = plt.gca()
@@ -118,5 +119,5 @@ plt.xlabel('Daily average')
 
 # 保存为1:1
 plt.gcf().set_size_inches(10, 10)
-plt.savefig(r'C:\Users\10574\desktop\pic\图3.png', dpi=1500, bbox_inches='tight')
+plt.savefig(r'D:\PyFile\pic\图3.png', dpi=1500, bbox_inches='tight')
 plt.show()

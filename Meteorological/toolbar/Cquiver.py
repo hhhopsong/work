@@ -11,7 +11,7 @@ import xarray as xr
 
 import sys
 sys.path.append('d:/CODES/Python/Meteorological')
-from toolbar.sub_adjust import adjust_sub_axes
+from Meteorological.toolbar.sub_adjust import adjust_sub_axes
 
 def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, linewidth=1, direction='both', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
     """

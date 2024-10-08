@@ -1,36 +1,28 @@
-import pandas as pd
 from cartopy import crs as ccrs
 import cartopy.feature as cfeature
+import multiprocessing
+import sys
+
+import cartopy.feature as cfeature
+import cmaps
+import matplotlib.pyplot as plt
+import numpy as np
+import tqdm
+import xarray as xr
+from cartopy import crs as ccrs
 from cartopy.io.shapereader import Reader
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter  # 专门提供经纬度的
-import numpy as np
 from cartopy.util import add_cyclic_point
-from scipy.ndimage import filters
-import pymannkendall as mk
-import xarray as xr
-import matplotlib.pyplot as plt
-import matplotlib.transforms as mtransforms
-from matplotlib import ticker
-from matplotlib.ticker import MultipleLocator, FixedLocator
 from matplotlib import gridspec
-import matplotlib.path as mpath
-import matplotlib.patheffects as path_effects
-import matplotlib.colors as colors
-from cnmaps import get_adm_maps, draw_maps
-import cmaps
-import seaborn as sns
-import tqdm
-import multiprocessing
+from matplotlib import ticker
+from matplotlib.ticker import MultipleLocator
+from scipy.ndimage import filters
 
-import sys
 sys.path.append('d:/CODES/Python/Meteorological')
-from toolbar.masked import masked  # 气象工具函数
-from toolbar.sub_adjust import adjust_sub_axes
-from toolbar.pre_whitening import ws2001
-from toolbar.significance_test import corr_test
-from toolbar.TN_WaveActivityFlux import TN_WAF, TN_WAF_3D
-from toolbar.Cquiver import curly_vector
-from toolbar.curved_quivers_master.modplot import velovect
+from Meteorological.toolbar.significance_test import corr_test
+from Meteorological.toolbar.TN_WaveActivityFlux import TN_WAF_3D
+from Meteorological.toolbar.Cquiver import curly_vector
+from Meteorological.toolbar.curved_quivers_master.modplot import velovect
 
 # 多核计算部分函数
 def multi_core(var, p, ols, sen):
@@ -494,5 +486,5 @@ if __name__ == '__main__':
                 cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
                 cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
 
-    plt.savefig(fr"C:\Users\10574\Desktop\pic\uvz_corr_same.png", dpi=2000, bbox_inches='tight')
+    plt.savefig(fr"C:\Users\86136\Desktop\pic\uvz_corr_same.png", dpi=2000, bbox_inches='tight')
     plt.show()
