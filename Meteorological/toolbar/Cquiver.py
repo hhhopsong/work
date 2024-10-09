@@ -11,7 +11,7 @@ import xarray as xr
 
 import sys
 sys.path.append('d:/CODES/Python/Meteorological')
-from Meteorological.toolbar.sub_adjust import adjust_sub_axes
+from toolbar.sub_adjust import adjust_sub_axes
 
 def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, linewidth=1, direction='both', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
     """
@@ -107,6 +107,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     if linewidth is None:
         linewidth = matplotlib.rcParams['lines.linewidth']
     warnings.filterwarnings('ignore', category=RuntimeWarning)
+    start_points = start_points[~np.isnan(norm_flat)]  # 剔除无效点
     for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=True):
         # 轨迹绘制
         if scaling:

@@ -3,7 +3,7 @@ import xarray as xr
 import metpy.calc as mpcalc
 from metpy.units import units
 from metpy.constants import earth_avg_radius
-
+from scipy.ndimage import filters
 
 def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.array([]), lat=np.array([]), PressLevel=200, mode=2):
     """
@@ -155,7 +155,7 @@ def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.a
         return fx, fy
 
 
-def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
+def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, filt=False):
     """
     计算的是三维的TN波作用通量, 请注意输入的数据格式为DataArray,代码参考了下列样例,并做了勘误。\n
     https://www.bilibili.com/read/cv15633261/?spm_id_from=333.999.collection.opus.click
@@ -283,6 +283,43 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False):
             dims  =('level','lat','lon'),
             coords=data_coords
         )
+
+    # 平滑处理
+    ## 裁取非nan数据
+    if filt:
+        index = []
+        I = 0
+        for i in np.where(np.isnan(Fx).any(axis=2))[1][1:]:
+            if i - I > 1:
+                index.append(I)
+                index.append(i)
+            I = i
+        if len(index) != 4:
+            raise ValueError('经纬度裁剪异常!')
+        ## 北半球平滑
+        Fxn = Fx[:, :, index[0]:index[1]]
+        Fxn = filters.gaussian_filter(Fxn, filt, mode='wrap')
+        Fyn = Fy[:, :, index[0]:index[1]]
+        Fyn = filters.gaussian_filter(Fyn, filt, mode='wrap')
+        if not data_shape[0]==1:
+            Fzn = Fz[:, :, index[0]:index[1]]
+            Fzn = filters.gaussian_filter(Fzn, filt, mode='wrap')
+        ## 南半球平滑
+        Fxs = Fx[:, :, index[2]:index[3]]
+        Fxs = filters.gaussian_filter(Fxs, filt, mode='wrap')
+        Fys = Fy[:, :, index[2]:index[3]]
+        Fys = filters.gaussian_filter(Fys, filt, mode='wrap')
+        if not data_shape[0]==1:
+            Fzs = Fz[:, :, index[2]:index[3]]
+            Fzs = filters.gaussian_filter(Fzs, filt, mode='wrap')
+        ## 合并
+        Fn_nan1 = Fx[:, :, :index[0]]
+        Fn_nan2 = Fx[:, :, index[1]:index[2]]
+        Fn_nan3 = Fx[:, :, index[3]:]
+        Fx = np.concatenate([Fn_nan1, Fxn, Fn_nan2, Fxs, Fn_nan3], axis=2)
+        Fy = np.concatenate([Fn_nan1, Fyn, Fn_nan2, Fys, Fn_nan3], axis=2)
+        if not data_shape[0]==1:
+            Fz = np.concatenate([Fn_nan1, Fzn, Fn_nan2, Fzs, Fn_nan3], axis=2)
 
     ### 返回结果
     if return_streamf:
