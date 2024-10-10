@@ -162,8 +162,6 @@ if __name__ == '__main__':
                                            cmap=cmaps.MPL_PuOr_r[11:106],
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                waf_x = filters.gaussian_filter(waf_x[0], 3)
-                waf_y = filters.gaussian_filter(waf_y[0], 3)
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
                 waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
                 WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))

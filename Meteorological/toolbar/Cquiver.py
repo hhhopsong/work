@@ -61,7 +61,6 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     extent = axes.get_extent()
     # 将网格插值为正方形等间隔网格
     warnings.warn('非正方形格点，将进行插值!')
-    error = 10 ** (-3)  # 网格偏移避免异常箭头
     U = RegularGridInterpolator((x, y), U, method='linear')
     V = RegularGridInterpolator((x, y), V, method='linear')
     # 截取范围内的经纬度
@@ -76,21 +75,18 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
         x = np.arange(x[0], x[-1], np.abs(x[0] - x[1]))
         y = np.arange(y[0], y[-1], np.abs(x[0] - x[1]))
-        X, Y = np.meshgrid(x, y)
+        Y, X = np.meshgrid(y, x)
         U = U((X, Y))
         V = V((X, Y))
     else:
         x = np.arange(x[0], x[-1], np.abs(y[0] - y[1]))
         y = np.arange(y[0], y[-1], np.abs(y[0] - y[1]))
-        X, Y = np.meshgrid(x, y)
+        Y, X = np.meshgrid(y, x)
         U = U((X, Y))
         V = V((X, Y))
     
     if len(x) * len(y) >= 500:
         warnings.warn('格点过多，可能导致计算速度过慢!', RuntimeWarning)
-
-    U = np.where(U == 0, np.nan, U)
-    V = np.where(V == 0, np.nan, V)
 
     # 初始化
     wind_speed = np.sqrt(U**2 + V**2) # 风速
