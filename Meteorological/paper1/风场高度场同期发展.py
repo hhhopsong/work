@@ -2,7 +2,6 @@ from cartopy import crs as ccrs
 import cartopy.feature as cfeature
 import multiprocessing
 import sys
-
 import cartopy.feature as cfeature
 import cmaps
 import matplotlib.pyplot as plt
@@ -17,66 +16,64 @@ from matplotlib import gridspec
 from matplotlib import ticker
 from matplotlib.ticker import MultipleLocator
 from scipy.ndimage import filters
-
-sys.path.append('d:/CODES/Python/Meteorological')
-from Meteorological.toolbar.significance_test import corr_test
-from Meteorological.toolbar.TN_WaveActivityFlux import TN_WAF_3D
-from Meteorological.toolbar.Cquiver import curly_vector
-from Meteorological.toolbar.curved_quivers_master.modplot import velovect
+from toolbar.significance_test import corr_test
+from toolbar.TN_WaveActivityFlux import TN_WAF_3D
+from toolbar.Cquiver import curly_vector
+from toolbar.curved_quivers_master.modplot import velovect
 
 # 多核计算部分函数
 def multi_core(var, p, ols, sen):
     import numpy as np
     print(f"{p}hPa层{var}相关系数计算中...")
     if var == 'u' or var == 'v' or var == 'z':
-        pre_diff = xr.open_dataset(fr"cache\uvz\{var}\diff\{var}_same.nc")[var].sel(p=p).transpose('lat', 'lon', 'year')
+        pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\{var}_same.nc")[var].sel(p=p).transpose('lat', 'lon', 'year')
     elif var == 'sst':
-        pre_diff = xr.open_dataset(fr"cache\sst_diff\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
+        pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
     elif var == 'precip':
-        pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_same.nc")['precip'].transpose('lat', 'lon', 'year')
+        pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\pre\pre_same.nc")['precip'].transpose('lat', 'lon', 'year')
     try:
         if var == 'u' or var == 'v' or var == 'z':
-            corr_1 = np.load(fr"cache\uvz\{var}\corr1\corr_{p}_same.npy")  # 读取缓存
+            corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy")  # 读取缓存
         elif var == 'sst':
-            corr_1 = np.load(fr"cache\corr_sst_1\corr_same.npy")
+            corr_1 = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy")
         elif var == 'precip':
-            corr_1 = np.load(fr"cache\corr_glopre_1\corr_same.npy")
+            corr_1 = np.load(fr"cache\pre\corr_pre_same.npy")
     except:
         corr_1 = np.array([[np.corrcoef(ols, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
         if var == 'u' or var == 'v' or var == 'z':
-            np.save(fr"cache\uvz\{var}\corr1\corr_{p}_same.npy", corr_1)  # 保存缓存
+            np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy", corr_1)  # 保存缓存
         elif var == 'sst':
-            np.save(fr"cache\corr_sst_1\corr_same.npy", corr_1)
+            np.save(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy", corr_1)
         elif var == 'precip':
-            np.save(fr"cache\corr_glopre_1\corr_same.npy", corr_1)
+            np.save(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy", corr_1)
     try:
         if var == 'u' or var == 'v' or var == 'z':
-            corr_2 = np.load(fr"cache\uvz\{var}\corr2\corr_{p}_same.npy")  # 读取缓存
+            corr_2 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr2_{var}{p}_same.npy")  # 读取缓存
         elif var == 'sst':
-            corr_2 = np.load(fr"cache\corr_sst_2\corr_same.npy")
+            corr_2 = np.load(fr"D:\PyFile\paper1\cache\sst\corr2_sst_same.npy")
         elif var == 'precip':
-            corr_2 = np.load(fr"cache\corr_glopre_2\corr_same.npy")
+            corr_2 = np.load(fr"D:\PyFile\paper1\cache\pre\corr2_pre_same.npy")
     except:
         corr_2 = np.array([[np.corrcoef(sen, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
         if var == 'u' or var == 'v' or var == 'z':
-            np.save(fr"cache\uvz\{var}\corr2\corr_same.npy", corr_2)  # 保存缓存
+            np.save(fr"D:\PyFile\paper1\cache\uvz\corr2_{var}{p}_same.npy", corr_2)  # 保存缓存
         elif var == 'sst':
-            np.save(fr"cache\corr_sst_2\corr_same.npy", corr_2)
+            np.save(fr"D:\PyFile\paper1\cache\sst\corr2_sst_same.npy", corr_2)
         elif var == 'precip':
-            np.save(fr"cache\corr_glopre_2\corr_same.npy", corr_2)
+            np.save(fr"D:\PyFile\paper1\cache\pre\corr2_pre_same.npy", corr_2)
     if var == 'z' and p == 200:
         try:
-            reg_z = np.load(fr"cache\uvz\{var}\reg\{var}_same.npy")
+            reg_z = np.load(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy")
         except:
             reg_z = np.array([[np.polyfit(ols, pre_diff.sel(lon=ilon, lat=ilat), 1)[0] for ilon in pre_diff['lon']] for ilat in tqdm.tqdm((pre_diff['lat']), desc=f'计算reg  {p}{var}', position=0, leave=True)])
-            np.save(fr"cache\uvz\{var}\reg\{var}_same.npy", reg_z)
+            np.save(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy", reg_z)
     print(f"{p}hPa层{var}相关系数完成。")
 
 
 if __name__ == '__main__':
     # 数据读取
-    ols = np.load(r"cache\OLS_detrended.npy")  # 读取缓存
-    sen = np.load(r"cache\SEN_detrended.npy")  # 读取缓存
+    ols = np.load(r"D:\PyFile\paper1\cache\OLS_detrended.npy")  # 读取缓存
+    sen = np.load(r"D:\PyFile\paper1\cache\SEN_detrended.npy")  # 读取缓存
     M = 6  # 临界月
     # 多核计算
     if eval(input("是否进行相关系数计算(0/1):")):
@@ -114,15 +111,15 @@ if __name__ == '__main__':
         xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
         yticks1 = np.arange(extent1[2], extent1[3] + 1, 30)
         for p in [200, 500, 600, 700, 850]:
-            u_diff = xr.open_dataset(fr"cache\uvz\u\diff\u_same.nc")['u'].sel(p=p).transpose('lat', 'lon', 'year')
-            u_corr_1 = np.load(fr"cache\uvz\u\corr1\corr_{p}_same.npy")  # 读取缓存
-            u_corr_2 = np.load(fr"cache\uvz\u\corr2\corr_{p}_same.npy")  # 读取缓存
-            v_diff = xr.open_dataset(fr"cache\uvz\v\diff\v_same.nc")['v'].sel(p=p).transpose('lat', 'lon', 'year')
-            v_corr_1 = np.load(fr"cache\uvz\v\corr1\corr_{p}_same.npy")  # 读取缓存
-            v_corr_2 = np.load(fr"cache\uvz\v\corr2\corr_{p}_same.npy")  # 读取缓存
-            z_diff = xr.open_dataset(fr"cache\uvz\z\diff\z_same.nc")['z'].sel(p=p).transpose('lat', 'lon', 'year')
-            z_corr_1 = np.load(fr"cache\uvz\z\corr1\corr_{p}_same.npy")  # 读取缓存
-            z_corr_2 = np.load(fr"cache\uvz\z\corr2\corr_{p}_same.npy")  # 读取缓存
+            u_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\u_same.nc")['u'].sel(p=p).transpose('lat', 'lon', 'year')
+            u_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_u{p}_same.npy")  # 读取缓存
+            u_corr_2 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_u{p}_same.npy")  # 读取缓存
+            v_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\v_same.nc")['v'].sel(p=p).transpose('lat', 'lon', 'year')
+            v_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_v{p}_same.npy")  # 读取缓存
+            v_corr_2 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_v{p}_same.npy")  # 读取缓存
+            z_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\z_same.nc")['z'].sel(p=p).transpose('lat', 'lon', 'year')
+            z_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_z{p}_same.npy")  # 读取缓存
+            z_corr_2 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_z{p}_same.npy")  # 读取缓存
             if p == 200:
                 if select == 1:
                     u_corr = u_corr_1
@@ -141,7 +138,7 @@ if __name__ == '__main__':
                     z显著性检验结果 = corr_test(sen, z_corr, alpha=alpha)
                     pc = sen
                 # 计算TN波作用通量
-                reg_z200 = np.load(fr"cache\uvz\z\reg\z_same.npy")
+                reg_z200 = np.load(fr"D:\PyFile\paper1\cache\uvz\reg_z200_same.npy")
                 Geoc = xr.DataArray(z_diff.mean('year').data[np.newaxis, :, :],
                                     coords=[('level', [200]),
                                             ('lat', z_diff['lat'].data),
@@ -165,10 +162,6 @@ if __name__ == '__main__':
                                            cmap=cmaps.MPL_PuOr_r[11:106],
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                '''显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
-                显著性检验图层 = ax1.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
-                                           color='black', headlength=2, headaxislength=2, regrid_shape=60,
-                                           transform=ccrs.PlateCarree(central_longitude=0))'''
                 waf_x = filters.gaussian_filter(waf_x[0], 3)
                 waf_y = filters.gaussian_filter(waf_y[0], 3)
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
@@ -182,7 +175,7 @@ if __name__ == '__main__':
                 ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 # 在赤道画一条纬线
                 ax1.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
-                ax1.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                ax1.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none',edgecolor='black',linewidth=.2)
 
                 # 刻度线设置
@@ -269,7 +262,7 @@ if __name__ == '__main__':
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
-                ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
 
                 # 刻度线设置
@@ -308,8 +301,8 @@ if __name__ == '__main__':
                     u_corr = u_corr_1
                     v_corr = v_corr_1
                     z_corr = z_corr_1
-                    sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
-                    sst_corr = np.load(fr"cache\corr_sst_1\corr_same.npy")  # 读取缓存
+                    sst_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
+                    sst_corr = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(ols, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(ols, v_corr, alpha=alpha)
                     sst显著性检验结果 = corr_test(ols, sst_corr, alpha=alpha)
@@ -318,8 +311,8 @@ if __name__ == '__main__':
                     u_corr = u_corr_2
                     v_corr = v_corr_2
                     z_corr = z_corr_2
-                    sst_diff = xr.open_dataset(fr"cache\sst_diff\sst_same.nc")['sst'].sel(p=p).transpose('lat', 'lon', 'year')
-                    sst_corr = np.load(fr"cache\corr_sst_2\corr_same.npy")  # 读取缓存
+                    sst_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].sel(p=p).transpose('lat', 'lon', 'year')
+                    sst_corr = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     sst显著性检验结果 = corr_test(sen, sst_corr, alpha=alpha)
@@ -368,7 +361,7 @@ if __name__ == '__main__':
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
-                ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                ax.add_geometries(Reader(r"D:\PyFile\amp\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
                 # 刻度线设置
                 # ax1
@@ -405,8 +398,8 @@ if __name__ == '__main__':
                 if select == 1:
                     u_corr = u_corr_1
                     v_corr = v_corr_1
-                    pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_same.nc")['precip'].transpose('lat', 'lon', 'year')
-                    pre_corr = np.load(fr"cache\corr_glopre_1\corr_same.npy")  # 读取缓存
+                    pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\pre\pre_same.nc")['precip'].transpose('lat', 'lon', 'year')
+                    pre_corr = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(ols, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(ols, v_corr, alpha=alpha)
                     pre显著性检验结果 = corr_test(ols, pre_corr, alpha=alpha)
@@ -414,8 +407,8 @@ if __name__ == '__main__':
                 else:
                     u_corr = u_corr_2
                     v_corr = v_corr_2
-                    pre_diff = xr.open_dataset(fr"cache\glopre_diff\pre_same.nc")['precip'].sel(p=p).transpose('lat', 'lon', 'year')
-                    pre_corr = np.load(fr"cache\corr_glopre_2\corr_same.npy")  # 读取缓存
+                    pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\pre\pre_same.nc")['precip'].sel(p=p).transpose('lat', 'lon', 'year')
+                    pre_corr = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     pre显著性检验结果 = corr_test(sen, pre_corr, alpha=alpha)
@@ -453,7 +446,7 @@ if __name__ == '__main__':
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
-                ax.add_geometries(Reader(r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
+                ax.add_geometries(Reader(r"D:\PyFile\paper1\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
                 # 刻度线设置
                 # ax1
@@ -486,5 +479,5 @@ if __name__ == '__main__':
                 cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
                 cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
 
-    plt.savefig(fr"C:\Users\86136\Desktop\pic\uvz_corr_same.png", dpi=2000, bbox_inches='tight')
+    plt.savefig(fr"D:\PyFile\pic\uvz_corr_same.png", dpi=2000, bbox_inches='tight')
     plt.show()

@@ -12,9 +12,8 @@ from eofs.standard import Eof
 from matplotlib import ticker
 import cmaps
 from matplotlib.ticker import MultipleLocator
-from Meteorological.toolbar.masked import masked   # 气象工具函数
-from Meteorological.toolbar.pre_whitening import ws2001
-from Meteorological.toolbar.send_wechat import send_wechat
+from toolbar.masked import masked   # 气象工具函数
+from toolbar.pre_whitening import ws2001
 import pandas as pd
 import tqdm
 import seaborn as sns
@@ -61,7 +60,7 @@ if info:
     EHDstations_zone.to_netcdf(fr"D:\PyFile\paper1\EHD{info}stations_zone.nc")
     del EHDstations_zone  # 释放EHDstations_zone占用内存,优化代码性能
 if eval(input("4)是否计算长江流域极端高温日数高发期去趋势变率(0/1)?\n")):
-    EHD = xr.open_dataset(r"cache\EHD.nc")  # 读取缓存
+    EHD = xr.open_dataset(r"D:\PyFile\paper1\EHD.nc")  # 读取缓存
     EHD = masked(EHD, r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
     # 截取目标时段数据
     EHD_7 = EHD.sel(time=EHD['time.month'].isin([7]))
@@ -85,8 +84,8 @@ if eval(input("4)是否计算长江流域极端高温日数高发期去趋势变
     # 预白化 + Sen's Slope
     k, b = mk.sens_slope(ws2001(PC[:, 0]))
     SEN_detrended = PC[:, 0] - np.arange(0, eval(data_year[1]) - eval(data_year[0]) + 1) * k - b
-    np.save(r"cache\OLS_detrended.npy", OLS_detrended)
-    np.save(r"cache\SEN_detrended.npy", SEN_detrended)
+    np.save(r"D:\PyFile\paper1\OLS_detrended.npy", OLS_detrended)
+    np.save(r"D:\PyFile\paper1\SEN_detrended.npy", SEN_detrended)
     del EHD_concat, eof, Modality, PC, s, slope, intercept, r_value, p_value, std_err, k, b  # 释放占用内存,优化代码性能
 if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
     key_month = 6  # 关键月份(临期月份),距离研究时段最近的前向月份
