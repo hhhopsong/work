@@ -155,7 +155,7 @@ def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.a
         return fx, fy
 
 
-def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, filt=False):
+def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, filt=1):
     """
     计算的是三维的TN波作用通量, 请注意输入的数据格式为DataArray,代码参考了下列样例,并做了勘误。\n
     https://www.bilibili.com/read/cv15633261/?spm_id_from=333.999.collection.opus.click
@@ -285,41 +285,56 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
         )
 
     # 平滑处理
-    ## 裁取非nan数据
     if filt:
+        ## 裁取非nan数据
         index = []
         I = 0
         for i in np.where(np.isnan(Fx).any(axis=2))[1][1:]:
             if i - I > 1:
-                index.append(I)
+                index.append(I+1)
                 index.append(i)
             I = i
-        if len(index) != 4:
+        I = 0
+        index_ = []
+        for i in np.where(np.isnan(Fy).any(axis=2))[1][1:]:
+            if i - I > 1:
+                index_.append(I+1)
+                index_.append(i)
+            I = i
+        if len(index) != 4 or len(index_) != 4:
             raise ValueError('经纬度裁剪异常!')
+        index[0] = index_[0] if index_[0] > index[0] else index[0]
+        index[1] = index_[1] if index_[1] < index[1] else index[1]
+        index[2] = index_[2] if index_[2] > index[2] else index[2]
+        index[3] = index_[3] if index_[3] < index[3] else index[3]
+
         ## 北半球平滑
-        Fxn = Fx[:, :, index[0]:index[1]]
+        Fxn = Fx[:, index[0]:index[1], :]
         Fxn = filters.gaussian_filter(Fxn, filt, mode='wrap')
-        Fyn = Fy[:, :, index[0]:index[1]]
+        Fyn = Fy[:, index[0]:index[1], :]
         Fyn = filters.gaussian_filter(Fyn, filt, mode='wrap')
         if not data_shape[0]==1:
-            Fzn = Fz[:, :, index[0]:index[1]]
+            Fzn = Fz[:, index[0]:index[1], :]
             Fzn = filters.gaussian_filter(Fzn, filt, mode='wrap')
         ## 南半球平滑
-        Fxs = Fx[:, :, index[2]:index[3]]
+        Fxs = Fx[:, index[2]:index[3], :]
         Fxs = filters.gaussian_filter(Fxs, filt, mode='wrap')
-        Fys = Fy[:, :, index[2]:index[3]]
+        Fys = Fy[:, index[2]:index[3], :]
         Fys = filters.gaussian_filter(Fys, filt, mode='wrap')
         if not data_shape[0]==1:
-            Fzs = Fz[:, :, index[2]:index[3]]
+            Fzs = Fz[:, index[2]:index[3], :]
             Fzs = filters.gaussian_filter(Fzs, filt, mode='wrap')
         ## 合并
-        Fn_nan1 = Fx[:, :, :index[0]]
-        Fn_nan2 = Fx[:, :, index[1]:index[2]]
-        Fn_nan3 = Fx[:, :, index[3]:]
-        Fx = np.concatenate([Fn_nan1, Fxn, Fn_nan2, Fxs, Fn_nan3], axis=2)
-        Fy = np.concatenate([Fn_nan1, Fyn, Fn_nan2, Fys, Fn_nan3], axis=2)
+        Fn_nan1 = np.zeros_like(Fx[:, :index[0], :])
+        Fn_nan1.fill(np.nan)
+        Fn_nan2 = np.zeros_like(Fx[:, index[1]:index[2], :])
+        Fn_nan2.fill(np.nan)
+        Fn_nan3 = np.zeros_like(Fx[:, index[3]:, :])
+        Fn_nan3.fill(np.nan)
+        Fx = np.concatenate([Fn_nan1, Fxn, Fn_nan2, Fxs, Fn_nan3], axis=1)
+        Fy = np.concatenate([Fn_nan1, Fyn, Fn_nan2, Fys, Fn_nan3], axis=1)
         if not data_shape[0]==1:
-            Fz = np.concatenate([Fn_nan1, Fzn, Fn_nan2, Fzs, Fn_nan3], axis=2)
+            Fz = np.concatenate([Fn_nan1, Fzn, Fn_nan2, Fzs, Fn_nan3], axis=1)
 
     ### 返回结果
     if return_streamf:
