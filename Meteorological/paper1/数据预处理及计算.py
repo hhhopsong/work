@@ -313,7 +313,6 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
                 output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
-    send_wechat("运算状态通知",f"各气压层{var_name}时间滚动差值运算结束")
 
 if eval(input("10)是否计算同期(0/1)?\n")):
     var_name = input("计算各气压层u?v?z?sst?pre?\n")
