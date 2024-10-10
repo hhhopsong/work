@@ -50,9 +50,9 @@ if info:
         EHD = xr.open_dataset(r"D:\PyFile\paper1\EHD.nc")
     else:
         EHD = xr.open_dataset(fr"D:\PyFile\paper1\EHD{info}.nc")
-    EHD = masked(EHD, r"E:\data\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
+    EHD = masked(EHD, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
     EHD = EHD.sel(time=EHD['time.month'].isin([6, 7, 8]))  # 选择6、7、8月数据  # 格点数
-    station_num = masked((CN051_2-CN051_2+1).sel(time='2022-01-01'), r"E:\data\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域站点数
+    station_num = masked((CN051_2-CN051_2+1).sel(time='2022-01-01'), r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域站点数
     station_num = station_num.sum()  # 长江流域格点数
     EHDstations_zone = EHD.sum(dim=['lat', 'lon'])/station_num  # 长江流域逐日极端高温格点占比
     # 将数据按日序分组，并转换为DataArray格式
@@ -61,7 +61,7 @@ if info:
     del EHDstations_zone  # 释放EHDstations_zone占用内存,优化代码性能
 if eval(input("4)是否计算长江流域极端高温日数高发期去趋势变率(0/1)?\n")):
     EHD = xr.open_dataset(r"D:\PyFile\paper1\EHD.nc")  # 读取缓存
-    EHD = masked(EHD, r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
+    EHD = masked(EHD, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
     # 截取目标时段数据
     EHD_7 = EHD.sel(time=EHD['time.month'].isin([7]))
     EHD_7 = EHD_7.sel(time=EHD_7['time.day'].isin(range(16, 32)))
@@ -71,7 +71,7 @@ if eval(input("4)是否计算长江流域极端高温日数高发期去趋势变
     EHD_concat = xr.concat([EHD_7, EHD_8], dim='time').sortby('time')
     EHD_concat.fillna(0)  # 数据二值化处理(1:极端高温,0:非极端高温)
     EHD_concat = EHD_concat['tmax'].groupby('time.year').sum('time')  # 计算目标时段累计极端高温日数
-    EHD_concat = masked(EHD_concat, r"C:\Users\10574\OneDrive\File\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
+    EHD_concat = masked(EHD_concat, r"D:\PyFile\map\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
     # 计算EOF
     eof = Eof(EHD_concat.to_numpy())  # 进行eof分解
     Modality = eof.eofs(eofscaling=2, neofs=2)
@@ -104,13 +104,13 @@ if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
                 if M_cross == 0:
                     sst_output = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
                     sst_output = sst_output.sel(time=sst_output['time.month'].isin([M]))
-                    sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{M}.nc")
+                    sst_output.to_netcdf(fr"D:\PyFile\paper1\cache\sst\sst_{times+1}_{M}_{M}.nc")
                     times += 1
                     del sst_output
                 elif M_cross == 1:
                     sst_output = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
                     sst_output = sst_output.sel(time=sst_output['time.month'].isin([M]))
-                    sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{M}.nc")
+                    sst_output.to_netcdf(fr"D:\PyFile\paper1\cache\sst\sst_{times+1}_{M}_{M}.nc")
                     times += 1
                     del sst_output
             else:
@@ -127,7 +127,7 @@ if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
                 sst_output = xr.DataArray(sst_output.data, coords=[('time', sst_forward['time.year'].data),
                                                               ('lat', sst_forward['lat'].data),
                                                               ('lon', sst_forward['lon'].data)]).to_dataset(name='sst')
-                sst_output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_{times+1}_{M}_{m}.nc")
+                sst_output.to_netcdf(fr"D:\PyFile\paper1\cache\sst\sst_{times+1}_{M}_{m}.nc")
                 times += 1
                 del sst_output, sst_forward, sst_backfore
 if eval(input("6)是否计算陆地降水时间滚动差值(0/1)?\n")):
@@ -147,13 +147,13 @@ if eval(input("6)是否计算陆地降水时间滚动差值(0/1)?\n")):
                 if M_cross == 0:
                     output = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
                     output = output.sel(time=output['time.month'].isin([M]))
-                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\pre_diff\pre_{times+1}_{M}_{M}.nc")
+                    output.to_netcdf(fr"D:\PyFile\paper1\cache\pre\pre_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
                 elif M_cross == 1:
                     output = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
                     output = output.sel(time=output['time.month'].isin([M]))
-                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\pre_diff\pre_{times+1}_{M}_{M}.nc")
+                    output.to_netcdf(fr"D:\PyFile\paper1\cache\pre\pre_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
             else:
@@ -170,7 +170,7 @@ if eval(input("6)是否计算陆地降水时间滚动差值(0/1)?\n")):
                 output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
                                                               ('lat', forward['lat'].data),
                                                               ('lon', forward['lon'].data)]).to_dataset(name='pre')
-                output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\pre_diff\pre_{times+1}_{M}_{m}.nc")
+                output.to_netcdf(fr"D:\PyFile\paper1\cache\pre\pre_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
 if eval(input("7)是否计算全球降水时间滚动差值(0/1)?\n")):
@@ -190,13 +190,13 @@ if eval(input("7)是否计算全球降水时间滚动差值(0/1)?\n")):
                 if M_cross == 0:
                     output = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
                     output = output.sel(time=output['time.month'].isin([M]))
-                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\glopre_diff\pre_{times+1}_{M}_{M}.nc")
+                    output.to_netcdf(fr"D:\PyFile\paper1\cache\pre\pre_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
                 elif M_cross == 1:
                     output = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
                     output = output.sel(time=output['time.month'].isin([M]))
-                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\glopre_diff\pre_{times+1}_{M}_{M}.nc")
+                    output.to_netcdf(fr"D:\PyFile\paper1\cache\pre\pre_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
             else:
@@ -213,7 +213,7 @@ if eval(input("7)是否计算全球降水时间滚动差值(0/1)?\n")):
                 output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
                                                               ('lat', forward['lat'].data),
                                                               ('lon', forward['lon'].data)]).to_dataset(name='precip')
-                output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\glopre_diff\pre_{times+1}_{M}_{m}.nc")
+                output.to_netcdf(fr"D:\PyFile\paper1\cache\pre\pre_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
 if eval(input("8)是否计算2m气温时间滚动差值(0/1)?\n")):
@@ -236,13 +236,13 @@ if eval(input("8)是否计算2m气温时间滚动差值(0/1)?\n")):
                 if M_cross == 0:
                     output = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
                     output = output.sel(time=output['time.month'].isin([M]))
-                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{M}.nc")
+                    output.to_netcdf(fr"D:\PyFile\paper1\cache\2mT\2mT_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
                 elif M_cross == 1:
                     output = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
                     output = output.sel(time=output['time.month'].isin([M]))
-                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{M}.nc")
+                    output.to_netcdf(fr"D:\PyFile\paper1\cache\2mT\2mT_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
             else:
@@ -259,7 +259,7 @@ if eval(input("8)是否计算2m气温时间滚动差值(0/1)?\n")):
                 output = xr.DataArray(output.data, coords=[('time', forward['time.year'].data),
                                                               ('lat', forward['lat'].data),
                                                               ('lon', forward['lon'].data)]).to_dataset(name='t2m')
-                output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\2mT\diff\2mT_{times+1}_{M}_{m}.nc")
+                output.to_netcdf(fr"D:\PyFile\paper1\cache\2mT\2mT_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
 if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
@@ -286,13 +286,13 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
                 if M_cross == 0:
                     output = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
                     output = output.sel(time=output['time.month'].isin([M]))
-                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_{times+1}_{M}_{M}.nc")
+                    output.to_netcdf(fr"D:\PyFile\paper1\cache\uvz\{var_name}_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
                 elif M_cross == 1:
                     output = pre.sel(time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) - 1) + '-12-31'))
                     output = output.sel(time=output['time.month'].isin([M]))
-                    output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_{times+1}_{M}_{M}.nc")
+                    output.to_netcdf(fr"D:\PyFile\paper1\cache\uvz\{var_name}_{times+1}_{M}_{M}.nc")
                     times += 1
                     del output
             else:
@@ -310,7 +310,7 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
                                                            ('p', pre['p'].data),
                                                            ('lat', forward['lat'].data),
                                                            ('lon', forward['lon'].data)]).to_dataset(name=var_name)
-                output.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_{times+1}_{M}_{m}.nc")
+                output.to_netcdf(fr"D:\PyFile\paper1\cache\uvz\{var_name}_{times+1}_{M}_{m}.nc")
                 times += 1
                 del output, forward, backfore
 
@@ -327,17 +327,17 @@ if eval(input("10)是否计算同期(0/1)?\n")):
                                              ('lon', pre['longitude'].data)]).to_dataset(name=var_name)
         pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
         pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
-        pre.to_netcdf(fr"D:\CODES\Python\Meteorological\paper1\cache\uvz\{var_name}\diff\{var_name}_same.nc")
+        pre.to_netcdf(fr"D:\PyFile\paper1\cache\uvz\{var_name}_same.nc")
     elif var_name == 'sst':
         pre = xr.open_dataset(r"E:\data\NOAA\ERSSTv5\sst.mnmean.nc")['sst']
         pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
         pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
-        pre.to_netcdf(r"D:\CODES\Python\Meteorological\paper1\cache\sst_diff\sst_same.nc")
+        pre.to_netcdf(r"D:\PyFile\paper1\cache\sst\sst_same.nc")
     elif var_name == 'pre':
         pre = xr.open_dataset(r"E:\data\NOAA\PREC\precip.mon.anom.nc")['precip']
         pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
         pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
-        pre.to_netcdf(r"D:\CODES\Python\Meteorological\paper1\cache\glopre_diff\pre_same.nc")
+        pre.to_netcdf(r"D:\PyFile\paper1\cache\pre\pre_same.nc")
     else:
         raise ValueError("输入错误")
 print("数据处理完成")
