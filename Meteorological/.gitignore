@@ -4,3 +4,6 @@
 /maps/
 /maps/cnriver/
 /sfm
+/.idea
+/.vscode
+*xml
