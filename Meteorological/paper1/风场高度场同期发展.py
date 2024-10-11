@@ -72,8 +72,8 @@ def multi_core(var, p, ols, sen):
 
 if __name__ == '__main__':
     # 数据读取
-    ols = np.load(r"D:\PyFile\paper1\cache\OLS_detrended.npy")  # 读取缓存
-    sen = np.load(r"D:\PyFile\paper1\cache\SEN_detrended.npy")  # 读取缓存
+    ols = np.load(r"D:\PyFile\paper1\OLS35_detrended.npy")  # 读取缓存
+    sen = np.load(r"D:\PyFile\paper1\SEN35_detrended.npy")  # 读取缓存
     M = 6  # 临界月
     # 多核计算
     if eval(input("是否进行相关系数计算(0/1):")):
