@@ -108,13 +108,15 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
         # 轨迹绘制
         if scaling:
             linewidth = .5 * norm_flat[i]  # 缩放线宽
+        if np.isnan(norm_flat[i]):
+            continue  # 无效轨迹
         strm = axes.streamplot(X,Y,U,V, color=color, start_points=np.array([start_points[i,:]]), minlength=.05*norm_flat[i]/scale, maxlength=.5*norm_flat[i]/scale,
                 integration_direction=direction, density=density, arrowsize=0, transform=transform, linewidth=linewidth)
         # 箭头绘制
         if np.isnan(U.flatten()[i]) or np.isnan(V.flatten()[i]):
             continue  # 无效箭头
         arrow_start = [line.vertices[-1] for line in strm.lines.get_paths()]
-        arrow_end = [line.vertices[-3] for line in strm.lines.get_paths()]
+        arrow_end = [line.vertices[-2] for line in strm.lines.get_paths()]
         if arrow_start == []:
             continue  # 无效箭头
         arrow_start = arrow_start[0]
