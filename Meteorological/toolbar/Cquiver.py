@@ -40,6 +40,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     # 数据检查
     if len(x)  != U.shape[0] or len(y) != U.shape[1] or len(x) != V.shape[0] or len(y) != V.shape[1]:
         raise ValueError('风速场维度与格点维度不匹配!')
+    x_, y_, U_, V_ = x, y, U, V
     if x[0] > x[-1] or y[0] > y[-1]:
         warnings.warn('经纬度序列非严格增长,将进行重排列!')
         x = x[::-1] if x[0] > x[-1] else x
