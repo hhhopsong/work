@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import t
-
+from statsmodels.stats.diagnostic import lilliefors
 
 def ols_test(pc, data, alpha=0.05, other=np.nan):
     """
@@ -38,3 +38,14 @@ def corr_test(pc, data, alpha=0.05, other=np.nan):
     test_results.fill(other)
     test_results[np.abs(data) >= r_critical] = 1
     return test_results
+
+def normal_test(data, alpha=0.05):
+    """
+    :param pc: 时间序列
+    :param data: np.array 待检数据
+    :param alpha: 显著性水平
+    :return: 显著性检验结果
+    """
+    # 进行显著性检验
+    test = lilliefors(data, dist='norm')[1]
+    return test >= alpha, test
