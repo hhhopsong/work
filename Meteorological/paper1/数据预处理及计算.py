@@ -20,7 +20,7 @@ import seaborn as sns
 
 
 # 数据读取
-data_year = ['1961', '2023']
+data_year = ['1961', '2022']
 # 读取CN05.1逐日最高气温数据
 CN051_1 = xr.open_dataset(r"E:\data\CN05.1\1961_2021\CN05.1_Tmax_1961_2021_daily_025x025.nc")
 CN051_2 = xr.open_dataset(r"E:\data\CN05.1\2022\CN05.1_Tmax_2022_daily_025x025.nc")
@@ -59,19 +59,20 @@ if info:
     EHDstations_zone = xr.DataArray(EHDstations_zone['tmax'].to_numpy().reshape([eval(data_year[0]) - eval(data_year[1]) + 1, 92]), coords=[[str(i) for i in range(eval(data_year[0]), eval(data_year[1]) + 1)], [str(i) for i in range(1, 92 + 1)]], dims=['year', 'day'])
     EHDstations_zone.to_netcdf(fr"D:\PyFile\paper1\EHD{info}stations_zone.nc")
     del EHDstations_zone  # 释放EHDstations_zone占用内存,优化代码性能
-if eval(input("4)是否计算长江流域极端高温日数高发期去趋势变率(0/1)?\n")):
-    EHD = xr.open_dataset(r"D:\PyFile\paper1\EHD.nc")  # 读取缓存
+info = eval(input("4)是否计算长江流域极端高温日数高发期去趋势变率(0//温度)?\n"))
+if info:
+    EHD = xr.open_dataset(fr"D:\PyFile\paper1\EHD{info}.nc")  # 读取缓存
     EHD = masked(EHD, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
     # 截取目标时段数据
     EHD_7 = EHD.sel(time=EHD['time.month'].isin([7]))
-    EHD_7 = EHD_7.sel(time=EHD_7['time.day'].isin(range(16, 32)))
+    #EHD_7 = EHD_7.sel(time=EHD_7['time.day'].isin(range(16, 32)))
     EHD_8 = EHD.sel(time=EHD['time.month'].isin([8]))
-    EHD_8 = EHD_8.sel(time=EHD_8['time.day'].isin(range(1, 20)))
+    #EHD_8 = EHD_8.sel(time=EHD_8['time.day'].isin(range(1, 20)))
     # 合并数据,并按时间排序
     EHD_concat = xr.concat([EHD_7, EHD_8], dim='time').sortby('time')
     EHD_concat.fillna(0)  # 数据二值化处理(1:极端高温,0:非极端高温)
     EHD_concat = EHD_concat['tmax'].groupby('time.year').sum('time')  # 计算目标时段累计极端高温日数
-    EHD_concat = masked(EHD_concat, r"D:\PyFile\map\气象数据资料\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
+    EHD_concat = masked(EHD_concat, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
     # 计算EOF
     eof = Eof(EHD_concat.to_numpy())  # 进行eof分解
     Modality = eof.eofs(eofscaling=2, neofs=2)
@@ -84,8 +85,8 @@ if eval(input("4)是否计算长江流域极端高温日数高发期去趋势变
     # 预白化 + Sen's Slope
     k, b = mk.sens_slope(ws2001(PC[:, 0]))
     SEN_detrended = PC[:, 0] - np.arange(0, eval(data_year[1]) - eval(data_year[0]) + 1) * k - b
-    np.save(r"D:\PyFile\paper1\OLS_detrended.npy", OLS_detrended)
-    np.save(r"D:\PyFile\paper1\SEN_detrended.npy", SEN_detrended)
+    np.save(fr"D:\PyFile\paper1\OLS{info}_detrended.npy", OLS_detrended)
+    np.save(fr"D:\PyFile\paper1\SEN{info}_detrended.npy", SEN_detrended)
     del EHD_concat, eof, Modality, PC, s, slope, intercept, r_value, p_value, std_err, k, b  # 释放占用内存,优化代码性能
 if eval(input("5)是否计算海温时间滚动差值(0/1)?\n")):
     key_month = 6  # 关键月份(临期月份),距离研究时段最近的前向月份
