@@ -39,7 +39,8 @@ def multi_core(var, p, ols, sen):
         elif var == 'precip':
             corr_1 = np.load(fr"cache\pre\corr_pre_same.npy")
     except:
-        corr_1 = np.array([[np.corrcoef(ols, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
+        pre_diff = pre_diff.data.reshape(pre_diff.shape[0] * pre_diff.shape[1], pre_diff.shape[2])
+        corr_1 = np.array([np.corrcoef(d, ols)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(pre_diff.shape[0], pre_diff.shape[1])
         if var == 'u' or var == 'v' or var == 'z':
             np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy", corr_1)  # 保存缓存
         elif var == 'sst':
@@ -54,7 +55,8 @@ def multi_core(var, p, ols, sen):
         elif var == 'precip':
             corr_2 = np.load(fr"D:\PyFile\paper1\cache\pre\corr2_pre_same.npy")
     except:
-        corr_2 = np.array([[np.corrcoef(sen, pre_diff.sel(lat=ilat, lon=ilon))[0, 1] for ilon in pre_diff['lon']] for ilat in pre_diff['lat']])
+        pre_diff = pre_diff.data.reshape(pre_diff.shape[0] * pre_diff.shape[1], pre_diff.shape[2])
+        corr_2 = np.array([np.corrcoef(d, sen)[0, 1] for d in pre_diff]).reshape(pre_diff.shape[0], pre_diff.shape[1])
         if var == 'u' or var == 'v' or var == 'z':
             np.save(fr"D:\PyFile\paper1\cache\uvz\corr2_{var}{p}_same.npy", corr_2)  # 保存缓存
         elif var == 'sst':
@@ -65,15 +67,16 @@ def multi_core(var, p, ols, sen):
         try:
             reg_z = np.load(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy")
         except:
-            reg_z = np.array([[np.polyfit(ols, pre_diff.sel(lon=ilon, lat=ilat), 1)[0] for ilon in pre_diff['lon']] for ilat in tqdm.tqdm((pre_diff['lat']), desc=f'计算reg  {p}{var}', position=0, leave=True)])
+            pre_diff = pre_diff.data.reshape(pre_diff.shape[0] * pre_diff.shape[1], pre_diff.shape[2])
+            reg_z = np.array([np.polyfit(ols, f, 1)[0] for f in tqdm.tqdm(pre_diff)]).reshape(pre_diff.shape[0], pre_diff.shape[1])
             np.save(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy", reg_z)
     print(f"{p}hPa层{var}相关系数完成。")
 
 
 if __name__ == '__main__':
     # 数据读取
-    ols = np.load(r"D:\PyFile\paper1\OLS_detrended.npy")  # 读取缓存
-    sen = np.load(r"D:\PyFile\paper1\SEN_detrended.npy")  # 读取缓存
+    ols = np.load(r"D:\PyFile\paper1\OLS35_detrended.npy")  # 读取缓存
+    sen = np.load(r"D:\PyFile\paper1\SEN35_detrended.npy")  # 读取缓存
     M = 6  # 临界月
     # 多核计算
     if eval(input("是否进行相关系数计算(0/1):")):
