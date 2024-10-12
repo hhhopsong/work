@@ -37,10 +37,11 @@ def multi_core(var, p, ols, sen):
         elif var == 'sst':
             corr_1 = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy")
         elif var == 'precip':
-            corr_1 = np.load(fr"cache\pre\corr_pre_same.npy")
+            corr_1 = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy")
     except:
-        pre_diff = pre_diff.data.reshape(pre_diff.shape[0] * pre_diff.shape[1], pre_diff.shape[2])
-        corr_1 = np.array([np.corrcoef(d, ols)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(pre_diff.shape[0], pre_diff.shape[1])
+        shape = pre_diff.shape
+        pre_diff = pre_diff.data.reshape(shape[0] * shape[1], shape[2])
+        corr_1 = np.array([np.corrcoef(d, ols)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
         if var == 'u' or var == 'v' or var == 'z':
             np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy", corr_1)  # 保存缓存
         elif var == 'sst':
@@ -55,8 +56,10 @@ def multi_core(var, p, ols, sen):
         elif var == 'precip':
             corr_2 = np.load(fr"D:\PyFile\paper1\cache\pre\corr2_pre_same.npy")
     except:
-        pre_diff = pre_diff.data.reshape(pre_diff.shape[0] * pre_diff.shape[1], pre_diff.shape[2])
-        corr_2 = np.array([np.corrcoef(d, sen)[0, 1] for d in pre_diff]).reshape(pre_diff.shape[0], pre_diff.shape[1])
+        shape = pre_diff.shape
+        pre_diff = pre_diff.data if isinstance(pre_diff, xr.DataArray) else pre_diff
+        pre_diff = pre_diff.reshape(shape[0] * shape[1], shape[2])
+        corr_2 = np.array([np.corrcoef(d, sen)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
         if var == 'u' or var == 'v' or var == 'z':
             np.save(fr"D:\PyFile\paper1\cache\uvz\corr2_{var}{p}_same.npy", corr_2)  # 保存缓存
         elif var == 'sst':
@@ -67,8 +70,10 @@ def multi_core(var, p, ols, sen):
         try:
             reg_z = np.load(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy")
         except:
-            pre_diff = pre_diff.data.reshape(pre_diff.shape[0] * pre_diff.shape[1], pre_diff.shape[2])
-            reg_z = np.array([np.polyfit(ols, f, 1)[0] for f in tqdm.tqdm(pre_diff)]).reshape(pre_diff.shape[0], pre_diff.shape[1])
+            shape = pre_diff.shape
+            pre_diff = pre_diff.data if isinstance(pre_diff, xr.DataArray) else pre_diff
+            pre_diff = pre_diff.data.reshape(shape[0] * shape[1], shape[2])
+            reg_z = np.array([np.polyfit(ols, f, 1)[0] for f in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
             np.save(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy", reg_z)
     print(f"{p}hPa层{var}相关系数完成。")
 
@@ -480,5 +485,5 @@ if __name__ == '__main__':
                 cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
                 cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
 
-    plt.savefig(fr"D:\PyFile\pic\uvz_corr_same.png", dpi=2000, bbox_inches='tight')
+    plt.savefig(fr"D:\PyFile\pic\uvz_corr_same.png", dpi=666, bbox_inches='tight')
     plt.show()

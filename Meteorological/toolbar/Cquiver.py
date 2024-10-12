@@ -13,7 +13,7 @@ import sys
 sys.path.append('d:/CODES/Python/Meteorological')
 from toolbar.sub_adjust import adjust_sub_axes
 
-def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, linewidth=1, direction='both', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
+def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, streamgrid=20,linewidth=1, direction='both', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
     """
     Warning:务必在调用函数前设置经纬度范围(set_exten)!网格间距需要各自等差!
     绘制曲线矢量
@@ -26,6 +26,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     :param transform: 投影
     :param color: 颜色
     :param regrid: 插值网格密度
+    :param streamgrid: 流线网格密度(过大将影响绘制速度!)
     :param linewidth: 线宽
     :param direction: 矢量方向
     :param density: 流线绘制密度
@@ -40,7 +41,6 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     # 数据检查
     if len(x)  != U.shape[0] or len(y) != U.shape[1] or len(x) != V.shape[0] or len(y) != V.shape[1]:
         raise ValueError('风速场维度与格点维度不匹配!')
-    x_, y_, U_, V_ = x, y, U, V
     if x[0] > x[-1] or y[0] > y[-1]:
         warnings.warn('经纬度序列非严格增长,将进行重排列!')
         x = x[::-1] if x[0] > x[-1] else x
@@ -70,24 +70,36 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     x = x[x_extent]
     y = y[y_extent]
 
-
+    x_stream, y_stream, U_stream, V_stream = x, y, U, V
     x = np.linspace(x[0], x[-1], regrid)
     y = np.linspace(y[0], y[-1], regrid)
+    x_stream = np.linspace(x_stream[0], x_stream[-1], streamgrid)
+    y_stream = np.linspace(y_stream[0], y_stream[-1], streamgrid)
     if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
         x = np.arange(x[0], x[-1], np.abs(x[0] - x[1]))
         y = np.arange(y[0], y[-1], np.abs(x[0] - x[1]))
         Y, X = np.meshgrid(y, x)
         U = U((X, Y))
         V = V((X, Y))
+        x_stream = np.arange(x_stream[0], x_stream[-1], np.abs(x_stream[0] - x_stream[1]))
+        y_stream = np.arange(y_stream[0], y_stream[-1], np.abs(x_stream[0] - x_stream[1]))
+        Y_stream, X_stream = np.meshgrid(y_stream, x_stream)
+        U_stream = U_stream((X_stream, Y_stream))
+        V_stream = V_stream((X_stream, Y_stream))
     else:
         x = np.arange(x[0], x[-1], np.abs(y[0] - y[1]))
         y = np.arange(y[0], y[-1], np.abs(y[0] - y[1]))
         Y, X = np.meshgrid(y, x)
         U = U((X, Y))
         V = V((X, Y))
+        x_stream = np.arange(x_stream[0], x_stream[-1], np.abs(y_stream[0] - y_stream[1]))
+        y_stream = np.arange(y_stream[0], y_stream[-1], np.abs(y_stream[0] - y_stream[1]))
+        Y_stream, X_stream = np.meshgrid(y_stream, x_stream)
+        U_stream = U_stream((X_stream, Y_stream))
+        V_stream = V_stream((X_stream, Y_stream))
     
-    if len(x) * len(y) >= 500:
-        warnings.warn('格点过多，可能导致计算速度过慢!', RuntimeWarning)
+    if len(x_stream) * len(y_stream) >= 1000:
+        warnings.warn('流线绘制精度高，可能导致计算速度过慢!', RuntimeWarning)
 
     # 初始化
     wind_speed = np.sqrt(U**2 + V**2) # 风速
@@ -111,7 +123,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
             linewidth = .5 * norm_flat[i]  # 缩放线宽
         if np.isnan(norm_flat[i]):
             continue  # 无效轨迹
-        strm = axes.streamplot(X,Y,U,V, color=color, start_points=np.array([start_points[i,:]]), minlength=.05*norm_flat[i]/scale, maxlength=.5*norm_flat[i]/scale,
+        strm = axes.streamplot(X_stream, Y_stream, U_stream, V_stream, color=color, start_points=np.array([start_points[i,:]]), minlength=.05*norm_flat[i]/scale, maxlength=.5*norm_flat[i]/scale,
                 integration_direction=direction, density=density, arrowsize=0, transform=transform, linewidth=linewidth)
         # 箭头绘制
         if np.isnan(U.flatten()[i]) or np.isnan(V.flatten()[i]):
