@@ -163,7 +163,7 @@ if __name__ == '__main__':
                                     coords=[('level', [200]),
                                             ('lat', z_diff['lat'].data),
                                             ('lon', z_diff['lon'].data)])
-                waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0)
+                waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0, filt=3)
                 ax1 = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
                 waf, lon = add_cyclic_point(waf_streamf[0], coord=z_diff['lon'])
                 streamf图层 = ax1.contourf(lon, z_diff['lat'], waf*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
@@ -171,7 +171,7 @@ if __name__ == '__main__':
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
-                waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
+                #waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
                 WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
                 WAF图层_ = curly_vector(ax1, z_diff['lon'], z_diff['lat'][:180], np.array(waf_x.tolist())[:180, :].T, np.array(waf_y.tolist())[:180, :].T,
                                       lon_trunc=-67.5, linewidth=0.5, arrowsize=3, scale=5, regrid=20, color='black', transform=ccrs.PlateCarree(central_longitude=0))
@@ -257,7 +257,7 @@ if __name__ == '__main__':
                                arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=32, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np_ = curly_vector(ax, u_diff['lon'], u_diff['lat'], u_np.T,  v_np.T,
-                             lon_trunc=-67.5, linewidth=0.5, arrowsize=3, scale=5, regrid=20, color='black',
+                             lon_trunc=-67.5, linewidth=0.5, arrowsize=3, scale=5, regrid=20, color='red',
                              transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),

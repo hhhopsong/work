@@ -6,6 +6,7 @@ import tqdm as tq
 import warnings
 import cartopy.crs as ccs
 import scipy.ndimage as scind
+from cartopy.util import add_cyclic_point
 from scipy.interpolate import RegularGridInterpolator
 import xarray as xr
 
@@ -13,7 +14,7 @@ import sys
 sys.path.append('d:/CODES/Python/Meteorological')
 from toolbar.sub_adjust import adjust_sub_axes
 
-def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, streamgrid=20,linewidth=1, direction='both', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
+def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, streamgrid=15,linewidth=1, direction='both', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
     """
     Warning:务必在调用函数前设置经纬度范围(set_exten)!网格间距需要各自等差!
     绘制曲线矢量
@@ -43,20 +44,20 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
         raise ValueError('风速场维度与格点维度不匹配!')
     if x[0] > x[-1] or y[0] > y[-1]:
         warnings.warn('经纬度序列非严格增长,将进行重排列!')
-        x = x[::-1] if x[0] > x[-1] else x
-        y = y[::-1] if y[0] > y[-1] else y
         U = U[::-1, :] if x[0] > x[-1] else U
         U = U[:, ::-1] if y[0] > y[-1] else U
         V = V[::-1, :] if x[0] > x[-1] else V
         V = V[:, ::-1] if y[0] > y[-1] else V
+        x = x[::-1] if x[0] > x[-1] else x
+        y = y[::-1] if y[0] > y[-1] else y
 
     x = x.data if isinstance(x, xr.DataArray) else x
     y = y.data if isinstance(y, xr.DataArray) else y
     # 经纬度重排列为-180~0~180
     if x[-1] > 180:
-        U = np.concatenate([U[np.argmax(x > 180):, :], U[np.argmax(x >= 0):, :]], axis=0)
-        V = np.concatenate([V[np.argmax(x > 180):, :], V[np.argmax(x >= 0):, :]], axis=0)
-        x = np.concatenate([x[x > 180] - 360, x[x >= 0]])
+        U = np.concatenate([U[np.argmax(x > 180):, :], U[np.argmax(x >= 0):np.argmax(x > 180), :]], axis=0)
+        V = np.concatenate([V[np.argmax(x > 180):, :], V[np.argmax(x >= 0):np.argmax(x > 180), :]], axis=0)
+        x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
     
     # 获取axes经纬度范围
     extent = axes.get_extent()
@@ -78,23 +79,23 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
         x = np.arange(x[0], x[-1], np.abs(x[0] - x[1]))
         y = np.arange(y[0], y[-1], np.abs(x[0] - x[1]))
-        Y, X = np.meshgrid(y, x)
+        X, Y = np.meshgrid(x, y)
         U = U((X, Y))
         V = V((X, Y))
         x_stream = np.arange(x_stream[0], x_stream[-1], np.abs(x_stream[0] - x_stream[1]))
         y_stream = np.arange(y_stream[0], y_stream[-1], np.abs(x_stream[0] - x_stream[1]))
-        Y_stream, X_stream = np.meshgrid(y_stream, x_stream)
+        X_stream, Y_stream = np.meshgrid(x_stream, y_stream)
         U_stream = U_stream((X_stream, Y_stream))
         V_stream = V_stream((X_stream, Y_stream))
     else:
         x = np.arange(x[0], x[-1], np.abs(y[0] - y[1]))
         y = np.arange(y[0], y[-1], np.abs(y[0] - y[1]))
-        Y, X = np.meshgrid(y, x)
+        X, Y = np.meshgrid(x, y)
         U = U((X, Y))
         V = V((X, Y))
         x_stream = np.arange(x_stream[0], x_stream[-1], np.abs(y_stream[0] - y_stream[1]))
         y_stream = np.arange(y_stream[0], y_stream[-1], np.abs(y_stream[0] - y_stream[1]))
-        Y_stream, X_stream = np.meshgrid(y_stream, x_stream)
+        X_stream, Y_stream = np.meshgrid(x_stream, y_stream)
         U_stream = U_stream((X_stream, Y_stream))
         V_stream = V_stream((X_stream, Y_stream))
     
@@ -116,7 +117,8 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     if linewidth is None:
         linewidth = matplotlib.rcParams['lines.linewidth']
     warnings.filterwarnings('ignore', category=RuntimeWarning)
-    start_points = start_points[~np.isnan(norm_flat)]  # 剔除无效点
+    start_points = start_points[~np.isnan(norm_flat)]
+    norm_flat = norm_flat[~np.isnan(norm_flat)] # 剔除无效点
     for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=True):
         # 轨迹绘制
         if scaling:
