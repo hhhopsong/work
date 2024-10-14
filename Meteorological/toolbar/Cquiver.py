@@ -103,7 +103,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
         warnings.warn('流线绘制精度高，可能导致计算速度过慢!', RuntimeWarning)
 
     # 初始化
-    wind_speed = np.sqrt(U**2 + V**2) # 风速
+    wind_speed = np.sqrt(U_stream**2 + V_stream**2) # 风速
     start_points = np.array([X.flatten(), Y.flatten()]).T # 起始点
     lon_trunc = lon_trunc - 360 if lon_trunc > 180 else lon_trunc
     # 横纵画图单位同化
@@ -117,23 +117,23 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     if linewidth is None:
         linewidth = matplotlib.rcParams['lines.linewidth']
     warnings.filterwarnings('ignore', category=RuntimeWarning)
-    start_points = start_points[~np.isnan(norm_flat)]
-    norm_flat = norm_flat[~np.isnan(norm_flat)] # 剔除无效点
+    TrueIndex = np.where(~np.isnan(norm_flat))[0]
+    start_points = start_points[TrueIndex]
+    norm_flat = norm_flat[TrueIndex] # 剔除无效点
     for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=True):
         # 轨迹绘制
         if scaling:
             linewidth = .5 * norm_flat[i]  # 缩放线宽
-        if np.isnan(norm_flat[i]):
-            continue  # 无效轨迹
         strm = axes.streamplot(X_stream, Y_stream, U_stream, V_stream, color=color, start_points=np.array([start_points[i,:]]), minlength=.05*norm_flat[i]/scale, maxlength=.5*norm_flat[i]/scale,
                 integration_direction=direction, density=density, arrowsize=0, transform=transform, linewidth=linewidth)
         # 箭头绘制
-        if np.isnan(U.flatten()[i]) or np.isnan(V.flatten()[i]):
-            continue  # 无效箭头
         arrow_start = [line.vertices[-1] for line in strm.lines.get_paths()]
-        arrow_end = [line.vertices[-2] for line in strm.lines.get_paths()]
         if arrow_start == []:
             continue  # 无效箭头
+        try:
+            arrow_end = [line.vertices[-3] for line in strm.lines.get_paths()]
+        except:
+            arrow_end = [line.vertices[-2] for line in strm.lines.get_paths()]
         arrow_start = arrow_start[0]
         arrow_end = arrow_end[0]
         arrow_end =  arrow_start + (arrow_start - arrow_end) * 10**(-5)
