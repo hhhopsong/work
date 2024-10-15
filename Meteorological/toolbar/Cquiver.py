@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
+import numba
 import tqdm as tq
 import warnings
 import cartopy.crs as ccs
@@ -14,7 +15,7 @@ import sys
 sys.path.append('d:/CODES/Python/Meteorological')
 from toolbar.sub_adjust import adjust_sub_axes
 
-def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, streamgrid=15,linewidth=1, direction='both', density=10, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
+def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=20, streamgrid=15, linewidth=1, direction='both', density=1, scale=10, arrowstyle='simple', arrowsize=7, head_length=0.4, head_width=0.2, head_dist=1, scaling=False):
     """
     Warning:务必在调用函数前设置经纬度范围(set_exten)!网格间距需要各自等差!
     绘制曲线矢量
@@ -120,6 +121,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
     TrueIndex = np.where(~np.isnan(norm_flat))[0]
     start_points = start_points[TrueIndex]
     norm_flat = norm_flat[TrueIndex] # 剔除无效点
+    axes.quiver(X_stream, Y_stream, U_stream, V_stream, color='blue', scale=scale/200, scale_units='xy', transform=transform)
     for i in tq.trange(start_points.shape[0], desc='绘制曲线矢量', leave=True):
         # 轨迹绘制
         if scaling:
@@ -152,7 +154,7 @@ def curly_vector(axes, x, y, U, V, lon_trunc, transform=None, color='k', regrid=
         arrows = patches.FancyArrowPatch(arrow_start, arrow_end, color=color, mutation_scale=arrowsize, transform=transform)
         arrows.set_arrowstyle(arrowstyle+f', head_length={head_length}, head_width={head_width}')
         axes.add_patch(arrows)
-    return axes.quiver(X, Y, np.full(U.shape, np.nan), np.full(V.shape, np.nan), scale=scale/315, scale_units='xy', color='blue', transform=transform), np.max(wind_speed)
+    return axes.quiver(X_stream, Y_stream, np.full(U_stream.shape, np.nan), np.full(V_stream.shape, np.nan), scale=scale/315, scale_units='xy', color='blue', transform=transform), np.max(wind_speed)
 
 
 def curly_vector_key(fig, axes, quiver, X=.93, Y=.105, U=None, angle=0, label='', labelpos='S', color='k', linewidth=.08, fontproperties={'size': 5}):
@@ -191,11 +193,12 @@ if __name__ == '__main__':
     x = np.linspace(-180, 180, 1440)
     y = np.linspace(-90, 90, 720)
     X, Y = np.meshgrid(x, y)
-    U = np.random.randn(*X.shape).T
-    V = np.random.randn(*X.shape).T
+    U = np.ones(X.shape).T
+    V = np.zeros(X.shape).T
     fig = plt.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccs.PlateCarree())
     ax1.set_extent([-180, 180, -90, 90])
-    a1 = curly_vector(ax1, x, y, U, V,lon_trunc=180)
-    curly_vector_key(fig, ax1, a1,U=4, label='4 m/s')
+    a1 = curly_vector(ax1, x, y, U, V, lon_trunc=180, scale=25)
+    curly_vector_key(fig, ax1, a1, U=4, label='4 m/s')
+    plt.savefig('D:/PyFile/pic/test.png', dpi=500)
     plt.show()

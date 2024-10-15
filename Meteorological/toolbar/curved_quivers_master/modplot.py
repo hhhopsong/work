@@ -9,6 +9,7 @@ from matplotlib.streamplot import TerminateTrajectory
 
 import xarray as xr
 import cartopy.crs as ccrs
+from scipy.interpolate import RegularGridInterpolator
 
 import numpy as np
 import matplotlib
@@ -22,10 +23,10 @@ import matplotlib.patches as patches
 import tqdm as tq
 
 
-def velovect(axes, x, y, u, v, linewidth=None, color=None,
+def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
                cmap=None, norm=None, arrowsize=1, arrowstyle='-|>',
                transform=None, zorder=None, start_points=None,
-               scale=1.0, grains=15,masked=True):
+               scale=1.0, grains=15, masked=True, regrid=False):
     """Draws streamlines of a vector flow. 缺测值切记用0代替
 
     *x*, *y* : 1d arrays
@@ -33,6 +34,8 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
     *u*, *v* : 2d arrays
         x and y-velocities. Number of rows should match length of y, and
         the number of columns should match x.
+    *lon_trunc* : float
+        经度截断
     *density* : float or 2-tuple
         Controls the closeness of streamlines. When `density = 1`, the domain
         is divided into a 30x30 grid---*density* linearly scales this grid.
@@ -67,6 +70,8 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
         Number of points to use in integration.
     *masked* : bool
         原数据是否为掩码数组
+    *regrid* : bool
+        是否重新插值网格
 
     Returns:
 
@@ -134,6 +139,25 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
             raise ValueError('v must be a xarray.DataArray or numpy.ndarray')
     except:
         pass
+
+    if regrid:
+        # 将网格插值为正方形等间隔网格
+        U = RegularGridInterpolator((y, x), u, method='linear')
+        V = RegularGridInterpolator((y, x), v, method='linear')
+        x = np.linspace(x[0], x[-1], regrid)
+        y = np.linspace(y[0], y[-1], regrid)
+        if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
+            x = np.arange(x[0], x[-1], np.abs(x[0] - x[1]))
+            y = np.arange(y[0], y[-1], np.abs(x[0] - x[1]))
+            X, Y = np.meshgrid(x, y)
+            u = U((Y, X))
+            v = V((Y, X))
+        else:
+            x = np.arange(x[0], x[-1], np.abs(y[0] - y[1]))
+            y = np.arange(y[0], y[-1], np.abs(y[0] - y[1]))
+            X, Y = np.meshgrid(x, y)
+            u = U((Y, X))
+            v = V((Y, X))
 
     grid = Grid(x, y)
     mask = StreamMask(10)
@@ -248,6 +272,23 @@ def velovect(axes, x, y, u, v, linewidth=None, color=None,
         n = np.searchsorted(s, s[-1])
         arrow_tail = (tx[n], ty[n])
         arrow_head = (np.mean(tx[n:n + 2]), np.mean(ty[n:n + 2]))
+
+        # 网格偏移避免异常箭头
+        arrow_start = np.array([arrow_head[0], arrow_head[1]])
+        arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
+        arrow_end =  arrow_start + (arrow_start - arrow_end) * 10**(-5)
+        a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0] - lon_trunc
+        a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0] - lon_trunc
+        a_start = a_start + 360 if a_start < -180 else a_start
+        a_end = a_end + 360 if a_end < -180 else a_end
+        # 网格偏移避免异常箭头
+        if np.abs(a_start - a_end) < 90:
+            if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]) and extent[0] + 360 == extent[1]:
+                error = 10 ** (-3)
+                arrow_start = [arrow_start[0] - error, arrow_start[1]]
+                arrow_end =  [arrow_end[0] - error, arrow_end[1]]
+        arrow_head = [arrow_start[0] + 180 + lon_trunc, arrow_start[1]]
+        arrow_tail = [arrow_end[0] + 180 + lon_trunc, arrow_end[1]]
 
         # If the streamline is too short, don't add an arrow.
         if not edge:
