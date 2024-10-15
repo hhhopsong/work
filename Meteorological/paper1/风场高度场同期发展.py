@@ -171,11 +171,11 @@ if __name__ == '__main__':
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
-                #waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
+                # waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
                 WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
                 WAF图层 = velovect(ax1, z_diff['lon'], z_diff['lat'][:180],
                                   np.array(waf_x.tolist())[:180, :],
-                                  np.array(waf_y.tolist())[:180, :],
+                                  np.array(waf_y.tolist())[:180, :], regrid=20, lon_trunc=-67.5,
                                   arrowstyle='fancy', arrowsize=.3, scale=5, grains=32, linewidth=0.75,
                                   color='gray', transform=ccrs.PlateCarree(central_longitude=0))
 
@@ -265,12 +265,12 @@ if __name__ == '__main__':
                 uv_np_ = curly_vector(ax, u_diff['lon'], u_diff['lat'], u_np.T,  v_np.T,
                              lon_trunc=-67.5, linewidth=0.5, arrowsize=3, scale=5, regrid=20, color='red',
                              transform=ccrs.PlateCarree(central_longitude=0))
-'''                uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
+                '''uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
                                lon_trunc=-67.5, regrid=20, arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=29,linewidth=0.75,
-                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')'''
+                               color='black', transform=ccrs.PlateCarree(central_longitude=0))'''
+                ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))

@@ -140,6 +140,12 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
     except:
         pass
 
+    # 经纬度重排列为-180~0~180
+    if x[-1] > 180:
+        u = np.concatenate([u[:, np.argmax(x > 180):], u[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
+        v = np.concatenate([v[:, np.argmax(x > 180):], v[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
+        x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
+
     if regrid:
         # 将网格插值为正方形等间隔网格
         U = RegularGridInterpolator((y, x), u, method='linear')
@@ -219,7 +225,10 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
     edges = []
     
     if start_points is None:
-        start_points=_gen_starting_points(x,y,grains)
+        if regrid:
+            start_points = np.array([X.flatten(), Y.flatten()]).T
+        else:
+            start_points=_gen_starting_points(x,y,grains)
     
     sp2 = np.asanyarray(start_points, dtype=float).copy()
 
@@ -235,6 +244,9 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
     # data2grid works properly.
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
+
+    # 获取axes经纬度范围
+    extent = axes.get_extent()
 
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
@@ -271,7 +283,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         s = np.cumsum(np.sqrt(np.diff(tx) ** 2 + np.diff(ty) ** 2))
         n = np.searchsorted(s, s[-1])
         arrow_tail = (tx[n], ty[n])
-        arrow_head = (np.mean(tx[n:n + 2]), np.mean(ty[n:n + 2]))
+        arrow_head = (tx[n + 1], ty[n + 1])
 
         # 网格偏移避免异常箭头
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
@@ -292,9 +304,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
 
         # If the streamline is too short, don't add an arrow.
         if not edge:
-            error_arrowloc = (tx[n + 1] - tx[n], ty[n + 1] - ty[n])
-            arrow_tail = (tx[n] + error_arrowloc[0], ty[n] + error_arrowloc[1])
-            arrow_head = (np.mean(tx[n:n + 2]) + error_arrowloc[0], np.mean(ty[n:n + 2]) + error_arrowloc[1])
+            arrow_tail = arrow_tail
+            arrow_head = arrow_head
 
         if isinstance(linewidth, np.ndarray):
             line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
@@ -308,7 +319,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         
         if not edge:
             p = patches.FancyArrowPatch(
-                arrow_tail, arrow_head, transform=transform, **arrow_kw)
+                arrow_head, arrow_tail, transform=transform, **arrow_kw)
+            p.set_arrowstyle('fancy')
         else:
             continue
         
@@ -699,11 +711,11 @@ def interpgrid(a, xi, yi, masked=True):
         x = int(xi)
         y = int(yi)
         # conditional is faster than clipping for integers
-        if x == (Nx - 2):
+        if x == (Nx - 1):
             xn = x
         else:
             xn = x + 1
-        if y == (Ny - 2):
+        if y == (Ny - 1):
             yn = y
         else:
             yn = y + 1
@@ -714,9 +726,25 @@ def interpgrid(a, xi, yi, masked=True):
     a11 = a[yn, xn]
     xt = xi - x
     yt = yi - y
-    a0 = a00 * (1 - xt) + a01 * xt
-    a1 = a10 * (1 - xt) + a11 * xt
-    ai = a0 * (1 - yt) + a1 * yt
+    zeros = np.where(np.array([a00, a01, a10, a11]) == 0.0)[0]
+    if len(zeros) >= 2:
+        ai = 0.0
+    elif len(zeros) == 1:
+        distance1 = np.sqrt((x - xi) ** 2 + (y - yi) ** 2)
+        distance2 = np.sqrt((xn - xi) ** 2 + (y - yi) ** 2)
+        distance3 = np.sqrt((x - xi) ** 2 + (yn - yi) ** 2)
+        distance4 = np.sqrt((xn - xi) ** 2 + (yn - yi) ** 2)
+        distances = np.array([distance1, distance2, distance3, distance4])
+        if np.argmin(distances) == zeros[0]:
+            ai = 0.0
+        else:
+            a0 = a00 * (1 - xt) + a01 * xt
+            a1 = a10 * (1 - xt) + a11 * xt
+            ai = a0 * (1 - yt) + a1 * yt
+    else:
+        a0 = a00 * (1 - xt) + a01 * xt
+        a1 = a10 * (1 - xt) + a11 * xt
+        ai = a0 * (1 - yt) + a1 * yt
 
     if not isinstance(xi, np.ndarray):
         if np.ma.is_masked(ai) and (not masked):
