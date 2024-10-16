@@ -29,56 +29,50 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
                cmap=None, norm=None, arrowsize=1, arrowstyle='fancy',
                transform=None, zorder=None, start_points=None,
                scale=5.0, grains=30, masked=True, regrid=0, integration_direction='both'):
-    """Draws streamlines of a vector flow. 缺测值切记用0代替
+    """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
-        an *evenly spaced* grid.
+        *规则* 网格.
     *u*, *v* : 2d arrays
-        x and y-velocities. Number of rows should match length of y, and
-        the number of columns should match x.
+        ``x`` 和 ``y`` 方向变量。行数应与 ``y`` 的长度匹配，列数应与 ``x`` 匹配.
     *lon_trunc* : float
         经度截断
     *density* : float or 2-tuple
-        Controls the closeness of streamlines. When `density = 1`, the domain
-        is divided into a 30x30 grid---*density* linearly scales this grid.
-        Each cell in the grid can have, at most, one traversing streamline.
-        For different densities in each direction, use [density_x, density_y].
+        控制流线的密集程度。当“density=1”时，域被划分为一个30x30的网格——*密度*线性缩放该网格。
+        网格中的每个单元格最多只能有一个遍历流线。对于每个方向上的不同密度，使用[density_x，density_y]。
     *linewidth* : numeric or 2d array
-        vary linewidth when given a 2d array with the same shape as velocities.
+        给定与速度形状相同的二维阵列，改变线宽。
     *color* : matplotlib color code, or 2d array
-        Streamline color. When given an array with the same shape as
-        velocities, *color* values are converted to colors using *cmap*.
+        矢量颜色。给定一个与 ``u`` , ``v`` 形状相同的数组时，将使用*cmap*将值转换为*颜色*。
     *cmap* : :class:`~matplotlib.colors.Colormap`
-        Colormap used to plot streamlines and arrows. Only necessary when using
-        an array input for *color*.
+        用于绘制矢量的颜色图。仅在使用*cmap*进行颜色绘制时才需要。
     *norm* : :class:`~matplotlib.colors.Normalize`
-        Normalize object used to scale luminance data to 0, 1. If None, stretch
-        (min, max) to (0, 1). Only necessary when *color* is an array.
+        用于将数据归一化。
+        如果为 ``None`` ，则将（最小，最大）拉伸到（0,1）。只有当*color*为数组时才需要。
     *arrowsize* : float
-        Factor scale arrow size.
+        箭头大小
     *arrowstyle* : str
-        Arrow style specification.
-        See :class:`~matplotlib.patches.FancyArrowPatch`.
+        箭头样式规范。
+        详情请参见：:class:`~matplotlib.patches.FancyArrowPatch`.
     *start_points*: Nx2 array
-        Coordinates of starting points for the streamlines.
-        In data coordinates, the same as the ``x`` and ``y`` arrays.
+        矢量起绘点的坐标。在数据坐标系中，与 ``x`` 和 ``y`` 数组相同。
     *zorder* : int
-        any number
+        ``zorder`` 属性决定了绘图元素的绘制顺序,数值较大的元素会被绘制在数值较小的元素之上。
     *scale* : float
-        Maximum length of streamline in axes coordinates.
+        矢量的最大长度。
     *grains* : int
-        Number of points to use in integration.
+        绘图网格点数。
     *masked* : bool
         原数据是否为掩码数组
     *regrid* : int
         是否重新插值网格
     *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
-        Integrate the streamline in forward, backward or both directions.
+        矢量向前、向后或双向绘制。
 
     Returns:
 
         *stream_container* : StreamplotSet
-            Container object with attributes
+            具有属性的容器对象
 
                 - lines: `matplotlib.collections.LineCollection` of streamlines
 
@@ -86,10 +80,9 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
                   objects representing arrows half-way along stream
                   lines.
 
-            This container will probably change in the future to allow changes
-            to the colormap, alpha, etc. for both lines and arrows, but these
-            changes should be backward compatible.
-
+            此容器将来可能会更改，以允许更改线条和箭头的颜色图、alpha等，但这些更改应该会向下兼容。
+        *scale* : float
+            矢量的最大长度。
     """
 
     # 填充nan值为0
@@ -323,9 +316,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
                 arrow_head, arrow_tail, transform=transform, **arrow_kw)
             p.set_arrowstyle(arrowstyle)
         else:
-            p = patches.FancyArrowPatch(
-                arrow_head, arrow_tail, transform=transform, **arrow_kw)
-            p.set_arrowstyle(arrowstyle)
+            continue
         
         ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
         
