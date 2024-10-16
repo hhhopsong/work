@@ -175,7 +175,7 @@ if __name__ == '__main__':
                 WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
                 WAF图层 = velovect(ax1, z_diff['lon'], z_diff['lat'][:180],
                                   np.array(waf_x.tolist())[:180, :],
-                                  np.array(waf_y.tolist())[:180, :], regrid=20,
+                                  np.array(waf_y.tolist())[:180, :], regrid=15,
                                   arrowsize=.3, scale=5, grains=32, linewidth=0.75,
                                   color='gray', transform=ccrs.PlateCarree(central_longitude=0))
 
@@ -491,5 +491,5 @@ if __name__ == '__main__':
                 cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
                 cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
 
-    plt.savefig(fr"D:\PyFile\pic\uvz_corr_same.png", dpi=800, bbox_inches='tight')
+    plt.savefig(fr"D:\PyFile\pic\uvz_corr_same.png", dpi=2000, bbox_inches='tight')
     plt.show()

@@ -8,27 +8,27 @@ from __future__ import (absolute_import, division, print_function,
 from matplotlib.streamplot import TerminateTrajectory
 
 import xarray as xr
-import cartopy.crs as ccrs
 from scipy.interpolate import RegularGridInterpolator
-
 import numpy as np
+
 import matplotlib
-from matplotlib import _api
-import matplotlib.cm as cm
+from matplotlib import _api, cm, patches
 import matplotlib.colors as mcolors
 import matplotlib.collections as mcollections
 import matplotlib.lines as mlines
-import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
 import tqdm as tq
 from toolbar.sub_adjust import adjust_sub_axes
 
 
-def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
+__all__ = ['velovect']
+
+
+def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
                cmap=None, norm=None, arrowsize=1, arrowstyle='fancy',
                transform=None, zorder=None, start_points=None,
-               scale=5.0, grains=30, masked=True, regrid=0, integration_direction='both'):
+               scale=5.0, grains=1, masked=True, regrid=0, integration_direction='both'):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -37,9 +37,6 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
         ``x`` 和 ``y`` 方向变量。行数应与 ``y`` 的长度匹配，列数应与 ``x`` 匹配.
     *lon_trunc* : float
         经度截断
-    *density* : float or 2-tuple
-        控制流线的密集程度。当“density=1”时，域被划分为一个30x30的网格——*密度*线性缩放该网格。
-        网格中的每个单元格最多只能有一个遍历流线。对于每个方向上的不同密度，使用[density_x，density_y]。
     *linewidth* : numeric or 2d array
         给定与速度形状相同的二维阵列，改变线宽。
     *color* : matplotlib color code, or 2d array
@@ -249,6 +246,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
 
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
+        xg = np.clip(xg, 0, grid.nx - 1)
+        yg = np.clip(yg, 0, grid.ny - 1)
         t = integrate(xg, yg)
         if t is not None:
             trajectories.append(t[0])
@@ -280,9 +279,18 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
 
         # Add arrows half way along each trajectory.
         s = np.cumsum(np.sqrt(np.diff(tx) ** 2 + np.diff(ty) ** 2))
-        n = np.searchsorted(s, s[-1])
+        head_index = 0
+        # 箭头方向平滑
+        flit_index = 3
+        for i in range(flit_index):
+            try:
+                n = np.searchsorted(s, s[-(flit_index - i)])
+                head_index = flit_index - i
+                break
+            except:
+                continue
         arrow_tail = (tx[n], ty[n])
-        arrow_head = (tx[n + 1], ty[n + 1])
+        arrow_head = (tx[n + head_index], ty[n + head_index])
 
         # 网格偏移避免异常箭头
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
@@ -326,7 +334,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
         arrows.append(p)
 
     lc = mcollections.LineCollection(
-        streamlines, transform=transform, **line_kw)
+        streamlines, transform=transform, capstyle='round', **line_kw)
     lc.sticky_edges.x[:] = [grid.x_origin, grid.x_origin + grid.width]
     lc.sticky_edges.y[:] = [grid.y_origin, grid.y_origin + grid.height]
     if use_multicolor_lines:
@@ -336,10 +344,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
     axes.add_collection(lc)
     axes.autoscale_view()
 
-    ac = matplotlib.collections.PatchCollection(arrows)
+    ac = mcollections.PatchCollection(arrows)
     stream_container = StreamplotSet(lc, ac)
-    '''quiver_key = axes.quiver(x, y, np.full(u.shape, np.nan), np.full(v.shape, np.nan),
-                             scale=0.0186949 / scale, scale_units='xy', color='blue', transform=transform) # 单位尺'''
     return stream_container, scale
 
 	
@@ -612,7 +618,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True):
     # This error is below that needed to match the RK4 integrator. It
     # is set for visual reasons -- too low and corners start
     # appearing ugly and jagged. Can be tuned.
-    maxerror = 0.003
+    maxerror = 0.0003
 
     # This limit is important (for all integrators) to avoid the
     # trajectory skipping some mask cells. We could relax this
