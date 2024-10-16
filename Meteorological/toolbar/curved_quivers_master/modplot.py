@@ -22,6 +22,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
 import tqdm as tq
+from toolbar.sub_adjust import adjust_sub_axes
 
 
 def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
@@ -346,7 +347,9 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
 
     ac = matplotlib.collections.PatchCollection(arrows)
     stream_container = StreamplotSet(lc, ac)
-    return stream_container
+    '''quiver_key = axes.quiver(x, y, np.full(u.shape, np.nan), np.full(v.shape, np.nan),
+                             scale=0.0186949 / scale, scale_units='xy', color='blue', transform=transform) # 单位尺'''
+    return stream_container, scale
 
 	
 
@@ -785,6 +788,49 @@ def _gen_starting_points(x,y,grains):
     return seed_points.T
 
 
+
+
+def curly_vector_key(fig, axes, quiver, X=.93, Y=.105, U=None, angle=0, label='', labelpos='S', color='k', linewidth=.08, fontproperties={'size': 5}):
+    '''
+    曲线矢量图例
+    :param fig: 画布
+    :param axes: 目标图层
+    :param quiver: 曲线矢量图层
+    :param X: 图例横坐标
+    :param Y: 图例纵坐标
+    :param U: 风速
+    :param angle: 角度
+    :param label: 标签
+    :param labelpos: 标签位置
+    :param color: 颜色
+    :param fontproperties: 字体属性
+    :return: None
+    '''
+    if U is None:
+        U = 1
+    else:
+        U = U
+    axes_sub = fig.add_axes([0, 0, 1, 1])
+    adjust_sub_axes(axes, axes_sub, shrink=0.05)
+    # 不显示刻度和刻度标签
+    axes_sub.set_xticks([])
+    axes_sub.set_yticks([])
+    # 设置子图的纵横比与主图一致
+    axes_sub.set_aspect(axes.get_aspect())
+    scale_factor = axes.get_position().width / axes_sub.get_position().width
+    x_ = (axes.get_xlim()/scale_factor)[1] - (axes.get_xlim()/scale_factor)[0]
+    y_ = (axes.get_ylim()/scale_factor)[1] - (axes.get_ylim()/scale_factor)[0]
+    axes_sub.set_xlim([-x_/3*2, x_/3])
+    axes_sub.set_ylim([-y_, 0])
+    # 让图例在子图层中居中
+    # X = axes_sub.get_position().x0 + axes_sub.get_position().width * X
+    U = np.full((2, 2), U)
+    V = np.full((2, 2), 0)
+    velovect(axes_sub, np.array([-x_/2, x_/2]), np.array([-y_/2, y_/2]), U, V, integration_direction='both', scale=quiver[1]/3.3, color=color, grains=1)
+    '''axes_sub.quiverkey(quiver[1], X=X, Y=Y, U=U, angle=angle, label=label, linewidth=linewidth,
+                                  labelpos=labelpos, color=color, fontproperties=fontproperties)'''
+
+
 if __name__ == '__main__':
     "test"
     x = np.linspace(-180, 180, 1440)
@@ -794,7 +840,7 @@ if __name__ == '__main__':
     V = np.zeros(X.shape).T
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121)
-    a1 = velovect(ax1, x, y, U, V, regrid=10, lon_trunc=180, scale=0.25, color='black')
-    # curly_vector_key(fig, ax1, a1, U=4, label='4 m/s')
-    plt.savefig('D:/PyFile/pic/test.png', dpi=500)
+    a1 = velovect(ax1, x, y, U, V, regrid=3, lon_trunc=180, scale=0.5, color='black')
+    curly_vector_key(fig, ax1, a1, label='4 m/s')
+    plt.savefig('D:/PyFile/pic/test.png', dpi=1000)
     plt.show()
