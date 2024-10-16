@@ -19,15 +19,15 @@ import matplotlib.colors as mcolors
 import matplotlib.collections as mcollections
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
-import numpy as np
+import matplotlib.pyplot as plt
 
 import tqdm as tq
 
 
-def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
+def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=1, color=None,
                cmap=None, norm=None, arrowsize=1, arrowstyle='fancy',
                transform=None, zorder=None, start_points=None,
-               scale=1.0, grains=15, masked=True, regrid=False, integration_direction='both'):
+               scale=5.0, grains=30, masked=True, regrid=0, integration_direction='both'):
     """Draws streamlines of a vector flow. 缺测值切记用0代替
 
     *x*, *y* : 1d arrays
@@ -69,7 +69,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         Number of points to use in integration.
     *masked* : bool
         原数据是否为掩码数组
-    *regrid* : bool
+    *regrid* : int
         是否重新插值网格
     *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
         Integrate the streamline in forward, backward or both directions.
@@ -247,8 +247,11 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
-    # 获取axes经纬度范围
-    extent = axes.get_extent()
+    # 获取axes范围
+    try:
+        extent = axes.get_extent()
+    except AttributeError:
+        extent = axes.get_xlim() + axes.get_ylim()
 
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
@@ -304,11 +307,6 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         arrow_head = [arrow_start[0], arrow_start[1]]
         arrow_tail = [arrow_end[0], arrow_end[1]]
 
-        # If the streamline is too short, don't add an arrow.
-        if not edge:
-            arrow_tail = arrow_tail
-            arrow_head = arrow_head
-
         if isinstance(linewidth, np.ndarray):
             line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
             line_kw['linewidth'].extend(line_widths)
@@ -324,7 +322,9 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
                 arrow_head, arrow_tail, transform=transform, **arrow_kw)
             p.set_arrowstyle(arrowstyle)
         else:
-            continue
+            p = patches.FancyArrowPatch(
+                arrow_head, arrow_tail, transform=transform, **arrow_kw)
+            p.set_arrowstyle(arrowstyle)
         
         ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
         
@@ -332,9 +332,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         
         axes.add_patch(p)
         arrows.append(p)
-        
-        
-		
+
     lc = mcollections.LineCollection(
         streamlines, transform=transform, **line_kw)
     lc.sticky_edges.x[:] = [grid.x_origin, grid.x_origin + grid.width]
@@ -528,7 +526,7 @@ class StreamMask(object):
 # Integrator definitions
 #========================
 
-def get_integrator(u, v, dmap, resolution, magnitude, integration_direction='both', masked=True):
+def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True):
 
     # rescale velocity onto grid-coordinates for integrations.
     u, v = dmap.data2grid(u, v)
@@ -785,3 +783,18 @@ def _gen_starting_points(x,y,grains):
     seed_points = np.array([list(xs), list(ys)])
     
     return seed_points.T
+
+
+if __name__ == '__main__':
+    "test"
+    x = np.linspace(-180, 180, 1440)
+    y = np.linspace(-90, 90, 720)
+    Y, X = np.meshgrid(y, x)
+    U = np.ones(X.shape).T
+    V = np.zeros(X.shape).T
+    fig = matplotlib.pyplot.figure(figsize=(10, 5))
+    ax1 = fig.add_subplot(121)
+    a1 = velovect(ax1, x, y, U, V, regrid=10, lon_trunc=180, scale=0.25, color='black')
+    # curly_vector_key(fig, ax1, a1, U=4, label='4 m/s')
+    plt.savefig('D:/PyFile/pic/test.png', dpi=500)
+    plt.show()
