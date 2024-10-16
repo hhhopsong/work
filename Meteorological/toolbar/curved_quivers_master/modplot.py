@@ -13,20 +13,21 @@ from scipy.interpolate import RegularGridInterpolator
 
 import numpy as np
 import matplotlib
+from matplotlib import _api
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import matplotlib.collections as mcollections
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
-
+import numpy as np
 
 import tqdm as tq
 
 
 def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
-               cmap=None, norm=None, arrowsize=1, arrowstyle='-|>',
+               cmap=None, norm=None, arrowsize=1, arrowstyle='fancy',
                transform=None, zorder=None, start_points=None,
-               scale=1.0, grains=15, masked=True, regrid=False):
+               scale=1.0, grains=15, masked=True, regrid=False, integration_direction='both'):
     """Draws streamlines of a vector flow. 缺测值切记用0代替
 
     *x*, *y* : 1d arrays
@@ -57,8 +58,6 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
     *arrowstyle* : str
         Arrow style specification.
         See :class:`~matplotlib.patches.FancyArrowPatch`.
-    *minlength* : float
-        Minimum length of streamline in axes coordinates.
     *start_points*: Nx2 array
         Coordinates of starting points for the streamlines.
         In data coordinates, the same as the ``x`` and ``y`` arrays.
@@ -72,6 +71,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         原数据是否为掩码数组
     *regrid* : bool
         是否重新插值网格
+    *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
+        Integrate the streamline in forward, backward or both directions.
 
     Returns:
 
@@ -165,6 +166,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
             u = U((Y, X))
             v = V((Y, X))
 
+    _api.check_in_list(['both', 'forward', 'backward'], integration_direction=integration_direction)
     grid = Grid(x, y)
     mask = StreamMask(10)
     dmap = DomainMap(grid, mask)
@@ -289,8 +291,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
         arrow_end =  arrow_start + (arrow_start - arrow_end) * 10**(-5)
-        a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0] - lon_trunc
-        a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0] - lon_trunc
+        a_start = arrow_start[0] - 360 if arrow_start[0] > 180 else arrow_start[0]
+        a_end = arrow_end[0] - 360 if arrow_end[0] > 180 else arrow_end[0]
         a_start = a_start + 360 if a_start < -180 else a_start
         a_end = a_end + 360 if a_end < -180 else a_end
         # 网格偏移避免异常箭头
@@ -299,8 +301,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
                 error = 10 ** (-3)
                 arrow_start = [arrow_start[0] - error, arrow_start[1]]
                 arrow_end =  [arrow_end[0] - error, arrow_end[1]]
-        arrow_head = [arrow_start[0] + 180 + lon_trunc, arrow_start[1]]
-        arrow_tail = [arrow_end[0] + 180 + lon_trunc, arrow_end[1]]
+        arrow_head = [arrow_start[0], arrow_start[1]]
+        arrow_tail = [arrow_end[0], arrow_end[1]]
 
         # If the streamline is too short, don't add an arrow.
         if not edge:
@@ -320,7 +322,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         if not edge:
             p = patches.FancyArrowPatch(
                 arrow_head, arrow_tail, transform=transform, **arrow_kw)
-            p.set_arrowstyle('fancy')
+            p.set_arrowstyle(arrowstyle)
         else:
             continue
         
@@ -526,7 +528,7 @@ class StreamMask(object):
 # Integrator definitions
 #========================
 
-def get_integrator(u, v, dmap, minlength, resolution, magnitude, masked=True):
+def get_integrator(u, v, dmap, resolution, magnitude, integration_direction='both', masked=True):
 
     # rescale velocity onto grid-coordinates for integrations.
     u, v = dmap.data2grid(u, v)
@@ -536,6 +538,9 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, masked=True):
     v_ax = v / dmap.grid.ny
     speed = np.ma.sqrt(u_ax ** 2 + v_ax ** 2)
 
+    if integration_direction == 'both':
+        speed = speed / 2.
+
     def forward_time(xi, yi):
         ds_dt = interpgrid(speed, xi, yi, masked=masked)
         if ds_dt == 0:
@@ -544,6 +549,10 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, masked=True):
         ui = interpgrid(u, xi, yi, masked=masked)
         vi = interpgrid(v, xi, yi, masked=masked)
         return ui * dt_ds, vi * dt_ds
+
+    def backward_time(xi, yi):
+        dxi, dyi = forward_time(xi, yi)
+        return -dxi, -dyi
 
 
     def integrate(x0, y0):
@@ -562,10 +571,20 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, masked=True):
         
         dmap.start_trajectory(x0, y0)
 
-        dmap.reset_start_point(x0, y0)
-        stotal, x_traj, y_traj, m_total, hit_edge = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude)
+        if integration_direction in ['both', 'backward']:
+            stotal_, x_traj_, y_traj_, m_total, hit_edge = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude)
+            stotal += stotal_
+            x_traj += x_traj_[::-1]
+            y_traj += y_traj_[::-1]
 
-        
+        if integration_direction in ['both', 'forward']:
+            dmap.reset_start_point(x0, y0)
+            stotal_, x_traj_, y_traj_, m_total, hit_edge = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude)
+            stotal += stotal_
+            x_traj += x_traj_[1:]
+            y_traj += y_traj_[1:]
+
+
         if len(x_traj)>1:
             return (x_traj, y_traj), hit_edge
         else:  # reject short trajectories
