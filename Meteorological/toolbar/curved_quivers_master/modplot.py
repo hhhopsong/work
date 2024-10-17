@@ -26,7 +26,7 @@ __all__ = ['velovect']
 
 
 def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
-               cmap=None, norm=None, arrowsize=1, arrowstyle='fancy',
+               cmap=None, norm=None, arrowsize=1, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
                scale=5.0, grains=1, masked=True, regrid=0, integration_direction='both'):
     """绘制矢量曲线.
@@ -292,13 +292,13 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
             except:
                 continue
         arrow_tail = (tx[n], ty[n])
-        arrow_head = (tx[n + head_index], ty[n + head_index])
+        arrow_head = (tx[-1], ty[-1])
 
         # 网格偏移避免异常箭头
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
         delta = arrow_start - arrow_end
-        arrow_end =  arrow_start + delta * 1e-10
+        arrow_end =  arrow_start + delta * 1e-3
         a_start = arrow_start[0] - 360 if arrow_start[0] > 180 else arrow_start[0]
         a_end = arrow_end[0] - 360 if arrow_end[0] > 180 else arrow_end[0]
         a_start = a_start + 360 if a_start < -180 else a_start
@@ -306,7 +306,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         # 网格偏移避免异常箭头
         if np.abs(a_start - a_end) < 90:
             if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]) and extent[0] + 360 == extent[1]:
-                error = delta * 1e-5
+                error = delta * 2e-3
                 arrow_start = [arrow_start[0] - error, arrow_start[1]]
                 arrow_end =  [arrow_end[0] - error, arrow_end[1]]
         arrow_head = [arrow_start[0], arrow_start[1]]
