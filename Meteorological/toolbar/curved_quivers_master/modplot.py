@@ -281,7 +281,9 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         s = np.cumsum(np.sqrt(np.diff(tx) ** 2 + np.diff(ty) ** 2))
         head_index = 0
         # 箭头方向平滑
-        flit_index = 3
+        flit_index = len(tx) // 6 + 1
+        if len(tx) <= 10:
+            flit_index = 5
         for i in range(flit_index):
             try:
                 n = np.searchsorted(s, s[-(flit_index - i)])
@@ -295,7 +297,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         # 网格偏移避免异常箭头
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
-        arrow_end =  arrow_start + (arrow_start - arrow_end) * 10**(-5)
+        delta = arrow_start - arrow_end
+        arrow_end =  arrow_start + delta * 1e-10
         a_start = arrow_start[0] - 360 if arrow_start[0] > 180 else arrow_start[0]
         a_end = arrow_end[0] - 360 if arrow_end[0] > 180 else arrow_end[0]
         a_start = a_start + 360 if a_start < -180 else a_start
@@ -303,7 +306,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         # 网格偏移避免异常箭头
         if np.abs(a_start - a_end) < 90:
             if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]) and extent[0] + 360 == extent[1]:
-                error = 10 ** (-3)
+                error = delta * 1e-5
                 arrow_start = [arrow_start[0] - error, arrow_start[1]]
                 arrow_end =  [arrow_end[0] - error, arrow_end[1]]
         arrow_head = [arrow_start[0], arrow_start[1]]
@@ -322,7 +325,6 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         if not edge:
             p = patches.FancyArrowPatch(
                 arrow_head, arrow_tail, transform=transform, **arrow_kw)
-            p.set_arrowstyle(arrowstyle)
         else:
             continue
         
