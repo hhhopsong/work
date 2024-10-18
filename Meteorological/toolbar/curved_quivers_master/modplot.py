@@ -10,6 +10,7 @@ from matplotlib.streamplot import TerminateTrajectory
 import xarray as xr
 from scipy.interpolate import RegularGridInterpolator
 import numpy as np
+import cartopy.crs as ccrs
 
 import matplotlib
 from matplotlib import _api, cm, patches
@@ -279,7 +280,6 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
 
         # Add arrows half way along each trajectory.
         s = np.cumsum(np.sqrt(np.diff(tx) ** 2 + np.diff(ty) ** 2))
-        head_index = 0
         # 箭头方向平滑
         flit_index = len(tx) // 6 + 1
         if len(tx) <= 10:
@@ -287,7 +287,6 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         for i in range(flit_index):
             try:
                 n = np.searchsorted(s, s[-(flit_index - i)])
-                head_index = flit_index - i
                 break
             except:
                 continue
@@ -298,19 +297,32 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
         delta = arrow_start - arrow_end
-        arrow_end =  arrow_start + delta * 1e-3
-        a_start = arrow_start[0] - 360 if arrow_start[0] > 180 else arrow_start[0]
-        a_end = arrow_end[0] - 360 if arrow_end[0] > 180 else arrow_end[0]
+        delta = delta * 10**(-np.max(np.abs(delta))//10+1)
+        arrow_end =  arrow_start + delta
+        a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0]  - lon_trunc
+        a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0]  - lon_trunc
         a_start = a_start + 360 if a_start < -180 else a_start
         a_end = a_end + 360 if a_end < -180 else a_end
         # 网格偏移避免异常箭头
         if np.abs(a_start - a_end) < 90:
             if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]) and extent[0] + 360 == extent[1]:
-                error = delta * 2e-3
-                arrow_start = [arrow_start[0] - error, arrow_start[1]]
-                arrow_end =  [arrow_end[0] - error, arrow_end[1]]
+                arrow_start = [arrow_start[0] - delta[0] * 1.001, arrow_start[1] - delta[0] * 1.001]
+                arrow_end =  [arrow_end[0] - delta[0] * 1.001, arrow_end[1] - delta[0] * 1.001]
         arrow_head = [arrow_start[0], arrow_start[1]]
         arrow_tail = [arrow_end[0], arrow_end[1]]
+
+        # 防止出现纬度超过90度
+        if np.abs(arrow_head[1]) >= 90 or np.abs(arrow_tail[1]) >= 90:
+            error = np.argmax([np.abs(arrow_head[1]), np.abs(arrow_tail[1])])
+            error = [arrow_head[1], arrow_tail[1]][error]
+            if error > 0:
+                error -= (90 - 1e-5)
+                arrow_head = np.array([arrow_head[0], arrow_head[1] - error])
+                arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
+            else:
+                error -= (-90 + 1e-5)
+                arrow_head = np.array([arrow_head[0], arrow_head[1] - error])
+                arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
 
         if isinstance(linewidth, np.ndarray):
             line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
@@ -329,9 +341,12 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
             continue
         
         ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
-        
-        if ds<1e-15: continue #remove vanishingly short arrows that cause Patch to fail
-        
+
+        try:
+            if ds<1e-15: continue  #remove vanishingly short arrows that cause Patch to fail
+        except:
+            pass
+
         axes.add_patch(p)
         arrows.append(p)
 
@@ -838,7 +853,7 @@ if __name__ == '__main__':
     U = np.ones(X.shape).T
     V = np.zeros(X.shape).T
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
-    ax1 = fig.add_subplot(121)
+    ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree())
     a1 = velovect(ax1, x, y, U, V, regrid=3, lon_trunc=180, scale=0.5, color='black')
     curly_vector_key(fig, ax1, a1, label='4 m/s')
     plt.savefig('D:/PyFile/pic/test.png', dpi=1000)
