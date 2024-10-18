@@ -172,15 +172,12 @@ if __name__ == '__main__':
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
                 # waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
-                WAF图层1 = ax1.quiver(z_diff['lon'][0:3], z_diff['lat'][0:3], waf_x[0:3, 0:3], waf_y[0:3, 0:3], scale=5, regrid_shape=30, transform=ccrs.PlateCarree(central_longitude=0))
                 WAF图层 = velovect(ax1, z_diff['lon'], z_diff['lat'][:180],
-                                  np.array(waf_x.tolist())[:180, :],
-                                  np.array(waf_y.tolist())[:180, :], regrid=15,
+                                  np.full(np.array(waf_x.tolist())[:180, :].shape, 0.5),
+                                  np.full(np.array(waf_y.tolist())[:180, :].shape, 0), regrid=5,
                                   arrowsize=.3, scale=5, grains=32, linewidth=0.2,
                                   color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax1, WAF图层, U=.5, label='0.5 m/s')
-                ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
-                                  labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
+                velovect_key(fig, ax1, WAF图层, U=.0005, label='0.5 m/s')
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 # 在赤道画一条纬线

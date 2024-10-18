@@ -827,7 +827,7 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     axes_sub.set_yticks([])
     axes_sub.set_xlim(-1, 1)
     axes_sub.set_ylim(-2, 1)
-    U = U * quiver[1] / 2.6
+    U = U * quiver[1] * 1e2 / 2.6
     # 绘制图例
     arrow = patches.FancyArrowPatch(
         (-U*np.cos(angle), -U*np.sin(angle)), (U*np.cos(angle), U*np.sin(angle)), arrowstyle=arrowstyle,
