@@ -281,7 +281,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         # Add arrows half way along each trajectory.
         s = np.cumsum(np.sqrt(np.diff(tx) ** 2 + np.diff(ty) ** 2))
         # 箭头方向平滑
-        flit_index = len(tx) // 6 + 1
+        flit_index = len(tx) // 15 + 1
         if len(tx) <= 10:
             flit_index = 5
         for i in range(flit_index):
@@ -297,7 +297,9 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
         delta = arrow_start - arrow_end
-        delta = delta * 10**(-np.max(np.abs(delta))//10+1)
+        if np.sqrt(delta[0] ** 2 + delta[1] ** 2) == 0.: continue  # 长度为0的箭头
+        delta = delta / np.sqrt(delta[0] ** 2 + delta[1] ** 2)
+        delta = delta * 10**0
         arrow_end =  arrow_start + delta
         a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0]  - lon_trunc
         a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0]  - lon_trunc
@@ -342,10 +344,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         
         ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
 
-        try:
-            if ds<1e-15: continue  #remove vanishingly short arrows that cause Patch to fail
-        except:
-            pass
+        if ds<1e-15: continue  #remove vanishingly short arrows that cause Patch to fail
 
         axes.add_patch(p)
         arrows.append(p)
