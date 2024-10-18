@@ -14,10 +14,8 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
     '''
     bbox_main = ax_main.get_position()
     bbox_sub = ax_sub.get_position()
-    wratio = bbox_main.width / bbox_sub.width
-    hratio = bbox_main.height / bbox_sub.height
-    wnew = bbox_sub.width * shrink * width
-    hnew = bbox_sub.height * shrink * height
+    wnew = bbox_main.width * shrink * width
+    hnew = bbox_main.height * shrink * height
     bbox_new = mtransforms.Bbox.from_extents(
         bbox_main.x1 - lr*wnew, bbox_main.y0 + (ud-1)*hnew,
         bbox_main.x1 - (lr-1)*wnew, bbox_main.y0 + ud*hnew

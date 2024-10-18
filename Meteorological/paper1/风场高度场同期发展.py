@@ -18,8 +18,8 @@ from matplotlib.ticker import MultipleLocator
 from scipy.ndimage import filters
 from toolbar.significance_test import corr_test
 from toolbar.TN_WaveActivityFlux import TN_WAF_3D
-from toolbar.Cquiver import curly_vector
-from toolbar.curved_quivers_master.modplot import velovect
+from toolbar.curved_quivers_master.modplot import velovect, velovect_key
+
 
 # 多核计算部分函数
 def multi_core(var, p, ols, sen):
@@ -177,10 +177,8 @@ if __name__ == '__main__':
                                   np.array(waf_x.tolist())[:180, :],
                                   np.array(waf_y.tolist())[:180, :], regrid=15,
                                   arrowsize=.3, scale=5, grains=32, linewidth=0.2,
-                                  color='gray', transform=ccrs.PlateCarree(central_longitude=0))
-
-                '''WAF图层_ = curly_vector(ax1, z_diff['lon'], z_diff['lat'][:180], np.array(waf_x.tolist())[:180, :].T, np.array(waf_y.tolist())[:180, :].T,
-                                      lon_trunc=-67.5, linewidth=0.5, arrowsize=3, scale=5, regrid=20, color='black', transform=ccrs.PlateCarree(central_longitude=0))'''
+                                  color='black', transform=ccrs.PlateCarree(central_longitude=0))
+                velovect_key(fig, ax1, WAF图层, U=.5, label='0.5 m/s')
                 ax1.quiverkey(WAF图层1, X=x-0.05, Y=y, U=0.25, angle=0, label='0.25 m$^2$/s$^2$',
                                   labelpos='E', color='green', fontproperties={'size': 5})  # linewidth=1为箭头的大小
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
@@ -260,8 +258,8 @@ if __name__ == '__main__':
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist()), regrid=20,
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=32, linewidth=0.75,
-                               color='gray', transform=ccrs.PlateCarree(central_longitude=0))
+                               arrowsize=.3, scale=1.75, grains=32, linewidth=0.2, transform=ccrs.PlateCarree(central_longitude=0))
+                velovect_key(fig, ax, uv_np_, U=.5, label='0.5 m/s')
                 '''uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),

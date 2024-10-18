@@ -26,10 +26,10 @@ from toolbar.sub_adjust import adjust_sub_axes
 __all__ = ['velovect']
 
 
-def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
+def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
                cmap=None, norm=None, arrowsize=1, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
-               scale=5.0, grains=1, masked=True, regrid=0, integration_direction='both'):
+               scale=1., grains=1, masked=True, regrid=0, integration_direction='both'):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -281,7 +281,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color=None,
         # Add arrows half way along each trajectory.
         s = np.cumsum(np.sqrt(np.diff(tx) ** 2 + np.diff(ty) ** 2))
         # 箭头方向平滑
-        flit_index = len(tx) // 15 + 1
+        # flit_index = len(tx) // 15 + 1
+        flit_index = 5
         if len(tx) <= 10:
             flit_index = 5
         for i in range(flit_index):
@@ -803,10 +804,10 @@ def _gen_starting_points(x,y,grains):
 
 
 
-def curly_vector_key(fig, axes, quiver, X=.93, Y=.105, U=None, angle=0, label='', labelpos='S', color='k', linewidth=.08, fontproperties={'size': 5}):
+def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5, fontproperties={'size': 5}):
     '''
     曲线矢量图例
-    :param fig: 画布
+    :param fig: 画布总底图
     :param axes: 目标图层
     :param quiver: 曲线矢量图层
     :param X: 图例横坐标
@@ -819,29 +820,20 @@ def curly_vector_key(fig, axes, quiver, X=.93, Y=.105, U=None, angle=0, label=''
     :param fontproperties: 字体属性
     :return: None
     '''
-    if U is None:
-        U = 1
-    else:
-        U = U
     axes_sub = fig.add_axes([0, 0, 1, 1])
-    adjust_sub_axes(axes, axes_sub, shrink=0.05)
+    adjust_sub_axes(axes, axes_sub, shrink=shrink)
     # 不显示刻度和刻度标签
     axes_sub.set_xticks([])
     axes_sub.set_yticks([])
-    # 设置子图的纵横比与主图一致
-    axes_sub.set_aspect(axes.get_aspect())
-    scale_factor = axes.get_position().width / axes_sub.get_position().width
-    x_ = (axes.get_xlim()/scale_factor)[1] - (axes.get_xlim()/scale_factor)[0]
-    y_ = (axes.get_ylim()/scale_factor)[1] - (axes.get_ylim()/scale_factor)[0]
-    axes_sub.set_xlim([-x_/3*2, x_/3])
-    axes_sub.set_ylim([-y_, 0])
-    # 让图例在子图层中居中
-    # X = axes_sub.get_position().x0 + axes_sub.get_position().width * X
-    U = np.full((2, 2), U)
-    V = np.full((2, 2), 0)
-    velovect(axes_sub, np.array([-x_/2, x_/2]), np.array([-y_/2, y_/2]), U, V, integration_direction='both', scale=quiver[1]/3.3, color=color, grains=1)
-    '''axes_sub.quiverkey(quiver[1], X=X, Y=Y, U=U, angle=angle, label=label, linewidth=linewidth,
-                                  labelpos=labelpos, color=color, fontproperties=fontproperties)'''
+    axes_sub.set_xlim(-1, 1)
+    axes_sub.set_ylim(-2, 1)
+    U = U * quiver[1] / 2.6
+    # 绘制图例
+    arrow = patches.FancyArrowPatch(
+        (-U*np.cos(angle), -U*np.sin(angle)), (U*np.cos(angle), U*np.sin(angle)), arrowstyle=arrowstyle,
+               mutation_scale=10, linewidth=linewidth)
+    axes_sub.add_patch(arrow)
+    axes_sub.text(0, -1.5, label, ha='center', va='center', color=color, fontproperties=fontproperties)
 
 
 if __name__ == '__main__':
@@ -853,7 +845,7 @@ if __name__ == '__main__':
     V = np.zeros(X.shape).T
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree())
-    a1 = velovect(ax1, x, y, U, V, regrid=3, lon_trunc=180, scale=0.5, color='black')
-    curly_vector_key(fig, ax1, a1, label='4 m/s')
+    a1 = velovect(ax1, x, y, U, V, regrid=5, lon_trunc=180, scale=0.02,color='black')
+    velovect_key(fig, ax1, a1)
     plt.savefig('D:/PyFile/pic/test.png', dpi=1000)
     plt.show()
