@@ -28,10 +28,10 @@ import warnings
 __all__ = ['velovect']
 
 
-def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=.5, color='black',
-               cmap=None, norm=None, arrowsize=1, arrowstyle='->',
+def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
+               cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
-               scale=1., masked=True, regrid=20, integration_direction='both'):
+               scale=1., masked=True, regrid=30, integration_direction='both'):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -90,7 +90,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=.5, color='black',
 
     # 检查y是否升序
     if y[0] > y[-1]:
-        print('Velovect Waring: Y reversed, because y is descending.')
+        warnings.warn('已将Y轴反转，因为Y轴方向非正向。', UserWarning)
         y = y[::-1]
         u = u[::-1]
         v = v[::-1]
@@ -133,6 +133,10 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=.5, color='black',
     except:
         pass
 
+    if lon_trunc is None:
+        lon_trunc = 180
+        warnings.warn('截断经度未设置,可能会导致箭头异常!(Default:180)', UserWarning)
+
     # 经纬度重排列为-180~0~180
     if x[-1] > 180:
         u = np.concatenate([u[:, np.argmax(x > 180):], u[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
@@ -140,9 +144,14 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=.5, color='black',
         x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
 
     # 环球插值
-    u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
-    v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
-    x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
+    if x[0] + 360 != x[-1]:
+        u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
+        v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
+        x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
+    else:
+        u = np.concatenate([u[:, -2:-1], u, u[:, 1:2]], axis=1)
+        v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
+        x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
 
     if regrid:
         # 将网格插值为正方形等间隔网格
@@ -268,18 +277,20 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=.5, color='black',
         xg, yg = dmap.data2grid(xs, ys)
         xg = np.clip(xg, 0, grid.nx - 1)
         yg = np.clip(yg, 0, grid.ny - 1)
-        t = integrate(xg, yg)[0:2] if integrate(xg, yg) is not None else None
-        unit = integrate(xg, yg)[4] if integrate(xg, yg) is not None else unit
-        xg_ = xg if integrate(xg, yg) is not None else xg_  # 保存上一个有效点
-        yg_ = yg if integrate(xg, yg) is not None else yg_  # 保存上一个有效点
+        t = integrate(xg, yg)[0:2] if integrate(xg, yg)[0][0] is not None else None
+        unit = integrate(xg, yg)[4] if t is not None else unit
+        xg_ = xg if t is not None else xg_  # 保存上一个有效点
+        yg_ = yg if t is not None else yg_  # 保存上一个有效点
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
     try:
+        # if integrate(xg_, xg_)[0][0] is None: warnings.warn('未找到基准流线,矢量单位可能有误!', UserWarning)
         xg_, yg_ = dmap.data2grid(sp2[integrate(xg_, yg_)[4][2]][0], sp2[integrate(xg_, yg_)[4][2]][1])
         unit[1] = integrate(xg_, yg_)[3]
     except TypeError:
-        warnings.warn('没有找到基准流线!', UserWarning)
+        warnings.warn('未找到基准流线,矢量单位可能有误!', UserWarning)
+        unit[1] = 0.
 
     if use_multicolor_lines:
         if norm is None:
@@ -291,7 +302,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=.5, color='black',
 
     streamlines = []
     arrows = []
-    for t, edge in tq.tqdm(zip(trajectories,edges), desc='Drawing streamlines'):
+    for t, edge in tq.tqdm(zip(trajectories,edges), desc='绘制曲轴矢量', colour='green'):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
 		
@@ -333,9 +344,9 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=.5, color='black',
         a_end = a_end + 360 if a_end < -180 else a_end
         # 网格偏移避免异常箭头
         if np.abs(a_start - a_end) < 90:
-            if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]) and extent[0] + 360 == extent[1]:
-                arrow_start = [arrow_start[0] - delta[0] * 1.1, arrow_start[1] - delta[0] * 1.1]
-                arrow_end =  [arrow_end[0] - delta[0] * 1.1, arrow_end[1] - delta[0] * 1.1]
+            if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]):
+                arrow_start = [arrow_start[0] - a_start * 1.01, arrow_start[1] - a_start * delta[1] / delta[0] * 1.01]
+                arrow_end =  [arrow_end[0] - a_start * 1.01, arrow_end[1] - a_start * delta[1] / delta[0] * 1.01]
         arrow_head = [arrow_start[0], arrow_start[1]]
         arrow_tail = [arrow_end[0], arrow_end[1]]
 
@@ -577,7 +588,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
     u_ax = u / dmap.grid.nx
     v_ax = v / dmap.grid.ny
     speed = np.ma.sqrt(u_ax ** 2 + v_ax ** 2)
-    unit_speed = [speed0[np.unravel_index(np.nanargmax(speed), speed.shape)], np.nanmax(speed), np.nanargmax(speed), speed.shape]
+    unit_speed = [speed0[np.unravel_index(np.nanargmax(speed), speed.shape)], np.nanmax(speed), np.nanargmax(speed)]
 
     if integration_direction == 'both':
         speed = speed / 2.
@@ -630,7 +641,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
             return (x_traj, y_traj), hit_edge, m_total, stotal, unit_speed
         else:  # reject short trajectories
             dmap.undo_trajectory()
-            return None
+            return (None, None), hit_edge, m_total, stotal, unit_speed
 
     return integrate
 
@@ -831,7 +842,7 @@ def _gen_starting_points(x,y,grains):
 
 
 
-def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5, fontproperties={'size': 5}):
+def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5, fontproperties={'size': 5}, lr=-6.045, ud=1.0):
     '''
     曲线矢量图例
     :param fig: 画布总底图
@@ -842,20 +853,27 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     :param U: 风速
     :param angle: 角度
     :param label: 标签
-    :param labelpos: 标签位置
     :param color: 颜色
+    :param arrowstyle: 箭头样式
+    :param linewidth: 线宽
     :param fontproperties: 字体属性
+    :param lr: 左右偏移(>1：左偏, <1：右偏)
+    :param ud: 上下偏移(>1：上偏, <1：下偏)
+
     :return: None
     '''
     axes_sub = fig.add_axes([0, 0, 1, 1])
-    adjust_sub_axes(axes, axes_sub, shrink=shrink)
+    adjust_sub_axes(axes, axes_sub, shrink=shrink, lr=lr, ud=ud)
     # 不显示刻度和刻度标签
     axes_sub.set_xticks([])
     axes_sub.set_yticks([])
     axes_sub.set_xlim(-1, 1)
     axes_sub.set_ylim(-2, 1)
     U_max = quiver[1][0]
-    U_trans = U / U_max * 720 * quiver[1][1] / shrink / 200 * 0.59
+    if quiver[1][1] == 0:
+        U_trans = U / U_max * 4.8 / shrink / 100 * 0.59
+    else:
+        U_trans = U / U_max * 720 * quiver[1][1] / shrink / 100 * 0.59
     # 绘制图例
     x, y = U_trans*np.cos(angle), U_trans*np.sin(angle)
     arrow = patches.FancyArrowPatch(
@@ -869,8 +887,8 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
 
 if __name__ == '__main__':
     "test"
-    x = np.linspace(-180, 180, 1400)
-    y = np.linspace(-90, 90, 700)
+    x = np.linspace(-180, 180, 1440)
+    y = np.linspace(-90, 90, 720)
     Y, X = np.meshgrid(y, x)
     U = np.ones(X.shape).T
     V = np.zeros(X.shape).T
