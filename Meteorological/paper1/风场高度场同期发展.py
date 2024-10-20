@@ -14,6 +14,7 @@ from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter  # 专门�
 from cartopy.util import add_cyclic_point
 from matplotlib import gridspec
 from matplotlib import ticker
+from matplotlib.pyplot import quiverkey
 from matplotlib.ticker import MultipleLocator
 from scipy.ndimage import filters
 from toolbar.significance_test import corr_test
@@ -173,11 +174,13 @@ if __name__ == '__main__':
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
                 # waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
                 WAF图层 = velovect(ax1, z_diff['lon'], z_diff['lat'][:180],
-                                  np.full(np.array(waf_x.tolist())[:180, :].shape, 0.5),
-                                  np.full(np.array(waf_y.tolist())[:180, :].shape, 0), regrid=5,
-                                  arrowsize=.3, scale=5, grains=32, linewidth=0.2,
+                                  waf_x[:180, :], waf_y[:180, :],
+                                  regrid=15, lon_trunc=-67.5, arrowsize=.3, scale=20, linewidth=0.2,
                                   color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax1, WAF图层, U=.0005, label='0.5 m/s')
+                qui = ax1.quiver(z_diff['lon'], z_diff['lat'][:180], waf_x[:180, :], waf_y[:180, :],
+                                 scale=10, regrid_shape=40, transform=ccrs.PlateCarree(central_longitude=0))
+                velovect_key(fig, ax1, WAF图层, U=1, label='0.5 m/s')
+                quiverkey(qui, 1, 1.03, U=.5, label='0.5 m/s', labelpos='E', color='black', fontproperties={'size': title_size})
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 # 在赤道画一条纬线
@@ -255,13 +258,8 @@ if __name__ == '__main__':
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist()), regrid=20,
-                               arrowsize=.3, scale=1.75, grains=32, linewidth=0.2, transform=ccrs.PlateCarree(central_longitude=0))
+                               arrowsize=.3, scale=2, linewidth=0.2, transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_np_, U=.5, label='0.5 m/s')
-                '''uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
-                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
-                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
-                               lon_trunc=-67.5, regrid=20, arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=29,linewidth=0.75,
-                               color='black', transform=ccrs.PlateCarree(central_longitude=0))'''
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
@@ -354,12 +352,12 @@ if __name__ == '__main__':
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist()),
-                               arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=31, linewidth=0.75,
+                               arrowstyle='fancy', arrowsize=.3, scale=1.73, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
-                               arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=29,linewidth=0.75,
+                               arrowstyle='fancy', arrowsize=.3, scale=1.73,linewidth=0.75,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
@@ -439,12 +437,12 @@ if __name__ == '__main__':
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist()),
-                               arrowstyle='fancy', arrowsize=.3, scale=1.73, grains=29, linewidth=0.75,
+                               arrowstyle='fancy', arrowsize=.3, scale=1.73, linewidth=0.75,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
-                               arrowstyle='fancy', arrowsize=.3, scale=1.75, grains=32,linewidth=0.75,
+                               arrowstyle='fancy', arrowsize=.3, scale=1.75,linewidth=0.75,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 ax.quiverkey(uv, X=x, Y=y, U=.5, angle=0, label='0.5', labelpos='E', fontproperties={'size': 5}, color='green')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))

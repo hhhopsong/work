@@ -11,6 +11,7 @@ import xarray as xr
 from scipy.interpolate import RegularGridInterpolator
 import numpy as np
 import cartopy.crs as ccrs
+from cartopy.util import add_cyclic_point
 
 import matplotlib
 from matplotlib import _api, cm, patches
@@ -21,15 +22,16 @@ import matplotlib.pyplot as plt
 
 import tqdm as tq
 from toolbar.sub_adjust import adjust_sub_axes
+import warnings
 
 
 __all__ = ['velovect']
 
 
-def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
+def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=1, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
-               scale=1., grains=1, masked=True, regrid=0, integration_direction='both'):
+               scale=1., masked=True, regrid=20, integration_direction='both'):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -56,13 +58,11 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
         矢量起绘点的坐标。在数据坐标系中，与 ``x`` 和 ``y`` 数组相同。
     *zorder* : int
         ``zorder`` 属性决定了绘图元素的绘制顺序,数值较大的元素会被绘制在数值较小的元素之上。
-    *scale* : float
+    *scale* : float(0-100)
         矢量的最大长度。
-    *grains* : int
-        绘图网格点数。
     *masked* : bool
         原数据是否为掩码数组
-    *regrid* : int
+    *regrid* : int(>=2)
         是否重新插值网格
     *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
         矢量向前、向后或双向绘制。
@@ -139,10 +139,19 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
         v = np.concatenate([v[:, np.argmax(x > 180):], v[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
         x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
 
+    # 环球插值
+    u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
+    v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
+    x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
+
     if regrid:
         # 将网格插值为正方形等间隔网格
         U = RegularGridInterpolator((y, x), u, method='linear')
         V = RegularGridInterpolator((y, x), v, method='linear')
+        if np.abs(x[1] + 360 - x[-2]) < 20:
+            x = np.linspace(-180, 180, regrid)
+        else:
+            x = np.linspace(x[1], x[-2], regrid)
         x = np.linspace(x[0], x[-1], regrid)
         y = np.linspace(y[0], y[-1], regrid)
         if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
@@ -158,7 +167,16 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
             u = U((Y, X))
             v = V((Y, X))
 
+    # 风速归一化
+    wind = np.sqrt(u ** 2 + v ** 2)
+    wind_shrink = wind / np.nanmax(wind)
+    u = u * wind_shrink
+    v = v * wind_shrink
+
+    if regrid >= 50: warnings.warn('流线绘制格点过多，可能导致计算速度过慢!', RuntimeWarning)
     _api.check_in_list(['both', 'forward', 'backward'], integration_direction=integration_direction)
+    grains = 1
+    scale = scale / 100. * 47666666 / 100000000  # scale缩放
     grid = Grid(x, y)
     mask = StreamMask(10)
     dmap = DomainMap(grid, mask)
@@ -213,8 +231,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
 	
     resolution = scale/grains
     minlength = .9*resolution
-    integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude)
-
+    integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction)
     trajectories = []
     edges = []
     
@@ -245,14 +262,24 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
     except AttributeError:
         extent = axes.get_xlim() + axes.get_ylim()
 
+    unit = []
+    xg_, yg_ = 0., 0.
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
         xg = np.clip(xg, 0, grid.nx - 1)
         yg = np.clip(yg, 0, grid.ny - 1)
-        t = integrate(xg, yg)
+        t = integrate(xg, yg)[0:2] if integrate(xg, yg) is not None else None
+        unit = integrate(xg, yg)[4] if integrate(xg, yg) is not None else unit
+        xg_ = xg if integrate(xg, yg) is not None else xg_  # 保存上一个有效点
+        yg_ = yg if integrate(xg, yg) is not None else yg_  # 保存上一个有效点
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
+    try:
+        xg_, yg_ = dmap.data2grid(sp2[integrate(xg_, yg_)[4][2]][0], sp2[integrate(xg_, yg_)[4][2]][1])
+        unit[1] = integrate(xg_, yg_)[3]
+    except TypeError:
+        warnings.warn('没有找到基准流线!', UserWarning)
 
     if use_multicolor_lines:
         if norm is None:
@@ -267,14 +294,12 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
     for t, edge in tq.tqdm(zip(trajectories,edges), desc='Drawing streamlines'):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
-        
 		
         # Rescale from grid-coordinates to data-coordinates.
         tx, ty = dmap.grid2data(*np.array(t))
         tx += grid.x_origin
         ty += grid.y_origin
 
-        
         points = np.transpose([tx, ty]).reshape(-1, 1, 2)
         streamlines.extend(np.hstack([points[:-1], points[1:]]))
 
@@ -309,8 +334,8 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
         # 网格偏移避免异常箭头
         if np.abs(a_start - a_end) < 90:
             if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]) and extent[0] + 360 == extent[1]:
-                arrow_start = [arrow_start[0] - delta[0] * 1.001, arrow_start[1] - delta[0] * 1.001]
-                arrow_end =  [arrow_end[0] - delta[0] * 1.001, arrow_end[1] - delta[0] * 1.001]
+                arrow_start = [arrow_start[0] - delta[0] * 1.1, arrow_start[1] - delta[0] * 1.1]
+                arrow_end =  [arrow_end[0] - delta[0] * 1.1, arrow_end[1] - delta[0] * 1.1]
         arrow_head = [arrow_start[0], arrow_start[1]]
         arrow_tail = [arrow_end[0], arrow_end[1]]
 
@@ -363,7 +388,7 @@ def velovect(axes, x, y, u, v, lon_trunc=180, linewidth=None, color='black',
 
     ac = mcollections.PatchCollection(arrows)
     stream_container = StreamplotSet(lc, ac)
-    return stream_container, scale
+    return stream_container, unit
 
 	
 
@@ -486,7 +511,6 @@ class Grid(object):
         # `xi < self.nx` since `xi` can be `self.nx - 1 < xi < self.nx`
         return xi >= 0 and xi <= self.nx - 1 and yi >= 0 and yi <= self.ny - 1
 
-
 class StreamMask(object):
     """Mask to keep track of discrete regions crossed by streamlines.
 
@@ -546,12 +570,14 @@ class StreamMask(object):
 def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True):
 
     # rescale velocity onto grid-coordinates for integrations.
+    speed0 = np.ma.sqrt(u ** 2 + v ** 2)
     u, v = dmap.data2grid(u, v)
 
     # speed (path length) will be in axes-coordinates
     u_ax = u / dmap.grid.nx
     v_ax = v / dmap.grid.ny
     speed = np.ma.sqrt(u_ax ** 2 + v_ax ** 2)
+    unit_speed = [speed0[np.unravel_index(np.nanargmax(speed), speed.shape)], np.nanmax(speed), np.nanargmax(speed), speed.shape]
 
     if integration_direction == 'both':
         speed = speed / 2.
@@ -569,7 +595,6 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         dxi, dyi = forward_time(xi, yi)
         return -dxi, -dyi
 
-
     def integrate(x0, y0):
         """Return x, y grid-coordinates of trajectory based on starting point.
 
@@ -581,27 +606,28 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         resulting trajectory is None if it is shorter than `minlength`.
         """
 
-        stotal, x_traj, y_traj = 0., [], []
+        stotal, x_traj, y_traj, m_total = 0., [], [], []
 
         
         dmap.start_trajectory(x0, y0)
 
         if integration_direction in ['both', 'backward']:
-            stotal_, x_traj_, y_traj_, m_total, hit_edge = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude)
+            stotal_, x_traj_, y_traj_, m_total_, hit_edge = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude)
             stotal += stotal_
             x_traj += x_traj_[::-1]
             y_traj += y_traj_[::-1]
+            m_total += m_total_[::-1]
 
         if integration_direction in ['both', 'forward']:
             dmap.reset_start_point(x0, y0)
-            stotal_, x_traj_, y_traj_, m_total, hit_edge = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude)
+            stotal_, x_traj_, y_traj_, m_total_, hit_edge = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude)
             stotal += stotal_
             x_traj += x_traj_[1:]
             y_traj += y_traj_[1:]
-
+            m_total += m_total_[1:]
 
         if len(x_traj)>1:
-            return (x_traj, y_traj), hit_edge
+            return (x_traj, y_traj), hit_edge, m_total, stotal, unit_speed
         else:  # reject short trajectories
             dmap.undo_trajectory()
             return None
@@ -635,7 +661,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True):
     # This error is below that needed to match the RK4 integrator. It
     # is set for visual reasons -- too low and corners start
     # appearing ugly and jagged. Can be tuned.
-    maxerror = 0.0003
+    maxerror = 3e-4
 
     # This limit is important (for all integrators) to avoid the
     # trajectory skipping some mask cells. We could relax this
@@ -643,7 +669,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True):
     # increment the location gradually. However, due to the efficient
     # nature of the interpolation, this doesn't boost speed by much
     # for quite a bit of complexity.
-    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 0.1)
+    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 1e-3)
 
     ds = maxds
     stotal = 0
@@ -665,6 +691,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True):
         except IndexError:
             # Out of the domain on one of the intermediate integration steps.
             # Take an Euler step to the boundary to improve neatness.
+            # 在其中一个中间集成步骤中脱离域。向边界迈出欧拉步以提高整洁度。
             ds, xf_traj, yf_traj = _euler_step(xf_traj, yf_traj, dmap, f)
             stotal += ds
             hit_edge = True
@@ -689,7 +716,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True):
             dmap.update_trajectory(xi, yi)
             
             if not dmap.grid.within_grid(xi, yi):
-                hit_edge=True
+                hit_edge=False
             
             if (stotal + ds) > resolution*np.mean(m_total):
                 break
@@ -728,11 +755,11 @@ def _euler_step(xf_traj, yf_traj, dmap, f):
     return ds, xf_traj, yf_traj
 
 
-# Utility functions
+# 实用功能
 # ========================
 
 def interpgrid(a, xi, yi, masked=True):
-    """Fast 2D, linear interpolation on an integer grid"""
+    """Fast 2D, linear interpolation on an integer grid/整数网格上的快速二维线性插值"""
 
     Ny, Nx = np.shape(a)
     if isinstance(xi, np.ndarray):
@@ -827,25 +854,29 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     axes_sub.set_yticks([])
     axes_sub.set_xlim(-1, 1)
     axes_sub.set_ylim(-2, 1)
-    U = U * quiver[1] * 1e2 / 2.6
+    U_max = quiver[1][0]
+    U_trans = U / U_max * 720 * quiver[1][1] / shrink / 200 * 0.59
     # 绘制图例
+    x, y = U_trans*np.cos(angle), U_trans*np.sin(angle)
     arrow = patches.FancyArrowPatch(
-        (-U*np.cos(angle), -U*np.sin(angle)), (U*np.cos(angle), U*np.sin(angle)), arrowstyle=arrowstyle,
-               mutation_scale=10, linewidth=linewidth)
+        (x, y), (x+(1e-1)*np.cos(angle), y+(1e-1)*np.sin(angle))
+              , arrowstyle=arrowstyle, mutation_scale=10, linewidth=linewidth)
     axes_sub.add_patch(arrow)
+    lines = [[[-x, y], [x, -y]]]
+    lc = mcollections.LineCollection(lines, capstyle='round', linewidth=linewidth, color=color)
+    axes_sub.add_collection(lc)
     axes_sub.text(0, -1.5, label, ha='center', va='center', color=color, fontproperties=fontproperties)
-
 
 if __name__ == '__main__':
     "test"
-    x = np.linspace(-180, 180, 1440)
-    y = np.linspace(-90, 90, 720)
+    x = np.linspace(-180, 180, 1400)
+    y = np.linspace(-90, 90, 700)
     Y, X = np.meshgrid(y, x)
     U = np.ones(X.shape).T
     V = np.zeros(X.shape).T
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree())
-    a1 = velovect(ax1, x, y, U, V, regrid=5, lon_trunc=180, scale=0.02,color='black')
-    velovect_key(fig, ax1, a1)
+    a1 = velovect(ax1, x, y, U, V, regrid=15, lon_trunc=180, scale=2, color='black', linewidth=0.5)
+    velovect_key(fig, ax1, a1, arrowstyle='->', shrink=0.15)
     plt.savefig('D:/PyFile/pic/test.png', dpi=1000)
     plt.show()
