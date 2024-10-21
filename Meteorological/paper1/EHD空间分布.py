@@ -20,6 +20,11 @@ EHD = EHD.sel(time=EHD['time.month'].isin([7, 8])).groupby('time.year').sum('tim
 # 将0值替换为缺测值
 EHD = EHD.where(EHD > 0)
 EHD = masked(EHD, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")
+EHD35_lat = EHD['lat'][np.argwhere(~np.isnan(EHD['tmax'].data))[:, 0]]
+EHD35_lon = EHD['lon'][np.argwhere(~np.isnan(EHD['tmax'].data))[:, 1]]
+EHD35_map = np.array([EHD35_lat, EHD35_lon]).T
+np.save(r"D:\PyFile\paper1\EHD35_map.npy", EHD35_map)
+np.save(r"D:\PyFile\paper1\EHD35_index.npy", np.argwhere(~np.isnan(EHD['tmax'].data)))
 # 绘图
 # ##地图要素设置
 plt.rcParams['font.sans-serif'] = ['Arial']

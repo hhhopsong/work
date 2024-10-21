@@ -175,7 +175,7 @@ if __name__ == '__main__':
                 # waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
                 WAF图层 = velovect(ax1, z_diff['lon'], z_diff['lat'][:180],
                                   waf_x[:180, :], waf_y[:180, :],
-                                  regrid=15, lon_trunc=-67.5, arrowsize=.3, scale=40, linewidth=0.4,
+                                  regrid=15, lon_trunc=-67.5, arrowsize=.3, scale=30, linewidth=0.4,
                                   color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax1, WAF图层, U=.25, label='0.25 m$^2$/s$^2$')
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
@@ -345,10 +345,10 @@ if __name__ == '__main__':
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np,
-                               arrowsize=.5, scale=10,lon_trunc=-67.5, linewidth=0.4, regrid=30,
+                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4, regrid=30,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'] ,u_corr, v_corr,
-                               arrowsize=.5, scale=10,lon_trunc=-67.5, linewidth=0.4, regrid=30,
+                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4, regrid=30,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_np_, U=.5, label='0.5')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
