@@ -31,7 +31,7 @@ __all__ = ['velovect']
 def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
-               scale=1., masked=True, regrid=30, integration_direction='both'):
+               scale=1., masked=True, regrid=30, integration_direction='both', mode='loose'):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -66,6 +66,10 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         是否重新插值网格
     *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
         矢量向前、向后或双向绘制。
+    *mode* : {'loose','strict'}, default: 'loose'
+        流线边界绘制模式.
+        'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
+        'strict': 流线绘制时，严格裁切数据边界.
 
     Returns:
 
@@ -240,7 +244,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
 	
     resolution = scale/grains
     minlength = .9*resolution
-    integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction)
+    integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction, mode=mode)
     trajectories = []
     edges = []
     
@@ -364,12 +368,12 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
                 arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
 
         if isinstance(linewidth, np.ndarray):
-            line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
+            line_widths = interpgrid(linewidth, tgx, tgy, masked=masked, mode=mode)[:-1]
             line_kw['linewidth'].extend(line_widths)
             arrow_kw['linewidth'] = line_widths[n]
 
         if use_multicolor_lines:
-            color_values = interpgrid(color, tgx, tgy, masked=masked)[:-1]
+            color_values = interpgrid(color, tgx, tgy, masked=masked, mode=mode)[:-1]
             line_colors.append(color_values)
             arrow_kw['color'] = cmap(norm(color_values[n]))
         
@@ -578,7 +582,7 @@ class StreamMask(object):
 # Integrator definitions
 #========================
 
-def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True):
+def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True, mode='loose'):
 
     # rescale velocity onto grid-coordinates for integrations.
     speed0 = np.ma.sqrt(u ** 2 + v ** 2)
@@ -594,12 +598,12 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         speed = speed / 2.
 
     def forward_time(xi, yi):
-        ds_dt = interpgrid(speed, xi, yi, masked=masked)
+        ds_dt = interpgrid(speed, xi, yi, masked=masked, mode=mode)
         if ds_dt == 0:
             raise TerminateTrajectory()
         dt_ds = 1. / ds_dt
-        ui = interpgrid(u, xi, yi, masked=masked)
-        vi = interpgrid(v, xi, yi, masked=masked)
+        ui = interpgrid(u, xi, yi, masked=masked, mode=mode)
+        vi = interpgrid(v, xi, yi, masked=masked, mode=mode)
         return ui * dt_ds, vi * dt_ds
 
     def backward_time(xi, yi):
@@ -646,7 +650,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
     return integrate
 
 
-def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True):
+def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='loose'):
     """2nd-order Runge-Kutta algorithm with adaptive step size.
 
     This method is also referred to as the improved Euler's method, or Heun's
@@ -694,7 +698,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True):
     while dmap.grid.within_grid(xi, yi):
         xf_traj.append(xi)
         yf_traj.append(yi)
-        m_total.append(interpgrid(magnitude, xi, yi, masked=masked))
+        m_total.append(interpgrid(magnitude, xi, yi, masked=masked, mode=mode))
         try:
             k1x, k1y = f(xi, yi)
             k2x, k2y = f(xi + ds * k1x,
@@ -769,7 +773,7 @@ def _euler_step(xf_traj, yf_traj, dmap, f):
 # 实用功能
 # ========================
 
-def interpgrid(a, xi, yi, masked=True):
+def interpgrid(a, xi, yi, masked=True, mode='loose'):
     """Fast 2D, linear interpolation on an integer grid/整数网格上的快速二维线性插值"""
 
     Ny, Nx = np.shape(a)
@@ -798,25 +802,30 @@ def interpgrid(a, xi, yi, masked=True):
     a11 = a[yn, xn]
     xt = xi - x
     yt = yi - y
-    zeros = np.where(np.array([a00, a01, a10, a11]) == 0.0)[0]
-    if len(zeros) >= 2:
-        ai = 0.0
-    elif len(zeros) == 1:
-        distance1 = np.sqrt((x - xi) ** 2 + (y - yi) ** 2)
-        distance2 = np.sqrt((xn - xi) ** 2 + (y - yi) ** 2)
-        distance3 = np.sqrt((x - xi) ** 2 + (yn - yi) ** 2)
-        distance4 = np.sqrt((xn - xi) ** 2 + (yn - yi) ** 2)
-        distances = np.array([distance1, distance2, distance3, distance4])
-        if np.argmin(distances) == zeros[0]:
+    if mode == 'loose':
+        a0 = a00 * (1 - xt) + a01 * xt
+        a1 = a10 * (1 - xt) + a11 * xt
+        ai = a0 * (1 - yt) + a1 * yt
+    elif mode == 'strict':
+        zeros = np.where(np.array([a00, a01, a10, a11]) == 0.0)[0]
+        if len(zeros) >= 2:
             ai = 0.0
+        elif len(zeros) == 1:
+            distance1 = np.sqrt((x - xi) ** 2 + (y - yi) ** 2)
+            distance2 = np.sqrt((xn - xi) ** 2 + (y - yi) ** 2)
+            distance3 = np.sqrt((x - xi) ** 2 + (yn - yi) ** 2)
+            distance4 = np.sqrt((xn - xi) ** 2 + (yn - yi) ** 2)
+            distances = np.array([distance1, distance2, distance3, distance4])
+            if np.argmin(distances) == zeros[0]:
+                ai = 0.0
+            else:
+                a0 = a00 * (1 - xt) + a01 * xt
+                a1 = a10 * (1 - xt) + a11 * xt
+                ai = a0 * (1 - yt) + a1 * yt
         else:
             a0 = a00 * (1 - xt) + a01 * xt
             a1 = a10 * (1 - xt) + a11 * xt
             ai = a0 * (1 - yt) + a1 * yt
-    else:
-        a0 = a00 * (1 - xt) + a01 * xt
-        a1 = a10 * (1 - xt) + a11 * xt
-        ai = a0 * (1 - yt) + a1 * yt
 
     if not isinstance(xi, np.ndarray):
         if np.ma.is_masked(ai) and (not masked):
