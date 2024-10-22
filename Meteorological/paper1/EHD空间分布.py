@@ -16,7 +16,7 @@ from toolbar.masked import masked   # 气象工具函数
 # 数据读取
 # 读取CN05.1逐日最高气温数据
 EHD = xr.open_dataset(r"D:\PyFile\paper1\EHD35.nc").sel(time=slice('1961-01-01', '2022-12-31'))  # 读取缓存
-EHD = EHD.sel(time=EHD['time.month'].isin([7, 8])).groupby('time.year').sum('time').mean('year')
+EHD = EHD.sel(time=EHD['time.month'].isin([6, 7, 8])).groupby('time.year').sum('time').mean('year')
 # 将0值替换为缺测值
 EHD = EHD.where(EHD > 0)
 EHD = masked(EHD, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")

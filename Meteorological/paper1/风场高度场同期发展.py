@@ -32,50 +32,33 @@ def multi_core(var, p, ols, sen):
         pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
     elif var == 'precip':
         pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\pre\pre_same.nc")['precip'].transpose('lat', 'lon', 'year')
-    try:
-        if var == 'u' or var == 'v' or var == 'z':
-            corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy")  # 读取缓存
-        elif var == 'sst':
-            corr_1 = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy")
-        elif var == 'precip':
-            corr_1 = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy")
-    except:
-        shape = pre_diff.shape
-        pre_diff = pre_diff.data.reshape(shape[0] * shape[1], shape[2])
-        corr_1 = np.array([np.corrcoef(d, ols)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
-        if var == 'u' or var == 'v' or var == 'z':
-            np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy", corr_1)  # 保存缓存
-        elif var == 'sst':
-            np.save(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy", corr_1)
-        elif var == 'precip':
-            np.save(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy", corr_1)
-    try:
-        if var == 'u' or var == 'v' or var == 'z':
-            corr_2 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr2_{var}{p}_same.npy")  # 读取缓存
-        elif var == 'sst':
-            corr_2 = np.load(fr"D:\PyFile\paper1\cache\sst\corr2_sst_same.npy")
-        elif var == 'precip':
-            corr_2 = np.load(fr"D:\PyFile\paper1\cache\pre\corr2_pre_same.npy")
-    except:
-        shape = pre_diff.shape
-        pre_diff = pre_diff.data if isinstance(pre_diff, xr.DataArray) else pre_diff
-        pre_diff = pre_diff.reshape(shape[0] * shape[1], shape[2])
-        corr_2 = np.array([np.corrcoef(d, sen)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
-        if var == 'u' or var == 'v' or var == 'z':
-            np.save(fr"D:\PyFile\paper1\cache\uvz\corr2_{var}{p}_same.npy", corr_2)  # 保存缓存
-        elif var == 'sst':
-            np.save(fr"D:\PyFile\paper1\cache\sst\corr2_sst_same.npy", corr_2)
-        elif var == 'precip':
-            np.save(fr"D:\PyFile\paper1\cache\pre\corr2_pre_same.npy", corr_2)
+    elif var == 'olr':
+        pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\olr\olr_same.nc")['olr'].transpose('lat', 'lon', 'year')
+    shape = pre_diff.shape
+    pre_diff = pre_diff.data if isinstance(pre_diff, xr.DataArray) else pre_diff
+    pre_diff = pre_diff.reshape(shape[0] * shape[1], shape[2])
+    corr_1 = np.array([np.corrcoef(d, ols)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
+    if var == 'u' or var == 'v' or var == 'z':
+        np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy", corr_1)  # 保存缓存
+    elif var == 'sst':
+        np.save(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy", corr_1)
+    elif var == 'precip':
+        np.save(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy", corr_1)
+    elif var == 'olr':
+        np.save(fr"D:\PyFile\paper1\cache\olr\corr_olr_same.npy", corr_1)
     if var == 'z' and p == 200:
-        try:
-            reg_z = np.load(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy")
-        except:
-            shape = pre_diff.shape
-            pre_diff = pre_diff.data if isinstance(pre_diff, xr.DataArray) else pre_diff
-            pre_diff = pre_diff.data.reshape(shape[0] * shape[1], shape[2])
-            reg_z = np.array([np.polyfit(ols, f, 1)[0] for f in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
-            np.save(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy", reg_z)
+        reg_z = np.array([np.polyfit(ols, f, 1)[0] for f in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
+        np.save(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy", reg_z)
+    r'''shape = pre_diff.shape
+    pre_diff = pre_diff.data if isinstance(pre_diff, xr.DataArray) else pre_diff
+    pre_diff = pre_diff.reshape(shape[0] * shape[1], shape[2])
+    corr_2 = np.array([np.corrcoef(d, sen)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
+    if var == 'u' or var == 'v' or var == 'z':
+        np.save(fr"D:\PyFile\paper1\cache\uvz\corr2_{var}{p}_same.npy", corr_2)  # 保存缓存
+    elif var == 'sst':
+        np.save(fr"D:\PyFile\paper1\cache\sst\corr2_sst_same.npy", corr_2)
+    elif var == 'precip':
+        np.save(fr"D:\PyFile\paper1\cache\pre\corr2_pre_same.npy", corr_2)'''
     print(f"{p}hPa层{var}相关系数完成。")
 
 
@@ -122,30 +105,33 @@ if __name__ == '__main__':
         for p in [200, 500, 600, 700, 850]:
             u_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\u_same.nc")['u'].sel(p=p).transpose('lat', 'lon', 'year')
             u_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_u{p}_same.npy")  # 读取缓存
-            u_corr_2 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_u{p}_same.npy")  # 读取缓存
             v_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\v_same.nc")['v'].sel(p=p).transpose('lat', 'lon', 'year')
             v_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_v{p}_same.npy")  # 读取缓存
-            v_corr_2 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_v{p}_same.npy")  # 读取缓存
             z_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\z_same.nc")['z'].sel(p=p).transpose('lat', 'lon', 'year')
             z_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_z{p}_same.npy")  # 读取缓存
-            z_corr_2 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_z{p}_same.npy")  # 读取缓存
+            olr_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\olr\olr_same.nc")['mtnlwrf'].transpose('lat', 'lon', 'year')
+            olr_corr_1 = np.load(fr"D:\PyFile\paper1\cache\olr\corr_olr_same.npy")  # 读取缓存
+            # 绘图
             if p == 200:
                 if select == 1:
                     u_corr = u_corr_1
                     v_corr = v_corr_1
                     z_corr = z_corr_1
+                    olr_corr = olr_corr_1
                     u显著性检验结果 = corr_test(ols, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(ols, v_corr, alpha=alpha)
                     z显著性检验结果 = corr_test(ols, z_corr, alpha=alpha)
+                    olr显著性检验结果 = corr_test(ols, olr_corr, alpha=alpha)
                     pc = ols
                 else:
-                    u_corr = u_corr_2
+                    pass
+                    '''u_corr = u_corr_2
                     v_corr = v_corr_2
                     z_corr = z_corr_2
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     z显著性检验结果 = corr_test(sen, z_corr, alpha=alpha)
-                    pc = sen
+                    pc = sen'''
                 # 计算TN波作用通量
                 reg_z200 = np.load(fr"D:\PyFile\paper1\cache\uvz\reg_z200_same.npy")
                 Geoc = xr.DataArray(z_diff.mean('year').data[np.newaxis, :, :],
@@ -167,9 +153,19 @@ if __name__ == '__main__':
                 waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0, filt=3)
                 ax1 = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
                 waf, lon = add_cyclic_point(waf_streamf[0], coord=z_diff['lon'])
-                streamf图层 = ax1.contourf(lon, z_diff['lat'], waf*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
+                olr, lon = add_cyclic_point(olr_corr, coord=olr_diff['lon'])
+                '''streamf图层 = ax1.contourf(lon, z_diff['lat'], waf*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
                                            cmap=cmaps.MPL_PuOr_r[11:106],
                                            extend='both',
+                                           transform=ccrs.PlateCarree(central_longitude=0))'''
+                olr图层 = ax1.contourf(lon, z_diff['lat'], olr,
+                                           levels=10,
+                                           cmap=cmaps.MPL_PuOr_r[11:106],
+                                           extend='both',
+                                           transform=ccrs.PlateCarree(central_longitude=0))
+                显著性检验结果 = np.where(olr显著性检验结果 == 1, 0, np.nan)
+                显著性检验图层 = ax.quiver(olr_diff['lon'], olr_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+                                           color='white', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
                 # waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
@@ -177,7 +173,7 @@ if __name__ == '__main__':
                                   waf_x[:180, :], waf_y[:180, :],
                                   regrid=15, lon_trunc=-67.5, arrowsize=.3, scale=30, linewidth=0.4,
                                   color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax1, WAF图层, U=.25, label='0.25 m$^2$/s$^2$')
+                velovect_key(fig, ax1, WAF图层, U=.1, label='0.1 m$^2$/s$^2$')
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 # 在赤道画一条纬线
@@ -226,13 +222,14 @@ if __name__ == '__main__':
                     z显著性检验结果 = corr_test(ols, z_corr, alpha=alpha)
                     pc = ols
                 else:
-                    u_corr = u_corr_2
+                    pass
+                    '''u_corr = u_corr_2
                     v_corr = v_corr_2
                     z_corr = z_corr_2
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     z显著性检验结果 = corr_test(sen, z_corr, alpha=alpha)
-                    pc = sen
+                    pc = sen'''
                 ax = fig.add_subplot(spec[1, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
                 ax.set_title('500hPa UVZ', fontsize=title_size, loc='left')
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
@@ -256,7 +253,7 @@ if __name__ == '__main__':
                                   transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray',
                                   lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_np_, U=.5, label='0.5')
+                velovect_key(fig, ax, uv_np_, U=.25, label='0.25')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
@@ -306,7 +303,8 @@ if __name__ == '__main__':
                     sst显著性检验结果 = corr_test(ols, sst_corr, alpha=alpha)
                     pc = ols
                 else:
-                    u_corr = u_corr_2
+                    pass
+                    '''u_corr = u_corr_2
                     v_corr = v_corr_2
                     z_corr = z_corr_2
                     sst_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].sel(p=p).transpose('lat', 'lon', 'year')
@@ -314,7 +312,7 @@ if __name__ == '__main__':
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     sst显著性检验结果 = corr_test(sen, sst_corr, alpha=alpha)
-                    pc = sen
+                    pc = sen'''
                 ax = fig.add_subplot(spec[2, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
                 ax.set_title('700hPa UVZ&SST', fontsize=title_size, loc='left')
                 sst_corr, lon = add_cyclic_point(sst_corr, coord=sst_diff['lon'])
@@ -350,7 +348,7 @@ if __name__ == '__main__':
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'] ,u_corr, v_corr,
                                arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4, regrid=30,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_np_, U=.5, label='0.5')
+                velovect_key(fig, ax, uv_np_, U=.25, label='0.25')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
@@ -434,7 +432,7 @@ if __name__ == '__main__':
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
                                arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_, U=.5, label='0.5', lr=-5.95)
+                velovect_key(fig, ax, uv_, U=.5, label='0.5', lr=-5.97)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))

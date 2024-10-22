@@ -23,7 +23,7 @@ from scipy import stats
 # 数据读取
 time = [1961, 2022]
 info = input(r"请输入阈值(\35\37\40):")
-EHDstations_zone = xr.open_dataset(fr"D:\PyFile\paper1\EHD{info}stations_zone.nc").sel(year=slice(f"{time[0]}", f"{time[1]}"))  # 读取缓存
+EHDstations_zone = xr.open_dataset(fr"D:\PyFile\paper1\EHD{info}stations_happended_zone.nc").sel(year=slice(f"{time[0]}", f"{time[1]}"))  # 读取缓存
 # 绘图
 sns.set(style='ticks')
 fig = plt.figure()
@@ -126,5 +126,5 @@ plt.gca().invert_yaxis()
 
 # 保存为1:1
 plt.gcf().set_size_inches(10, 10)
-plt.savefig(fr'D:\PyFile\pic\图3_{info}.png', dpi=666, bbox_inches='tight')
+plt.savefig(fr'D:\PyFile\pic\图3_{info}_happended.png', dpi=666, bbox_inches='tight')
 plt.show()
