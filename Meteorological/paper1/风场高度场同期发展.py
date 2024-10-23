@@ -180,7 +180,7 @@ if __name__ == '__main__':
                 # 在赤道画一条纬线
                 ax1.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
-                                  ccrs.PlateCarree(central_longitude=0), facecolor='none',edgecolor='black',linewidth=.2)
+                                  ccrs.PlateCarree(central_longitude=0), facecolor='none',edgecolor='black',linewidth=.4)
 
                 # 刻度线设置
                 # ax1
@@ -259,7 +259,7 @@ if __name__ == '__main__':
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
-                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
 
                 # 刻度线设置
                 # ax1
@@ -324,11 +324,11 @@ if __name__ == '__main__':
                 z_corr = filters.gaussian_filter(z_corr, 4)
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
                 z相关系数图层_low = ax.contour(lon, z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:4],
-                                     linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
+                                     linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0), zorder=1)
                 z相关系数图层_0 = ax.contour(lon, z_diff['lat'], z_corr, color='gray', levels=[0],
-                                     linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
+                                     linewidths=.2, linestyles='--', alpha=1, transform=ccrs.PlateCarree(central_longitude=0), zorder=1)
                 z相关系数图层_high = ax.contour(lon, z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[17], levels=level_z[5:],
-                                     linewidths=.2, linestyles='-', alpha=1, transform=ccrs.PlateCarree(central_longitude=0))
+                                     linewidths=.2, linestyles='-', alpha=1, transform=ccrs.PlateCarree(central_longitude=0), zorder=1)
                 plt.clabel(z相关系数图层_low, inline=True, fontsize=3, fmt='%.1f', inline_spacing=5)
                 plt.clabel(z相关系数图层_0, inline=True, fontsize=3, fmt='%d', inline_spacing=5)
                 plt.clabel(z相关系数图层_high, inline=True, fontsize=3, fmt='%.1f', inline_spacing=5)
@@ -354,7 +354,12 @@ if __name__ == '__main__':
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
-                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
+                ax.add_geometries(Reader(
+                    r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
+                                   ccrs.PlateCarree(), facecolor='none', edgecolor='gray', linewidth=.2, hatch='.', zorder=2)
+                ax.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_del长江流域\TPBoundary2500m_del长江流域.shp').geometries(),
+                                  ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.2, zorder=2)
                 # 刻度线设置
                 # ax1
                 ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
@@ -438,7 +443,14 @@ if __name__ == '__main__':
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
-                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.2)
+                                  ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
+                ax.add_geometries(Reader(
+                    r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
+                                  ccrs.PlateCarree(), facecolor='none', edgecolor='gray', linewidth=.2, hatch='.', zorder=2)
+                ax.add_geometries(Reader(
+                    r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_del长江流域\TPBoundary2500m_del长江流域.shp').geometries(),
+                                  ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.2, zorder=2)
+
                 # 刻度线设置
                 # ax1
                 ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
