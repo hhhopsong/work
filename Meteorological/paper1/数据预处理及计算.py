@@ -359,8 +359,8 @@ if eval(input("10)是否计算同期(0/1)?\n")):
         pre = xr.DataArray(pre.data, coords=[('time', pd.to_datetime(pre['date'], format="%Y%m%d")),
                                              ('lat', pre['latitude'].data),
                                              ('lon', pre['longitude'].data)]).to_dataset(name=var_name)
-        pre = pre.sel(date=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
-        pre = pre.sel(date=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+        pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+        pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
         pre.to_netcdf(r"D:\PyFile\paper1\cache\olr\olr_same.nc")
     else:
         raise ValueError("输入错误")

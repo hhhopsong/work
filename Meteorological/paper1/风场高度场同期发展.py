@@ -71,7 +71,7 @@ if __name__ == '__main__':
     if eval(input("是否进行相关系数计算(0/1):")):
         Ncpu = multiprocessing.cpu_count()
         data_pool = []
-        for var in ['u', 'v', 'z', 'sst', 'precip']:
+        for var in ['u', 'v', 'z', 'sst', 'precip', 'olr']:
             if var == 'u' or var == 'v' or var == 'z':
                 for p in [200, 500, 600, 700, 850]:
                     data_pool.append([var, p, ols, sen])
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             v_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_v{p}_same.npy")  # 读取缓存
             z_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\z_same.nc")['z'].sel(p=p).transpose('lat', 'lon', 'year')
             z_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_z{p}_same.npy")  # 读取缓存
-            olr_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\olr\olr_same.nc")['mtnlwrf'].transpose('lat', 'lon', 'year')
+            olr_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\olr\olr_same.nc")['olr'].transpose('lat', 'lon', 'year')
             olr_corr_1 = np.load(fr"D:\PyFile\paper1\cache\olr\corr_olr_same.npy")  # 读取缓存
             # 绘图
             if p == 200:
@@ -152,6 +152,7 @@ if __name__ == '__main__':
                                             ('lon', z_diff['lon'].data)])
                 waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0, filt=3)
                 ax1 = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
+                ax1.set_title('200hPa WAF&OLR', fontsize=title_size, loc='left')
                 waf, lon = add_cyclic_point(waf_streamf[0], coord=z_diff['lon'])
                 olr, lon = add_cyclic_point(olr_corr, coord=olr_diff['lon'])
                 '''streamf图层 = ax1.contourf(lon, z_diff['lat'], waf*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
@@ -159,12 +160,12 @@ if __name__ == '__main__':
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))'''
                 olr图层 = ax1.contourf(lon, z_diff['lat'], olr,
-                                           levels=10,
-                                           cmap=cmaps.MPL_PuOr_r[11:106],
+                                           levels=[-.5, -.4, -.3, -.2, -0.1, -.05, .05, .1, .2, .3, .4, .5],
+                                           cmap=cmaps.MPL_PuOr_r[11:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106],
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 显著性检验结果 = np.where(olr显著性检验结果 == 1, 0, np.nan)
-                显著性检验图层 = ax.quiver(olr_diff['lon'], olr_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
+                显著性检验图层 = ax1.quiver(olr_diff['lon'], olr_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='white', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
@@ -203,9 +204,9 @@ if __name__ == '__main__':
                 ax1.tick_params(axis='both', labelsize=title_size, colors='black')
 
                 # 设置色标
-                cbar = plt.colorbar(streamf图层, orientation='vertical', drawedges=True, ax=ax1)
+                cbar = plt.colorbar(olr图层, orientation='vertical', drawedges=True, ax=ax1)
                 cbar.Location = 'eastoutside'
-                cbar.locator = ticker.FixedLocator([-2.5, -2, -1.5, -1, -0.5, -.25, .25, 0.5, 1, 1.5, 2, 2.5])
+                cbar.locator = ticker.FixedLocator([-.5, -.4, -.3, -.2, -0.1, -.05, .05, .1, .2, .3, .4, .5])
                 #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
                 cbar.ax.tick_params(length=0)  # 设置色标刻度长度
                 cbar.ax.tick_params(labelsize=4)
@@ -234,7 +235,7 @@ if __name__ == '__main__':
                 ax.set_title('500hPa UVZ', fontsize=title_size, loc='left')
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
                 相关系数图层 = ax.contourf(lon, z_diff['lat'], z_corr, levels=lev,
-                                           cmap=cmaps.GMT_polar,
+                                           cmap=cmaps.GMT_polar[:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:],
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
