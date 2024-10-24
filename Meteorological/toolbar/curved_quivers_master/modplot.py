@@ -157,12 +157,21 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
         x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
 
-#################裁剪绘制区域的数据###########
+    # 获取axes范围
+    try:
+        extent = axes.get_extent()
+    except AttributeError:
+        extent = axes.get_xlim() + axes.get_ylim()
 
     if regrid:
         # 将网格插值为正方形等间隔网格
         U = RegularGridInterpolator((y, x), u, method='linear')
         V = RegularGridInterpolator((y, x), v, method='linear')
+        # 裁剪绘制区域的数据
+        x_extent = np.where((x >= extent[0]) & (x < extent[1]))[0]
+        y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+        x = x[x_extent]
+        y = y[y_extent]
         if np.abs(x[1] + 360 - x[-2]) < 20:
             x = np.linspace(-180, 180, regrid)
         else:
@@ -271,12 +280,6 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
-    # 获取axes范围
-    try:
-        extent = axes.get_extent()
-    except AttributeError:
-        extent = axes.get_xlim() + axes.get_ylim()
-
     unit = []
     xg_, yg_ = 0., 0.
     for xs, ys in sp2:
@@ -341,8 +344,9 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
         delta = arrow_start - arrow_end
         if np.sqrt(delta[0] ** 2 + delta[1] ** 2) == 0.: continue  # 长度为0的箭头
+        zone_fix = np.array([360 / np.abs(extent[0] - extent[1]), 180 / np.abs(extent[2] - extent[3])]).min()  # 箭头偏移修正系数
         delta = delta / np.sqrt(delta[0] ** 2 + delta[1] ** 2)
-        delta = delta * 10**0
+        delta = delta * 10**0 / zone_fix
         arrow_end =  arrow_start + delta
         a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0]  - lon_trunc
         a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0]  - lon_trunc
