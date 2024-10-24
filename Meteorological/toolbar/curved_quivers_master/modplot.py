@@ -778,7 +778,7 @@ def _euler_step(xf_traj, yf_traj, dmap, f):
 
 # 实用功能
 # ========================
-
+#####################插值过于宽松，增加一般模式，引入nan值，不将nan值看作0#####################
 def interpgrid(a, xi, yi, masked=True, mode='loose'):
     """Fast 2D, linear interpolation on an integer grid/整数网格上的快速二维线性插值"""
 
