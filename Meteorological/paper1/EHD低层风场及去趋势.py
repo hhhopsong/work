@@ -84,27 +84,27 @@ custom_colors = ["#FDB57E", "#F26E4c", "#CA1E14", "#7F0000"]
 custom_cmap = colors.ListedColormap(custom_colors)
 a1 = ax1.contourf(EHD['lon'], EHD['lat'], EHD['tmax'], cmap=custom_cmap, levels=level, extend='max', transform=proj)
 ####
-level2 = [-0.4 + i * 0.2 for i in range(5)]
+level2 = [-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4]
 z_r = gaussian_filter(z_corr, 3)
-a1_h = ax1.contour(z_lon, z_diff['lat'], z_r, transform=proj, levels=level2[:2], colors='blue', linewidths=1.5, linestyles='--',alpha=1)
+a1_h = ax1.contour(z_lon, z_diff['lat'], z_r, transform=proj, levels=level2[:4], colors='blue', linewidths=1.5, linestyles='--',alpha=1)
 a1_hm = ax1.contour(z_lon, z_diff['lat'], z_r, transform=proj, levels=[0], colors='gray', linewidths=1.5, linestyles='-', alpha=1)
-a1_h1 = ax1.contour(z_lon, z_diff['lat'], z_r, transform=proj, levels=level2[3:], colors='red', linewidths=1.5, linestyles='-', alpha=1)
-ax1.clabel(a1_h, inline=True, fontsize=14, fmt='%.01f', colors='blue')
-ax1.clabel(a1_hm, inline=True, fontsize=14, fmt='%.01f', colors='gray')
-ax1.clabel(a1_h1, inline=True, fontsize=14, fmt='%.01f', colors='red')
-ax1.text(124.5, 31.6, 'A', fontsize=20, fontweight='bold', color='blue', zorder=20)
+a1_h1 = ax1.contour(z_lon, z_diff['lat'], z_r, transform=proj, levels=level2[5:], colors='red', linewidths=1.5, linestyles='-', alpha=1)
+ax1.clabel(a1_h, inline=True, fontsize=14, fmt='%.01f', colors='blue', zorder=1)
+ax1.clabel(a1_hm, inline=True, fontsize=14, fmt='%.01f', colors='gray', zorder=1)
+ax1.clabel(a1_h1, inline=True, fontsize=14, fmt='%.01f', colors='red', zorder=1)
+ax1.text(122, 29.5, 'A', fontsize=20, fontweight='bold', color='blue', zorder=20)
 ####
 uv_np_ = velovect(ax1, u_diff['lon'], u_diff['lat'],
                   np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
                   np.array(np.where(np.isnan(v_np), 0, v_np).tolist()),
-                  arrowsize=1, scale=5, linewidth=1,
+                  arrowsize=1, scale=5, linewidth=1, regrid=20,
                   color='gray', transform=ccrs.PlateCarree(central_longitude=0))
 uv_ = velovect(ax1, u_diff['lon'], u_diff['lat'],
                np.array(np.where(np.isnan(u_corr), 0, u_corr).tolist()),
                np.array(np.where(np.isnan(v_corr), 0, v_corr).tolist()),
-               arrowsize=1, scale=5, linewidth=1,
+               arrowsize=1, scale=5, linewidth=1, regrid=20,
                color='black', transform=ccrs.PlateCarree(central_longitude=0))
-velovect_key(fig, ax1, uv_, U=.5, label='0.5', lr=-6.04)
+velovect_key(fig, ax1, uv_, U=.5, label='0.5')
 ax1.add_feature(cfeature.LAND.with_scale('10m'), color='lightgray')  # 添加陆地并且陆地部分全部填充成浅灰色
 #ax1.add_geometries(get_adm_maps(level='国')[0],
 #                   ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
@@ -114,6 +114,8 @@ ax1.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江\长江.shp')
                    ccrs.PlateCarree(), facecolor='none', edgecolor='blue', linewidth=0.2)
 ax1.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
                    ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=1, hatch='//')
+ax1.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_del长江流域\TPBoundary2500m_del长江流域.shp').geometries(),
+                   ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=2)
 # ax1.add_feature(provinces, lw=0.5, zorder=2)
 # 设置坐标轴
 xticks1=np.arange(extent_CN[0], extent_CN[1]+1, 10)
