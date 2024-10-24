@@ -157,6 +157,8 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
         x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
 
+#################裁剪绘制区域的数据###########
+
     if regrid:
         # 将网格插值为正方形等间隔网格
         U = RegularGridInterpolator((y, x), u, method='linear')

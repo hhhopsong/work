@@ -73,9 +73,9 @@ ax2 = sns.barplot(data=EHDstations_zone.mean('day').to_dataframe()*100, x="year"
 ax2.xaxis.set_visible(False)  # ax2隐藏x轴标签
 ax = plt.gca()
 ax.set_xlim(-.5, time[1] - time[0] + 1 - .5)
-ax.set_ylim(0, 0.2*100)
-ax.set_yticks([5, 10, 15, 20])
-ax.set_yticklabels(["5%", "10%", "15%", "20%"])
+ax.set_ylim(0, 0.35*100)
+ax.set_yticks([5, 10, 15, 20, 25, 30, 35])
+ax.set_yticklabels(["5%", "10%", "15%", "20%", "25%", "30%", "35%"])
 ax.tick_params(axis='y', direction='in')  # 设置y轴刻度方向
 ax.spines['top'].set_visible(False)  # 隐藏上边框
 ax.spines['right'].set_visible(False)  # 隐藏右边框
@@ -92,7 +92,7 @@ slope, intercept, r_value, p_value, std_err = stats.linregress([i for i in range
 ##设置ax2_reg坐标##
 ax2_reg.yaxis.set_visible(False)  # ax2隐藏y轴标签
 ax = plt.gca()
-ax.set_ylim(0, 0.2*100)
+ax.set_ylim(0, 0.35*100)
 ax.spines['top'].set_visible(False)  # 隐藏上边框
 ax.spines['right'].set_visible(False)  # 隐藏右边框
 ax.spines['bottom'].set_visible(False)  # 显示下边框
@@ -101,18 +101,14 @@ ax.spines['left'].set_visible(False)  # 显示左边框
 ##设置ax2_reg坐标结束##
 
 ax3 = sns.barplot(data=EHDstations_zone.to_dataframe()*100, x='__xarray_dataarray_variable__', y='day', orient='h', ax=fig.add_subplot(spec[1, 1]), errorbar=('ci', 0), width=0, color='None', edgecolor='#756BB1')  # 长江流域极端高温格点逐日占比
-'''S = EHDstations_zone.std(ddof=1)*100  # 样本标准差(ddof=1代表自由度减1)
-μ = EHDstations_zone.mean()*100  # 样本均值
-ax3_80line = plt.axvline(x=30.2347816, color='#74C476', linestyle='--')  # 添加80%置信度分割线
-ax3_65line = plt.axvline(x=21.34604268, color='#74C476', linestyle='--')  # 添加65%置信度分割线'''
-ax3_50line = plt.axvline(x=.05*100, color='#74C476', linestyle=':')  # 添加50%置信度分割线
-ax3_line = plt.axvline(x=0.1*100, color='#74C476', linestyle='-.')
+ax3_6_line = plt.axvline(x=EHDstations_zone.mean('year').to_dataframe()[:30].mean().to_numpy()*100, ymax=30/92, color='#74C476', linestyle='-')  # 添加50%置信度分割线
+ax3_78_line = plt.axvline(x=EHDstations_zone.mean('year').to_dataframe()[30:].mean().to_numpy()*100, ymin=30/92, color="#CA1E14", linestyle='-')
 ##设置ax3坐标##
 ax3.yaxis.set_visible(False)  # ax3隐藏y轴标签
 ax = plt.gca()
-ax.set_xlim(0, 0.2*100)
-ax.set_xticks([5, 10, 15, 20])
-ax.set_xticklabels(["5%", "10%", "15%", "20%"])
+ax.set_xlim(0, 0.25*100)
+ax.set_xticks([5, 10, 15, 20, 25])
+ax.set_xticklabels(["5%", "10%", "15%", "20%", "25%"])
 ax.tick_params(axis='x', direction='in')  # 设置x轴刻度方向
 ax.spines['top'].set_visible(False)  # 隐藏上边框
 ax.spines['right'].set_visible(False)  # 隐藏右边框
@@ -126,5 +122,5 @@ plt.gca().invert_yaxis()
 
 # 保存为1:1
 plt.gcf().set_size_inches(10, 10)
-plt.savefig(fr'D:\PyFile\pic\图3_{info}_happended.png', dpi=666, bbox_inches='tight')
+plt.savefig(fr'D:\PyFile\pic\图3_{info}_happended.png', dpi=1000, bbox_inches='tight')
 plt.show()

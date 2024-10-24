@@ -402,14 +402,15 @@ if __name__ == '__main__':
                     pre显著性检验结果 = corr_test(ols, pre_corr, alpha=alpha)
                     pc = ols
                 else:
-                    u_corr = u_corr_2
+                    pass
+                    '''u_corr = u_corr_2
                     v_corr = v_corr_2
                     pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\pre\pre_same.nc")['precip'].sel(p=p).transpose('lat', 'lon', 'year')
                     pre_corr = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     pre显著性检验结果 = corr_test(sen, pre_corr, alpha=alpha)
-                    pc = sen
+                    pc = sen'''
                 ax = fig.add_subplot(spec[3, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
                 ax.set_title('850hPa UV&PRE', fontsize=title_size, loc='left')
                 pre_corr, lon = add_cyclic_point(pre_corr, coord=pre_diff['lon'])
