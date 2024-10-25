@@ -94,7 +94,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
 
     # 检查y是否升序
     if y[0] > y[-1]:
-        warnings.warn('已将Y轴反转，因为Y轴方向非正向。', UserWarning)
+        warnings.warn('已将Y轴反转，因为Y轴坐标轴为非增长序列。', UserWarning)
         y = y[::-1]
         u = u[::-1]
         v = v[::-1]
@@ -311,7 +311,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
 
     streamlines = []
     arrows = []
-    for t, edge in tq.tqdm(zip(trajectories,edges), desc='绘制曲轴矢量', colour='green'):
+    for t, edge in tq.tqdm(zip(trajectories,edges), desc='绘制曲轴矢量', colour='green', unit='条', total=len(trajectories)):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
 		
