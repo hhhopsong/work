@@ -206,7 +206,7 @@ if __name__ == '__main__':
                 # 设置色标
                 cbar = plt.colorbar(olr图层, orientation='vertical', drawedges=True, ax=ax1)
                 cbar.Location = 'eastoutside'
-                cbar.locator = ticker.FixedLocator([-.5, -.4, -.3, -.2, -0.1, -.05, .05, .1, .2, .3, .4, .5])
+                cbar.locator = ticker.FixedLocator([-.5, -.4, -.3, -.2, -0.1, .1, .2, .3, .4, .5])
                 #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)
                 cbar.ax.tick_params(length=0)  # 设置色标刻度长度
                 cbar.ax.tick_params(labelsize=4)
