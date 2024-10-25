@@ -100,7 +100,7 @@ if __name__ == '__main__':
         y = 1.04
         title_size = 8
         extent1 = [-67.5, 292.5, -30, 80]
-        xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
+        xticks1 = np.arange(-180, 180, 10)
         yticks1 = np.arange(extent1[2], extent1[3] + 1, 30)
         for p in [200, 500, 600, 700, 850]:
             u_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\u_same.nc")['u'].sel(p=p).transpose('lat', 'lon', 'year')
@@ -439,7 +439,7 @@ if __name__ == '__main__':
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
                                arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_, U=.5, label='0.5', lr=-5.97)
+                velovect_key(fig, ax, uv_, U=.5, label='0.5')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
@@ -453,13 +453,18 @@ if __name__ == '__main__':
                                   ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.2, zorder=2)
 
                 # 刻度线设置
-                # ax1
+                ax.set_xticks(xticks1, crs=ccrs.PlateCarree())
                 ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
-                lon_formatter = LongitudeFormatter()
                 lat_formatter = LatitudeFormatter()
                 ax.yaxis.set_major_formatter(lat_formatter)
+                # 起始经度设为0
+                lon_formatter = LongitudeFormatter()
+                ax.xaxis.set_major_formatter(lon_formatter)
 
-
+                xmajorLocator = MultipleLocator(60)  # 先定义xmajorLocator，再进行调用
+                ax.xaxis.set_major_locator(xmajorLocator)  # x轴最大刻度
+                xminorLocator = MultipleLocator(10)
+                ax.xaxis.set_minor_locator(xminorLocator)  # x轴最小刻度
                 ymajorLocator = MultipleLocator(30)  # 先定义xmajorLocator，再进行调用
                 ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
                 yminorLocator = MultipleLocator(10)

@@ -19,7 +19,7 @@ import salem
 # 数据读取
 sst = xr.open_dataset(r"E:\data\NOAA\ERSSTv5\sst.mnmean.nc")  # NetCDF-4文件路径不可含中文
 # 截取sst数据为5N-5S，40E-80W
-time_data = [1979, 2022]
+time_data = [1961, 2022]
 sst = sst.sel(lat=slice(5, -5), lon=slice(40, 360-80))['sst']
 lon_sst = sst['lon']
 sst_term = sst.sel(time=slice(f'{time_data[0]}-01-01', f'{time_data[1]}-12-31'))
@@ -29,7 +29,7 @@ sst_nextyear = sst.sel(time=slice(f'{time_data[0] + 1}-01-01', f'{time_data[1] +
 sst_term_lonavg = sst_term.mean(dim='lat')
 sst_lastyear_lonavg = sst_lastyear.mean(dim='lat')
 sst_nextyear_lonavg = sst_nextyear.mean(dim='lat')
-PC = np.load(r"cache\OLS_detrended.npy") # 读取时间序列
+PC = np.load(r"D:\PyFile\paper1\OLS35_detrended.npy") # 读取时间序列
 # 计算sst距平
 sst_term_anom = sst_term_lonavg - sst_term_lonavg.mean(dim='time')
 sst_lastyear_anom = sst_lastyear_lonavg - sst_lastyear_lonavg.mean(dim='time')
@@ -69,7 +69,7 @@ fig = plt.figure(figsize=(16, 8))
 level1 = [-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5]
 ax1 = fig.add_subplot(111)
 print('开始绘制图1')
-ax1.set_title('(a)Lead-lag corr. PC1 & SST', fontsize=22, loc='left')
+ax1.set_title('(a)Lead-lag corr. N/A & SST', fontsize=22, loc='left')
 a1 = ax1.contourf(lon_sst, time, lead_lag_corr, cmap=cmaps.cmp_b2r, levels=level1, extend='both')
 # 通过打点显示出通过显著性检验的区域
 a1_p = ax1.contourf(lon_sst, time, p_lead_lag_corr, levels=[0, 1], hatches=['//', None], colors="none", add_colorbar=False, zorder=5)
@@ -111,5 +111,5 @@ cb1.ax.tick_params(length=1, labelsize=20, color='lightgray')#length为刻度线
 cb1.locator = ticker.FixedLocator([-.5, -.4, -.3, -.2, -.1, 0, .1, .2, .3, .4, .5]) # colorbar上的刻度值个数
 
 
-plt.savefig(r'C:\Users\10574\Desktop\pic\热带海温异常.png', dpi=1000, bbox_inches='tight')
+plt.savefig(r'D:\PyFile\pic\热带海温异常.png', dpi=1000, bbox_inches='tight')
 plt.show()

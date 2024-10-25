@@ -139,7 +139,7 @@ ax1.yaxis.set_minor_locator(yminorLocator)#y轴最小刻度
 sns.set(style='ticks')
 ax1_pc = fig.add_axes(ax1.get_position())
 # 设置坐标轴
-ax1_pc_xmajor = FixedLocator([1+i*5 for i in range(9)]) #先定义xmajorLocator，再进行调用
+ax1_pc_xmajor = FixedLocator([-1 + i*5 for i in range(13)]) #先定义xmajorLocator，再进行调用
 ax1_pc_xminor = MultipleLocator(1)
 ax1_pc.xaxis.set_major_locator(ax1_pc_xmajor)  #x轴最大刻度
 ax1_pc.xaxis.set_minor_locator(ax1_pc_xminor)  #x轴最小刻度
@@ -157,10 +157,10 @@ for i in range(62):
     else:
         a1_pc.get_children()[i].set_color('#1F6AA0')
 ax1_pc.set_xlim(-.5, 61.5)
-ax1_pc.set_ylim(-3, 3)
+ax1_pc.set_ylim(-4, 4)
 #设定子图ax2大小位置
 adjust_sub_axes(ax1, ax1_pc, shrink=1, lr=-.2, ud=1.0)
-ax1_pc_reg = ax1_pc.twinx()
+#ax1_pc_reg = ax1_pc.twinx()
 k, b = mk.sens_slope(ws2001(ols))  # Theil-Sen 斜率, 截距
 #  pd.Series(ols).autocorr(2)  自相关计算=0.26
 # color bar位置
