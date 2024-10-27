@@ -1,5 +1,5 @@
 """
-Streamline plotting for 2D vector fields.
+2D 向量场的流线型矢量绘图。
 
 """
 from __future__ import (absolute_import, division, print_function,
@@ -28,7 +28,7 @@ import warnings
 __all__ = ['velovect']
 
 
-def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
+def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
                scale=1., masked=True, regrid=30, integration_direction='both', mode='loose'):
@@ -106,7 +106,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         elif isinstance(x, np.ndarray):
             pass
         else:
-            raise ValueError('x must be a xarray.DataArray or numpy.ndarray')
+            raise ValueError('x 的数据类型必须是 xarray.DataArray 或者 numpy.ndarray')
     except:
         pass
     try:
@@ -115,7 +115,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         elif isinstance(y, np.ndarray):
             pass
         else:
-            raise ValueError('y must be a xarray.DataArray or numpy.ndarray')
+            raise ValueError('y 的数据类型必须是 xarray.DataArray 或者 numpy.ndarray')
     except:
         pass
     try:
@@ -124,7 +124,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         elif isinstance(u, np.ndarray):
             pass
         else:
-            raise ValueError('u must be a xarray.DataArray or numpy.ndarray')
+            raise ValueError('u 的数据类型必须是 xarray.DataArray 或者 numpy.ndarray')
     except:
         pass
     try:
@@ -133,7 +133,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         elif isinstance(v, np.ndarray):
             pass
         else:
-            raise ValueError('v must be a xarray.DataArray or numpy.ndarray')
+            raise ValueError('v 的数据类型必须是 xarray.DataArray 或者 numpy.ndarray')
     except:
         pass
 
@@ -225,7 +225,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
     if use_multicolor_lines:
         if color.shape != grid.shape:
             raise ValueError(
-                "If 'color' is given, must have the shape of 'Grid(x,y)'")
+                "如果 'color' 参数被设定, 则其数据维度必须和 'Grid(x,y)' 相同")
         line_colors = []
         color = np.ma.masked_invalid(color)
     else:
@@ -235,7 +235,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
     if isinstance(linewidth, np.ndarray):
         if linewidth.shape != grid.shape:
             raise ValueError(
-                "If 'linewidth' is given, must have the shape of 'Grid(x,y)'")
+                "如果 'linewidth' 参数被设定, 则其数据维度必须和 'Grid(x,y)' 相同")
         line_kw['linewidth'] = []
     else:
         line_kw['linewidth'] = linewidth
@@ -246,7 +246,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
 
     ## Sanity checks.
     if u.shape != grid.shape or v.shape != grid.shape:
-        raise ValueError("'u' and 'v' must be of shape 'Grid(x,y)'")
+        raise ValueError("'u' 和 'v' 的维度必须和 'Grid(x,y)' 相同")
 
     u = np.ma.masked_invalid(u)
     v = np.ma.masked_invalid(v)
@@ -267,12 +267,12 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
     
     sp2 = np.asanyarray(start_points, dtype=float).copy()
 
-    # Check if start_points are outside the data boundaries
+    # 检查start_points是否在数据边界之外
     for xs, ys in sp2:
         if not (grid.x_origin <= xs <= grid.x_origin + grid.width
                 and grid.y_origin <= ys <= grid.y_origin + grid.height):
-            raise ValueError("Starting point ({}, {}) outside of data "
-                             "boundaries".format(xs, ys))
+            raise ValueError("起绘点 ({}, {}) 超出数据"
+                             "边界".format(xs, ys))
 
     # Convert start_points from data to array coords
     # Shift the seed points from the bottom left of the data so that
@@ -315,7 +315,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         tgx = np.array(t[0])
         tgy = np.array(t[1])
 		
-        # Rescale from grid-coordinates to data-coordinates.
+        # 从网格坐标重新缩放为数据坐标
         tx, ty = dmap.grid2data(*np.array(t))
         tx += grid.x_origin
         ty += grid.y_origin
@@ -391,7 +391,7 @@ def velovect(axes, x, y, u, v, lon_trunc=None, linewidth=.5, color='black',
         
         ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
 
-        if ds<1e-15: continue  #remove vanishingly short arrows that cause Patch to fail
+        if ds<1e-15: continue  # 移除极小的箭头
 
         axes.add_patch(p)
         arrows.append(p)

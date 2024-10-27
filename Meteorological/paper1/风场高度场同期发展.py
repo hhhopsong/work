@@ -176,7 +176,7 @@ if __name__ == '__main__':
                                   color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax1, WAF图层, U=.1, label='0.1 m$^2$/s$^2$')
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
                 # 在赤道画一条纬线
                 ax1.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
@@ -256,7 +256,7 @@ if __name__ == '__main__':
                                   lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_np_, U=.25, label='0.25')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
@@ -351,7 +351,7 @@ if __name__ == '__main__':
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_np_, U=.25, label='0.25')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
@@ -441,7 +441,7 @@ if __name__ == '__main__':
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_, U=.5, label='0.5')
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.05)
+                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)

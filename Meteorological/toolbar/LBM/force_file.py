@@ -86,7 +86,7 @@ def grid2wave(data=None, lat=64, N=128, M=42, K_=20, re=False, ops=True, HGRAD='
 
 def vertical_structure(data=force_file_address, element='t', show=False):
     """
-    Show the vertical structure of the element.
+    显示元素的垂直结构.
     :param element: str, 气象要素('v', 'd', 't', 'p', 'q')
     :return: element: xr.DataArray, 垂直结构数据
     """
@@ -482,8 +482,10 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
         raise ValueError('data垂直层次错误')
     elif len(data['lev']) >= 1:
         data_vars = []
-        dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
-        v_dim, d_dim, t_dim, p_dim = dim, dim, dim, dim
+        v_dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
+        d_dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
+        t_dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
+        p_dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
         for var in ['v', 'd', 't', 'p']:
             try:
                 data_var_test = data[var]
@@ -505,14 +507,14 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
                                  't': (['time', 'lev', 'lat', 'lon', 'lev2'], t_dim),
                                  'p': (['time', 'lev', 'lat', 'lon', 'lev2'], p_dim)},
                                  coords={'time': [0], 'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': [0.995]})
-            return out_put
+            return out_put.fillna(0)
         elif coor_sys == 'pressure' or coor_sys == 'p':
             out_put = xr.Dataset({'v': (['time', 'lev', 'lat', 'lon', 'lev2'], v_dim),
                                  'd': (['time', 'lev', 'lat', 'lon', 'lev2'], d_dim),
                                  't': (['time', 'lev', 'lat', 'lon', 'lev2'], t_dim),
                                  'p': (['time', 'lev', 'lat', 'lon', 'lev2'], p_dim)},
                                  coords={'time': [0], 'lev': level_p, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': [0.995]})
-            return out_put
+            return out_put.fillna(0)
 
 
 if __name__ == '__main__':
