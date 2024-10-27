@@ -28,14 +28,14 @@ lbm_lat = [-87.8638, -85.0965, -82.3129, -79.5256, -76.7369, -73.9475, -71.1577,
            -4.18592, -1.39531, 1.39531, 4.18592, 6.97653, 9.76715, 12.5578, 15.3484, 18.1390, 20.9296, 23.7202,
            26.5108, 29.3014, 32.0919, 34.8825, 37.6731, 40.4636, 43.2542, 46.0447, 48.8352, 51.6257, 54.4162,
            57.2066, 59.9970, 62.7873, 65.5776, 68.3678, 71.1577, 73.9475, 76.7369, 79.5256, 82.3129, 85.0965,
-           87.86384]
+           87.8638][::-1]
 lon_grid, lat_grid = np.meshgrid(lbm_lon, lbm_lat)
-level_sig = [0.9950000047683716, 0.9799900054931641, 0.9499499797821045, 0.8998799920082092, 0.829770028591156,
+level_sig = np.array([0.9950000047683716, 0.9799900054931641, 0.9499499797821045, 0.8998799920082092, 0.829770028591156,
              0.7446799874305725, 0.6495400071144104, 0.5494599938392639, 0.4544700086116791, 0.3694800138473511,
              0.2944999933242798, 0.22953000664710999, 0.1745699942111969, 0.12439999729394913, 0.08468300104141235,
-             0.05980049818754196, 0.04493369907140732, 0.03491460159420967, 0.024879999458789825, 0.008299009874463081]
+             0.05980049818754196, 0.04493369907140732, 0.03491460159420967, 0.024879999458789825, 0.008299009874463081], dtype=np.float32)
 level_sigp = [isig * (1000 - 1) + 1 for isig in level_sig]
-level_p = [1000, 950, 900, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10, 7, 5]
+level_p = np.array([1000, 950, 900, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10, 7, 5], dtype=np.float32)
 S2D = 86400.
 K = 20  # 垂直层数
 
@@ -469,11 +469,11 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
     :param lon_num: int, LBM模式经向格点数
     :param level_num: int, LBM模式垂直层数
     :param data: xr.DataArray, 自定义强迫场数据, 数据顺序为(lev, lat, lon), lev为P坐标系
-    :return: np.array, 插值后的数据
+    :return: np.array, 插值后的数据(温馨提示:最后导入lbm的nc文类型为 NETCDF3_CLASSIC)
     """
     ## time只有一维[np.array([0], dtype=int64)]
     ## lev为P坐标系[1000, 950, 900, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10, 7, 5],输出时写level_sig
-    ## lat为64个纬度lbm_lat,是否反序尚不清楚
+    ## lat为64个纬度lbm_lat,从大到小
     ## lon为128个经度lbm_lon
     ## Variables on the dataset include ['v', 'd', 't', 'p']")
     if data is None:
@@ -482,10 +482,10 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
         raise ValueError('data垂直层次错误')
     elif len(data['lev']) >= 1:
         data_vars = []
-        v_dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
-        d_dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
-        t_dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
-        p_dim = np.zeros((1, len(level_p), lat_num, lon_num, 1))
+        v_dim = np.zeros((1, len(level_p), lat_num, lon_num), dtype=np.float32)
+        d_dim = np.zeros((1, len(level_p), lat_num, lon_num), dtype=np.float32)
+        t_dim = np.zeros((1, len(level_p), lat_num, lon_num), dtype=np.float32)
+        p_dim = np.zeros((1, 1, lat_num, lon_num), dtype=np.float32)
         for var in ['v', 'd', 't', 'p']:
             try:
                 data_var_test = data[var]
@@ -494,26 +494,66 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
                 print('Interp LBM Waring: {} is undefined.'.format(var))
                 continue
         if 'v' in data_vars:
-            v_dim[0, :, :, :, 0] = data['v'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            v_dim[0, :, :, :] = data['v'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if 'd' in data_vars:
-            d_dim[0, :, :, :, 0] = data['d'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            d_dim[0, :, :, :] = data['d'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if 't' in data_vars:
-            t_dim[0, :, :, :, 0] = data['t'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            t_dim[0, :, :, :] = data['t'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if 'p' in data_vars:
-            p_dim[0, :, :, :, 0] = data['p'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            p_dim[0, 0, :, :] = data['p'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
         if coor_sys == 'sigma':
-            out_put = xr.Dataset({'v': (['time', 'lev', 'lat', 'lon', 'lev2'], v_dim),
-                                 'd': (['time', 'lev', 'lat', 'lon', 'lev2'], d_dim),
-                                 't': (['time', 'lev', 'lat', 'lon', 'lev2'], t_dim),
-                                 'p': (['time', 'lev', 'lat', 'lon', 'lev2'], p_dim)},
-                                 coords={'time': [0], 'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': [0.995]})
+            out_put = xr.Dataset({'v': (['time', 'lev', 'lat', 'lon'], v_dim),
+                                 'd': (['time', 'lev', 'lat', 'lon'], d_dim),
+                                 't': (['time', 'lev', 'lat', 'lon'], t_dim),
+                                 'p': (['time', 'lev2', 'lat', 'lon'], p_dim)},
+                                 coords={'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': np.array([0.995], dtype=np.float32)})
+            out_put['v'].attrs['missing_value'] = 9.96921e+36
+            out_put['v'].attrs['_FillValue'] = 9.96921e+36
+            out_put['v'].attrs['sigma'] = np.float32(0.995)
+            out_put['v'].attrs['units'] = '1/s'
+
+            out_put['d'].attrs['missing_value'] = 9.96921e+36
+            out_put['d'].attrs['_FillValue'] = 9.96921e+36
+            out_put['d'].attrs['sigma'] = np.float32(0.995)
+            out_put['d'].attrs['units'] = '1/s'
+
+            out_put['t'].attrs['missing_value'] = 9.96921e+36
+            out_put['t'].attrs['_FillValue'] = 9.96921e+36
+            out_put['t'].attrs['sigma'] = np.float32(0.995)
+            out_put['t'].attrs['units'] = 'K/s'
+
+            out_put['p'].attrs['missing_value'] = 9.96921e+36
+            out_put['p'].attrs['_FillValue'] = 9.96921e+36
+            out_put['p'].attrs['sigma'] = np.float32(0.995)
+            out_put['p'].attrs['units'] = 'hPa(?)/s'
+
             return out_put.fillna(0)
         elif coor_sys == 'pressure' or coor_sys == 'p':
-            out_put = xr.Dataset({'v': (['time', 'lev', 'lat', 'lon', 'lev2'], v_dim),
-                                 'd': (['time', 'lev', 'lat', 'lon', 'lev2'], d_dim),
-                                 't': (['time', 'lev', 'lat', 'lon', 'lev2'], t_dim),
-                                 'p': (['time', 'lev', 'lat', 'lon', 'lev2'], p_dim)},
+            out_put = xr.Dataset({'v': (['time', 'lev', 'lat', 'lon'], v_dim),
+                                 'd': (['time', 'lev', 'lat', 'lon'], d_dim),
+                                 't': (['time', 'lev', 'lat', 'lon'], t_dim),
+                                 'p': (['time', 'lev2', 'lat', 'lon'], p_dim)},
                                  coords={'time': [0], 'lev': level_p, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': [0.995]})
+            out_put['v'].attrs['missing_value'] = 9.96921e+36
+            out_put['v'].attrs['_FillValue'] = 9.96921e+36
+            out_put['v'].attrs['sigma'] = np.float32(0.995)
+            out_put['v'].attrs['units'] = '1/s'
+
+            out_put['d'].attrs['missing_value'] = 9.96921e+36
+            out_put['d'].attrs['_FillValue'] = 9.96921e+36
+            out_put['d'].attrs['sigma'] = np.float32(0.995)
+            out_put['d'].attrs['units'] = '1/s'
+
+            out_put['t'].attrs['missing_value'] = 9.96921e+36
+            out_put['t'].attrs['_FillValue'] = 9.96921e+36
+            out_put['t'].attrs['sigma'] = np.float32(0.995)
+            out_put['t'].attrs['units'] = 'K/s'
+
+            out_put['p'].attrs['missing_value'] = 9.96921e+36
+            out_put['p'].attrs['_FillValue'] = 9.96921e+36
+            out_put['p'].attrs['sigma'] = np.float32(0.995)
+            out_put['p'].attrs['units'] = 'hPa(?)/s'
+
             return out_put.fillna(0)
 
 

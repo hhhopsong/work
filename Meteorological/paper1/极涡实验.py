@@ -83,7 +83,7 @@ ax1 = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180))
 ax1.coastlines(linewidths=0.3)
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 lev_range = np.linspace(-np.max(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.max(np.abs(frc_nc_p[var].sel(lev=lev).data)), 10)
-var200 = ax1.contourf(frc_nc_p[var]['lon'], frc_nc_p[var]['lat'], frc_nc_p[var].sel(lev=lev, time=0, lev2=0.995),
+var200 = ax1.contourf(frc_nc_p[var]['lon'], frc_nc_p[var]['lat'], frc_nc_p[var].sel(lev=lev, time=0),
                     levels=lev_range, cmap=cmaps.GMT_polar_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
 quiver = velovect(ax1, uv['u']['lon'], uv['u']['lat'], uv['u'].sel(lev=lev), uv['v'].sel(lev=lev),
                   arrowsize=.5, scale=5, linewidth=0.4, regrid=30,
@@ -96,5 +96,5 @@ if input("是否导出?(1/0)") == '1':
     template['d'] = frc_nc_sigma['d'].sel(lev2=0.995)
     template['t'] = frc_nc_sigma['t'].sel(lev2=0.995)
     template['p'] = frc_nc_sigma['v'].sel(lev2=0.995)'''
-    frc_nc_sigma.to_netcdf(r'D:\lbm\main\data\Forcing\frc.t42l20.nc')
+    frc_nc_sigma.to_netcdf(r'D:\lbm\main\data\Forcing\frc.t42l20.nc', format='NETCDF3_CLASSIC')
 
