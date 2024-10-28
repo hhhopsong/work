@@ -553,7 +553,7 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
             out_put['p'].attrs['longname'] = "diabatic terrain"
             out_put['p'].attrs['remap'] = 'remapped via ESMF_regrid_with_weights: First-order Conservative'
 
-            out_put.attrs['history'] = "2024/10/28 AM Made by Tingyang Song"
+            out_put.attrs['history'] = "2024/10/28 12:07 PM Created by Tingyang Song"
 
             return out_put.fillna(0)
         elif coor_sys == 'pressure' or coor_sys == 'p':
