@@ -23,7 +23,7 @@ from toolbar.sub_adjust import adjust_sub_axes
 from toolbar.pre_whitening import ws2001
 from toolbar.significance_test import corr_test
 from toolbar.TN_WaveActivityFlux import TN_WAF, TN_WAF_3D
-from toolbar.curved_quivers_master.modplot import velovect
+from toolbar.curved_quivers.modplot import velovect
 import seaborn as sns
 import tqdm
 import multiprocessing
