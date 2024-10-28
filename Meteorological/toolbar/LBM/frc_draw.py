@@ -11,18 +11,19 @@ from toolbar.curved_quivers_master.modplot import velovect
 
 def draw_frc():
     lbm = xr.open_dataset(r'D:\lbm\main\data\Output\Output_frc.t42l20.Tingyang.nc')
+    frc_p = xr.open_dataset(r'D:\lbm\main\data\Forcing\frc_p.t42l20.nc')
     u = lbm['u'][19:25].mean('time')
     v = lbm['v'][19:25].mean('time')
     t = lbm['t'][19:25].mean('time')
     z = lbm['z'][19:25].mean('time')
     lon = lbm['lon']
     lat = lbm['lat']
+    frc_lon = frc_p['lon']
+    frc_lat = frc_p['lat']
     # 绘图
     # 图1
     lev = 200
     n = 10
-    lev_Z = np.array([-1, -0.8, -0.6, -0.4, -0.2, -0.05, 0.05, 0.2, 0.4, 0.6, 0.8, 1]) * 4
-    lev_T = np.array([-.1, -.09, -.08, -.07, -.06, -.05, -.04, -.03, -.02, -.01,-.002, .002, .01, .02, .03, .04, .05, .06, .07, .08, .09, .1]) * 4
     extent1 = [-180, 180, -80, 80]
     fig = plt.figure()
     ax1 = fig.add_subplot(411, projection=ccrs.PlateCarree(central_longitude=180))
@@ -31,10 +32,14 @@ def draw_frc():
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
+    Frc, lon_Frc = frc_p['v'].sel(lev=lev, time=0), frc_lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    t200 = ax1.contourf(lon_Z, lat, Z, levels=lev_Z, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind200 = velovect(ax1, lon_UV, lat, U, V, arrowsize=.3, scale=5, linewidth=0.75,
+    level_z = np.linspace(-np.nanmax(np.abs(Z)), np.nanmax(np.abs(Z)), 10)
+    level_frc = np.linspace(-np.nanmax(np.abs(frc_p['v'].sel(lev=lev, time=0).data)), np.nanmax(np.abs(frc_p['v'].sel(lev=lev, time=0).data)), 8)
+    var200 = ax1.contourf(lon_Z, lat, Z, levels=level_z, cmap=cmaps.GMT_polar[:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    frc200 = ax1.contour(lon_Frc, frc_lat, Frc, levels=level_frc, colors='blue', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4, linestyles='-')
+    wind200 = velovect(ax1, lon_UV, lat, U, V, arrowsize=.3, scale=20, linewidth=0.3, regrid=15,
                         color='black', transform=ccrs.PlateCarree(central_longitude=0))
 
     # 图2
@@ -47,10 +52,14 @@ def draw_frc():
     ax2.set_extent(extent1, crs=ccrs.PlateCarree())
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
+    Frc, lon_Frc = frc_p['v'].sel(lev=lev, time=0), frc_lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    t500 = ax2.contourf(lon_Z, lat, Z, levels=lev_Z, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind500 = velovect(ax2, lon_UV, lat, U, V, arrowsize=.3, scale=5, linewidth=0.75,
+    level_z = np.linspace(-np.nanmax(np.abs(Z)), np.nanmax(np.abs(Z)), 10)
+    level_frc = np.linspace(-np.nanmax(np.abs(frc_p['v'].sel(lev=lev, time=0).data)), np.nanmax(np.abs(frc_p['v'].sel(lev=lev, time=0).data)), 8)
+    var500 = ax2.contourf(lon_Z, lat, Z, levels=level_z, cmap=cmaps.GMT_polar[:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    frc200 = ax2.contour(lon_Frc, frc_lat, Frc, levels=level_frc, colors='blue', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4, linestyles='-')
+    wind500 = velovect(ax2, lon_UV, lat, U, V, arrowsize=.3, scale=20, linewidth=0.3, regrid=15,
                         color='black', transform=ccrs.PlateCarree(central_longitude=0))
 
     # 图1
@@ -63,11 +72,14 @@ def draw_frc():
     ax3.set_extent(extent1, crs=ccrs.PlateCarree())
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
+    Frc, lon_Frc = frc_p['v'].sel(lev=lev, time=0), frc_lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    t850 = ax3.contourf(lon_Z, lat, T, levels=lev_T, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    z850 = ax3.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
-    wind850 = velovect(ax3, lon_UV, lat, U, V, arrowsize=.3, scale=5, linewidth=0.75,
+    level_z = np.linspace(-np.nanmax(np.abs(Z)), np.nanmax(np.abs(Z)), 10)
+    level_frc = np.linspace(-np.nanmax(np.abs(frc_p['v'].sel(lev=lev, time=0).data)), np.nanmax(np.abs(frc_p['v'].sel(lev=lev, time=0).data)), 8)
+    var850 = ax3.contourf(lon_Z, lat, Z, levels=level_z, cmap=cmaps.GMT_polar[:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    frc200 = ax3.contour(lon_Frc, frc_lat, Frc, levels=level_frc, colors='blue', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4, linestyles='-')
+    wind850 = velovect(ax3, lon_UV, lat, U, V, arrowsize=.3, scale=20, linewidth=0.3, regrid=15,
                         color='black', transform=ccrs.PlateCarree(central_longitude=0))
 
     # 图1
@@ -80,11 +92,14 @@ def draw_frc():
     ax4.set_extent(extent1, crs=ccrs.PlateCarree())
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
+    Frc, lon_Frc = frc_p['v'].sel(lev=lev, time=0), frc_lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    t850 = ax4.contourf(lon_Z, lat, T, levels=lev_T, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
-    wind850 = velovect(ax4, lon_UV, lat, U, V, arrowsize=.3, scale=5, linewidth=0.75,
+    level_z = np.linspace(-np.nanmax(np.abs(Z)), np.nanmax(np.abs(Z)), 10)
+    level_frc = np.linspace(-np.nanmax(np.abs(frc_p['v'].sel(lev=lev, time=0).data)), np.nanmax(np.abs(frc_p['v'].sel(lev=lev, time=0).data)), 8)
+    var850 = ax4.contourf(lon_Z, lat, Z, levels=level_z, cmap=cmaps.GMT_polar[:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    frc200 = ax4.contour(lon_Frc, frc_lat, Frc, levels=level_frc, colors='blue', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4, linestyles='-')
+    wind850 = velovect(ax4, lon_UV, lat, U, V, arrowsize=.3, scale=20, linewidth=0.3, regrid=15,
                         color='black', transform=ccrs.PlateCarree(central_longitude=0))
     plt.savefig(r'D:\PyFile\pic\Output_frc.png', dpi=1000, bbox_inches='tight')
     plt.show()

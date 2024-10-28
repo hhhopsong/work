@@ -98,4 +98,5 @@ if input("是否导出?(1/0)") == '1':
     template['t'] = frc_nc_sigma['t'].sel(lev2=0.995)
     template['p'] = frc_nc_sigma['v'].sel(lev2=0.995)'''
     frc_nc_sigma.to_netcdf(r'D:\lbm\main\data\Forcing\frc.t42l20.nc', format='NETCDF3_CLASSIC')
+    frc_nc_p.to_netcdf(r'D:\lbm\main\data\Forcing\frc_p.t42l20.nc', format='NETCDF3_CLASSIC')
 
