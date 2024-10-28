@@ -468,7 +468,7 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
     :param lat_num: int, LBM模式纬向格点数
     :param lon_num: int, LBM模式经向格点数
     :param level_num: int, LBM模式垂直层数
-    :param data: xr.DataArray, 自定义强迫场数据, 数据顺序为(lev, lat, lon), lev为P坐标系
+    :param data: xr.DataArray, 自定义强迫场数据, 数据顺序为(lev, lat, lon), lev为P坐标系, 注意数量级!
     :return: np.array, 插值后的数据(温馨提示:最后导入lbm的nc文类型为 NETCDF3_CLASSIC)
     """
     ## time只有一维[np.array([0], dtype=int64)]
@@ -494,38 +494,66 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
                 print('Interp LBM Waring: {} is undefined.'.format(var))
                 continue
         if 'v' in data_vars:
-            v_dim[0, :, :, :] = data['v'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            v_dim[0, :, :, :] = data['v'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy() / S2D
         if 'd' in data_vars:
-            d_dim[0, :, :, :] = data['d'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            d_dim[0, :, :, :] = data['d'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy() / S2D
         if 't' in data_vars:
-            t_dim[0, :, :, :] = data['t'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            t_dim[0, :, :, :] = data['t'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy() / S2D
         if 'p' in data_vars:
-            p_dim[0, 0, :, :] = data['p'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy()
+            p_dim[0, 0, :, :] = data['p'].interp(lev=level_p, lat=lbm_lat, lon=lbm_lon).to_numpy() / S2D
         if coor_sys == 'sigma':
             out_put = xr.Dataset({'v': (['time', 'lev', 'lat', 'lon'], v_dim),
                                  'd': (['time', 'lev', 'lat', 'lon'], d_dim),
                                  't': (['time', 'lev', 'lat', 'lon'], t_dim),
                                  'p': (['time', 'lev2', 'lat', 'lon'], p_dim)},
                                  coords={'lev': level_sig, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': np.array([0.995], dtype=np.float32)})
-            out_put['v'].attrs['missing_value'] = 9.96921e+36
-            out_put['v'].attrs['_FillValue'] = 9.96921e+36
+
+            out_put['lev'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['lev'].attrs['_FillValue'] = np.float32(9.96921e+36)
+
+
+            out_put['lat'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['lat'].attrs['_FillValue'] = np.float32(9.96921e+36)
+            out_put['lat'].attrs['units'] = "degrees_north"
+            out_put['lat'].attrs['long_name'] = "latitude"
+
+            out_put['lon'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['lon'].attrs['_FillValue'] = np.float32(9.96921e+36)
+            out_put['lon'].attrs['units'] = "degrees_east"
+            out_put['lon'].attrs['long_name'] = "longitude"
+
+            out_put['lev2'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['lev2'].attrs['_FillValue'] = np.float32(9.96921e+36)
+
+            out_put['v'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['v'].attrs['_FillValue'] = np.float32(9.96921e+36)
             out_put['v'].attrs['sigma'] = np.float32(0.995)
             out_put['v'].attrs['units'] = '1/s'
+            out_put['v'].attrs['longname'] = "diabatic vorticity"
+            out_put['v'].attrs['remap'] = 'remapped via ESMF_regrid_with_weights: First-order Conservative'
 
-            out_put['d'].attrs['missing_value'] = 9.96921e+36
-            out_put['d'].attrs['_FillValue'] = 9.96921e+36
+            out_put['d'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['d'].attrs['_FillValue'] = np.float32(9.96921e+36)
             out_put['d'].attrs['sigma'] = np.float32(0.995)
             out_put['d'].attrs['units'] = '1/s'
+            out_put['d'].attrs['longname'] = "diabatic divergence"
+            out_put['d'].attrs['remap'] = 'remapped via ESMF_regrid_with_weights: First-order Conservative'
 
-            out_put['t'].attrs['missing_value'] = 9.96921e+36
-            out_put['t'].attrs['_FillValue'] = 9.96921e+36
+            out_put['t'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['t'].attrs['_FillValue'] = np.float32(9.96921e+36)
             out_put['t'].attrs['sigma'] = np.float32(0.995)
             out_put['t'].attrs['units'] = 'K/s'
+            out_put['t'].attrs['longname'] = "diabatic heating"
+            out_put['t'].attrs['remap'] = 'remapped via ESMF_regrid_with_weights: First-order Conservative'
 
-            out_put['p'].attrs['missing_value'] = 9.96921e+36
-            out_put['p'].attrs['_FillValue'] = 9.96921e+36
+            out_put['p'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['p'].attrs['_FillValue'] = np.float32(9.96921e+36)
             out_put['p'].attrs['sigma'] = np.float32(0.995)
             out_put['p'].attrs['units'] = 'hPa(?)/s'
+            out_put['p'].attrs['longname'] = "diabatic terrain"
+            out_put['p'].attrs['remap'] = 'remapped via ESMF_regrid_with_weights: First-order Conservative'
+
+            out_put.attrs['history'] = "2024/10/28 AM Made by Tingyang Song"
 
             return out_put.fillna(0)
         elif coor_sys == 'pressure' or coor_sys == 'p':
@@ -534,23 +562,37 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
                                  't': (['time', 'lev', 'lat', 'lon'], t_dim),
                                  'p': (['time', 'lev2', 'lat', 'lon'], p_dim)},
                                  coords={'time': [0], 'lev': level_p, 'lat': lbm_lat, 'lon': lbm_lon, 'lev2': [0.995]})
-            out_put['v'].attrs['missing_value'] = 9.96921e+36
-            out_put['v'].attrs['_FillValue'] = 9.96921e+36
+            out_put['lev'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['lev'].attrs['_FillValue'] = np.float32(9.96921e+36)
+
+            out_put['lat'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['lat'].attrs['_FillValue'] = np.float32(9.96921e+36)
+
+            out_put['lon'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['lon'].attrs['_FillValue'] = np.float32(9.96921e+36)
+
+            out_put['lev2'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['lev2'].attrs['_FillValue'] = np.float32(9.96921e+36)
+
+            out_put['v'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['v'].attrs['_FillValue'] = np.float32(9.96921e+36)
             out_put['v'].attrs['sigma'] = np.float32(0.995)
             out_put['v'].attrs['units'] = '1/s'
+            out_put['v'].attrs['longname'] = "diabatic vorticity"
+            out_put['v'].attrs['remap'] = "remapped via ESMF_regrid_with_weights: First-order Conservative"
 
-            out_put['d'].attrs['missing_value'] = 9.96921e+36
-            out_put['d'].attrs['_FillValue'] = 9.96921e+36
+            out_put['d'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['d'].attrs['_FillValue'] = np.float32(9.96921e+36)
             out_put['d'].attrs['sigma'] = np.float32(0.995)
             out_put['d'].attrs['units'] = '1/s'
 
-            out_put['t'].attrs['missing_value'] = 9.96921e+36
-            out_put['t'].attrs['_FillValue'] = 9.96921e+36
+            out_put['t'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['t'].attrs['_FillValue'] = np.float32(9.96921e+36)
             out_put['t'].attrs['sigma'] = np.float32(0.995)
             out_put['t'].attrs['units'] = 'K/s'
 
-            out_put['p'].attrs['missing_value'] = 9.96921e+36
-            out_put['p'].attrs['_FillValue'] = 9.96921e+36
+            out_put['p'].attrs['missing_value'] = np.float32(9.96921e+36)
+            out_put['p'].attrs['_FillValue'] = np.float32(9.96921e+36)
             out_put['p'].attrs['sigma'] = np.float32(0.995)
             out_put['p'].attrs['units'] = 'hPa(?)/s'
 
