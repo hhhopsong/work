@@ -10,6 +10,7 @@ from toolbar.curved_quivers_master.modplot import velovect
 from scipy.ndimage import filters
 
 import xarray as xr
+import xgrads as xg
 import numpy as np
 
 from toolbar.LBM.force_file import horizontal_profile as hp
