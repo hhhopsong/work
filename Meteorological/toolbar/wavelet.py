@@ -56,11 +56,12 @@ class WaveletAnalysis:
 
     def red_noise(self):
         """计算红噪声"""
-        dof = self.data.size - 200
+        dof = self.J - 1
         S = np.mean(self.power) / dof
-        x2r = chi2.ppf(1 - 0.95, df=dof)
+        x2r = chi2.ppf(1 - 0.5, df=dof)
         t = np.arange(0, self.data.size + 1)
-        Sr = [S * (1 - self.alpha**2) / (1 + self.alpha**2 - 2 * self.alpha * np.cos(t[i] * np.pi / self.scales)) for i in range(len(t))] * x2r / dof
+        Sr = np.array([S * (1 - self.alpha**2) / (1 + self.alpha**2 - 2 * self.alpha * np.cos(t[i] * np.pi / self.scales)) for i in range(len(t))]) * x2r / dof
+        Sr = Sr.mean(axis=0)
         return Sr
 
 
