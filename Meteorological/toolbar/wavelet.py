@@ -3,7 +3,7 @@ from scipy.stats.distributions import chi2
 from matplotlib import pyplot as plt
 
 import pycwt as wavelet
-from pycwt.helpers import find
+from pycwt.helpers import find, rednoise
 
 
 class WaveletAnalysis:
@@ -56,13 +56,9 @@ class WaveletAnalysis:
 
     def red_noise(self):
         """计算红噪声"""
-        dof = self.J - 1
-        S = np.mean(self.power) / dof
-        x2r = chi2.ppf(1 - 0.5, df=dof)
-        t = np.arange(0, self.data.size + 1)
-        Sr = np.array([S * (1 - self.alpha**2) / (1 + self.alpha**2 - 2 * self.alpha * np.cos(t[i] * np.pi / self.scales)) for i in range(len(t))]) * x2r / dof
-        Sr = Sr.mean(axis=0)
-        return Sr
+        red_noise = rednoise(self.alpha, self.scales, self.dt)
+
+        return rednoise
 
 
     def wavelet_analysis(self):
@@ -116,7 +112,6 @@ class WaveletAnalysis:
         iwave = wavelet.icwt(wave, self.scales, self.dt, self.dj, self.mother) * self.std
         # 计算功率谱
         self.power = (np.abs(wave)) ** 2
-        # 计算相位谱
         fft_power = np.abs(fft) ** 2
         self.period = 1 / freqs
         self.power /= self.scales[:, None]
@@ -128,10 +123,10 @@ class WaveletAnalysis:
         # 计算全局功率谱
         self.global_power = self.power.mean(axis=1)
         dof = data.size - self.scales
-        global_signif, red_noise = wavelet.significance(self.var, self.dt, self.scales, 1, self.alpha,
+        global_signif, tmp = wavelet.significance(self.var, self.dt, self.scales, 1, self.alpha,
                                                   significance_level=self.signal, dof=dof, wavelet=self.mother)
         return (self.period, self.power, self.dt, self.mother, iwave,
-                sig, coi, self.global_power, global_signif, fft_power, fft_freqs, fft_theor, red_noise)
+                sig, coi, self.global_power, global_signif, fft_power, fft_freqs, fft_theor)
 
     def find_periods_power(self, start=2, end=8):
         """计算限定周期范围波动的功率谱"""
@@ -168,7 +163,7 @@ class WaveletAnalysis:
         fig = plt.figure(**figprops)
         t = np.arange(0, data.size) * self.dt
         var = self.var
-        period, power, dt, mother, iwave, sig, coi, glbl_power, glbl_signif, fft_power, fftfreqs, fft_theor, red_noise = self.wavelet_analysis()
+        period, power, dt, mother, iwave, sig, coi, glbl_power, glbl_signif, fft_power, fftfreqs, fft_theor= self.wavelet_analysis()
 
         # 第一个子图，原始时间序列异常和逆小波变换
         ax = plt.axes([0.1, 0.75, 0.65, 0.2])
@@ -230,6 +225,18 @@ if __name__ == '__main__':
     # 获取数据
     url = 'http://paos.colorado.edu/research/wavelets/wave_idl/nino3sst.txt'
     dat = np.genfromtxt(url, skip_header=19)
+    dat = np.array([16.80, 15.35, 17.00, 22.50, 23.50, 27.00, 27.60, 28.00, 27.15, 24.00, 20.85, 18.25,
+                  16.20, 14.30, 16.55, 21.10, 24.00, 26.25, 27.80, 27.30, 27.05, 25.50, 23.80, 19.95,
+                  15.60, 17.00, 19.70, 20.90, 24.00, 24.80, 26.95, 26.70, 27.40, 24.85, 22.20, 18.90,
+                  15.80, 13.55, 17.60, 21.75, 25.00, 26.20, 26.95, 27.00, 26.35, 24.60, 21.55, 17.85,
+                  15.60, 18.05, 18.90, 21.90, 24.35, 26.20, 26.80, 26.90, 28.05, 25.60, 22.00, 17.80,
+                  16.20, 15.20, 17.60, 20.00, 23.75, 25.20, 27.00, 27.80, 26.90, 24.40, 21.00, 17.80,
+                  14.00, 13.55, 19.95, 23.00, 25.15, 26.80, 27.00, 27.10, 26.80, 25.50, 22.20, 19.50,
+                  18.00, 17.80, 18.95, 21.70, 23.40, 27.35, 28.00, 27.80, 27.20, 25.00, 22.20, 19.95,
+                  18.95, 19.00, 20.50, 22.20, 23.35, 25.55, 27.90, 27.80, 28.00, 24.60, 22.50, 19.20,
+                  17.70, 15.10, 16.50, 22.00, 24.00, 28.00, 28.60, 27.90, 27.00, 25.40, 23.00, 21.30,
+                  18.50, 18.00, 19.00, 23.25, 24.25, 25.40, 28.10, 28.50, 26.70, 25.70, 22.00, 18.00,
+                  18.00, 17.00, 18.00, 20.00, 24.05, 25.50, 27.55, 27.50, 26.60, 26.00, 23.50, 20.00])
     # 小波分析
     wavelet_analysis = WaveletAnalysis(dat, dt=0.25, detrend=False, normal=True, signal=.95)
     wavelet_analysis.plot()
