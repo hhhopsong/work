@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats.distributions import chi2
 from matplotlib import pyplot as plt
 
 import pycwt as wavelet
@@ -6,8 +7,7 @@ from pycwt.helpers import find
 
 
 class WaveletAnalysis:
-    """小波分析类, 用于时间序列数据(默认时间间隔均匀)
-    """
+    """小波分析类, 用于时间序列数据(默认时间间隔均匀)"""
     def __init__(self, data, dt, wavelet='Morlet', signal=0.95, s0=2, dj=12, J=7, normal=True, detrend=False):
         """
 
@@ -39,6 +39,9 @@ class WaveletAnalysis:
         self.scales = None
         self.mother = None
         self.alpha = None
+        self.global_power = None
+
+        self.wavelet_analysis()
 
     def detrended(self):
         """去趋势处理"""
@@ -50,6 +53,16 @@ class WaveletAnalysis:
         """标准化处理"""
         data = (self.data - np.mean(self.data)) / self.std
         return data
+
+    def red_noise(self):
+        """计算红噪声"""
+        dof = self.data.size - 200
+        S = np.mean(self.power) / dof
+        x2r = chi2.ppf(1 - 0.95, df=dof)
+        t = np.arange(0, self.data.size + 1)
+        Sr = [S * (1 - self.alpha**2) / (1 + self.alpha**2 - 2 * self.alpha * np.cos(t[i] * np.pi / self.scales)) for i in range(len(t))] * x2r / dof
+        return Sr
+
 
     def wavelet_analysis(self):
         """小波分析
@@ -112,11 +125,12 @@ class WaveletAnalysis:
         sig = np.ones([1, data.size]) * signif[:, None]
         sig = self.power / sig
         # 计算全局功率谱
-        global_power = self.power.mean(axis=1)
+        self.global_power = self.power.mean(axis=1)
         dof = data.size - self.scales
-        global_signif, tmp = wavelet.significance(self.var, self.dt, self.scales, 1, self.alpha,
+        global_signif, red_noise = wavelet.significance(self.var, self.dt, self.scales, 1, self.alpha,
                                                   significance_level=self.signal, dof=dof, wavelet=self.mother)
-        return self.period, self.power, self.dt, self.mother, iwave, sig, coi, global_power, global_signif, fft_power, fft_freqs, fft_theor
+        return (self.period, self.power, self.dt, self.mother, iwave,
+                sig, coi, self.global_power, global_signif, fft_power, fft_freqs, fft_theor, red_noise)
 
     def find_periods_power(self, start=2, end=8):
         """计算限定周期范围波动的功率谱"""
@@ -134,9 +148,9 @@ class WaveletAnalysis:
         scale_avg = (self.scales * np.ones((data.size, 1))).transpose()
         scale_avg = self.power / scale_avg
         scale_avg = self.var * self.dj * self.dt / Cdelta * scale_avg[sel, :].sum(axis=0)
-        scale_avg_signif, tmp = wavelet.significance(self.var, self.dt, self.scales, 2, self.alpha, significance_level=self.signal,
+        scale_avg_signif, red_noise = wavelet.significance(self.var, self.dt, self.scales, 2, self.alpha, significance_level=self.signal,
                                                      dof=[self.scales[sel[0]], self.scales[sel[-1]]], wavelet=self.mother)
-        return scale_avg_signif, scale_avg
+        return scale_avg_signif, scale_avg, red_noise
 
     def plot(self):
         """绘制小波分析结果"""
@@ -153,7 +167,7 @@ class WaveletAnalysis:
         fig = plt.figure(**figprops)
         t = np.arange(0, data.size) * self.dt
         var = self.var
-        period, power, dt, mother, iwave, sig, coi, glbl_power, glbl_signif, fft_power, fftfreqs, fft_theor = self.wavelet_analysis()
+        period, power, dt, mother, iwave, sig, coi, glbl_power, glbl_signif, fft_power, fftfreqs, fft_theor, red_noise = self.wavelet_analysis()
 
         # 第一个子图，原始时间序列异常和逆小波变换
         ax = plt.axes([0.1, 0.75, 0.65, 0.2])
@@ -185,7 +199,7 @@ class WaveletAnalysis:
 
         # 第三个子图，全局小波和傅里叶功率谱以及理论噪声谱。请注意，周期刻度是对数的。
         cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
-        cx.plot(glbl_signif, np.log2(period), '--', 'red')
+        cx.plot(self.red_noise(), np.log2(period), '--', color='red')
         cx.plot(var * fft_theor, np.log2(period), '--', color='gray')
         # cx.plot(var * fft_power, np.log2(1. / fftfreqs), '-', color='#cccccc', linewidth=1.)
         cx.plot(var * glbl_power, np.log2(period), 'k-', linewidth=1.5)
@@ -198,7 +212,7 @@ class WaveletAnalysis:
         plt.setp(cx.get_yticklabels(), visible=False)
 
         # 第四个子图，比例平均小波谱。
-        scale_avg_signif, scale_avg = self.find_periods_power(2, 8)
+        scale_avg_signif, scale_avg, _ = self.find_periods_power(2, 8)
         dx = plt.axes([0.1, 0.07, 0.65, 0.2], sharex=ax)
         dx.axhline(scale_avg_signif, color='k', linestyle='--', linewidth=1.)
         dx.plot(t, scale_avg, 'k-', linewidth=1.5)
