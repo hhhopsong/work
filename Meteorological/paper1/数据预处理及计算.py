@@ -93,6 +93,7 @@ if info:
     # OLS趋势分析
     from scipy.stats import linregress
     slope, intercept, r_value, p_value, std_err = linregress(np.arange(0, eval(data_year[1]) - eval(data_year[0]) + 1), EHDstations_zone['__xarray_dataarray_variable__'].to_numpy())
+    np.save(fr"D:\PyFile\paper1\OLS{info}.npy", EHDstations_zone['__xarray_dataarray_variable__'].to_numpy())
     OLS_detrended = EHDstations_zone['__xarray_dataarray_variable__'].to_numpy() - np.arange(0, eval(data_year[1]) - eval(data_year[0]) + 1) * slope - intercept
     OLS_detrended = (OLS_detrended - OLS_detrended.mean()) / OLS_detrended.std()  # 标准化处理
     np.save(fr"D:\PyFile\paper1\OLS{info}_detrended.npy", OLS_detrended)

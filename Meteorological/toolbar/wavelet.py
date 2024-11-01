@@ -29,8 +29,8 @@ class WaveletAnalysis:
         self.wavelet = wavelet
         self.signal = signal
         self.s0 = s0 * dt
+        self.J = J * dj
         self.dj = 1 / dj
-        self.J = J / self.dj
         self.normal = normal
         self.detrend = detrend
 
@@ -38,9 +38,8 @@ class WaveletAnalysis:
         self.power = None
         self.scales = None
         self.mother = None
-        self.alpha = None
         self.global_power = None
-
+        self.alpha = None
         self.wavelet_analysis()
 
     def detrended(self):
@@ -54,12 +53,51 @@ class WaveletAnalysis:
         data = (self.data - np.mean(self.data)) / self.std
         return data
 
-    def red_noise(self):
-        """计算红噪声"""
-        red_noise = rednoise(self.alpha, self.scales, self.dt)
+    def noise(self, alpha_red=0.05, alpha_white=0.95):
+        """计算噪声 错误
 
-        return rednoise
+        Returns:
+            S_red (numpy.array): 红噪声功率谱
 
+            S_white (numpy.array): 白噪声功率谱
+        """
+        n = self.data.size
+        data = (self.data - np.mean(self.data)) / np.std(self.data)
+        r1 = np.zeros((n - 6))
+        r2 = np.zeros((n - 7))
+        for i in np.arange(0, n - 6):
+            r1[i] = np.sum(data[:n - i] * data[i:]) / data[:n - i].shape[0]
+        for i in np.arange(1, n - 6):
+            r2[i - 1] = np.sum(data[:n - i] * data[i:]) / data[:n - i].shape[0]
+        r2 = r2[::-1]
+        r = np.hstack((r2, r1))
+        l = np.arange(0, self.J + 1, 1)
+        tao = np.arange(1, self.J, 1)
+        Sl = np.zeros((self.J + 1))
+        Tl = np.zeros((self.J + 1))
+        S0l = np.zeros((self.J + 1))
+        a = np.array((r.shape[0] + 1) / 2).astype('int32')
+        r = r[a - 1:a + self.J]
+        a = r[1:-1] * (1 + np.cos(np.pi * tao / self.J))
+        for i in np.arange(2, self.J + 1, 1):
+            Sl[i - 1] = (r[0] + np.sum(a * np.cos(l[i - 1] * np.pi * tao / self.J))) / self.J
+        Sl[0] = (r[0] + np.sum(a * np.cos(l[0] * np.pi * tao / self.J))) / (2 * self.J)
+        Sl[-1] = (r[0] + np.sum(a * np.cos(l[-1] * np.pi * tao / self.J))) / (2 * self.J)
+        for i in range(l.shape[0]):
+            Tl[i] = 2 * self.J / l[i]
+        f = (2 * n - self.J / 2) / self.J
+        S = np.mean(Sl)
+        for i in range(l.shape[0]):
+            S0l[i] = S * (1 - r[1] * r[1]) / (1 + r[1] * r[1] - 2 * r[1] * np.cos(l[i] * np.pi / self.J))
+        S_red = S0l / f
+        x2r_high = chi2.ppf(1 - alpha_red, df=f)
+        S_red_high = S0l * x2r_high / f
+        x2r_low = chi2.ppf(alpha_red, df=f)
+        S_red_low = S0l * x2r_low / f
+        x2w = chi2.ppf(1 - alpha_white, df=f)
+        S_white = S * x2w / f
+        r1 = r[1]
+        return np.array([S_red, S_red_low, S_red_high]), S_white
 
     def wavelet_analysis(self):
         """小波分析
@@ -70,7 +108,7 @@ class WaveletAnalysis:
 
             power (numpy.array): 功率谱
 
-            dt (float): 时间间隔
+            dt (float): 数据的时间间隔(年)
 
             mother (pycwt.Morlet): 小波基函数
 
@@ -144,9 +182,9 @@ class WaveletAnalysis:
         scale_avg = (self.scales * np.ones((data.size, 1))).transpose()
         scale_avg = self.power / scale_avg
         scale_avg = self.var * self.dj * self.dt / Cdelta * scale_avg[sel, :].sum(axis=0)
-        scale_avg_signif, red_noise = wavelet.significance(self.var, self.dt, self.scales, 2, self.alpha, significance_level=self.signal,
+        scale_avg_signif, tmp = wavelet.significance(self.var, self.dt, self.scales, 2, self.alpha, significance_level=self.signal,
                                                      dof=[self.scales[sel[0]], self.scales[sel[-1]]], wavelet=self.mother)
-        return scale_avg_signif, scale_avg, red_noise
+        return scale_avg_signif, scale_avg
 
     def plot(self):
         """绘制小波分析结果"""
@@ -162,8 +200,7 @@ class WaveletAnalysis:
         figprops = dict(figsize=(11, 8), dpi=72)
         fig = plt.figure(**figprops)
         t = np.arange(0, data.size) * self.dt
-        var = self.var
-        period, power, dt, mother, iwave, sig, coi, glbl_power, glbl_signif, fft_power, fftfreqs, fft_theor= self.wavelet_analysis()
+        period, power, dt, mother, iwave, sig, coi, glbl_power, glbl_signif, fft_power, fft_freqs, fft_theor= self.wavelet_analysis()
 
         # 第一个子图，原始时间序列异常和逆小波变换
         ax = plt.axes([0.1, 0.75, 0.65, 0.2])
@@ -194,28 +231,29 @@ class WaveletAnalysis:
         bx.set_yticklabels(Yticks)
 
         # 第三个子图，全局小波和傅里叶功率谱以及理论噪声谱。请注意，周期刻度是对数的。
+        var = self.var
         cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
-        cx.plot(self.red_noise(), np.log2(period), '--', color='red')
-        cx.plot(var * fft_theor, np.log2(period), '--', color='gray')
-        # cx.plot(var * fft_power, np.log2(1. / fftfreqs), '-', color='#cccccc', linewidth=1.)
-        cx.plot(var * glbl_power, np.log2(period), 'k-', linewidth=1.5)
+        #cx.plot(var * fft_theor, np.log2(period), '--', color='red')
+        cx.plot(var * fft_power, np.log2(1. / fft_freqs), '-', color='k', linewidth=1.)
+        cx.plot(glbl_signif, np.log2(period), ':', color='red')
+        #cx.plot(var * glbl_power, np.log2(period), '-', color='#cccccc', linewidth=1.5)
         cx.set_title('c) Global Wavelet Spectrum')
         cx.set_xlabel(r'Power [({})^2]'.format('℃'))
-        cx.set_xlim([0, glbl_power.max() + var])
+        cx.set_xlim([0, var * fft_power.max() + var])
         cx.set_ylim(np.log2([period.min(), period.max()]))
         cx.set_yticks(np.log2(Yticks))
         cx.set_yticklabels(Yticks)
         plt.setp(cx.get_yticklabels(), visible=False)
 
         # 第四个子图，比例平均小波谱。
-        scale_avg_signif, scale_avg, _ = self.find_periods_power(2, 8)
+        scale_avg_signif, scale_avg= self.find_periods_power(1, 2)
         dx = plt.axes([0.1, 0.07, 0.65, 0.2], sharex=ax)
         dx.axhline(scale_avg_signif, color='k', linestyle='--', linewidth=1.)
         dx.plot(t, scale_avg, 'k-', linewidth=1.5)
-        dx.set_title('d) {}--{} year scale-averaged power'.format(2, 8))
+        dx.set_title('d) {}--{} year scale-averaged power'.format(1, 2))
         dx.set_xlabel('Time (year)')
         dx.set_ylabel(r'Average variance [{}]'.format("℃"))
-        ax.set_xlim([t.min(), t.max()])
+        dx.set_xlim([t.min(), t.max()])
 
         plt.show()
 
@@ -225,18 +263,7 @@ if __name__ == '__main__':
     # 获取数据
     url = 'http://paos.colorado.edu/research/wavelets/wave_idl/nino3sst.txt'
     dat = np.genfromtxt(url, skip_header=19)
-    dat = np.array([16.80, 15.35, 17.00, 22.50, 23.50, 27.00, 27.60, 28.00, 27.15, 24.00, 20.85, 18.25,
-                  16.20, 14.30, 16.55, 21.10, 24.00, 26.25, 27.80, 27.30, 27.05, 25.50, 23.80, 19.95,
-                  15.60, 17.00, 19.70, 20.90, 24.00, 24.80, 26.95, 26.70, 27.40, 24.85, 22.20, 18.90,
-                  15.80, 13.55, 17.60, 21.75, 25.00, 26.20, 26.95, 27.00, 26.35, 24.60, 21.55, 17.85,
-                  15.60, 18.05, 18.90, 21.90, 24.35, 26.20, 26.80, 26.90, 28.05, 25.60, 22.00, 17.80,
-                  16.20, 15.20, 17.60, 20.00, 23.75, 25.20, 27.00, 27.80, 26.90, 24.40, 21.00, 17.80,
-                  14.00, 13.55, 19.95, 23.00, 25.15, 26.80, 27.00, 27.10, 26.80, 25.50, 22.20, 19.50,
-                  18.00, 17.80, 18.95, 21.70, 23.40, 27.35, 28.00, 27.80, 27.20, 25.00, 22.20, 19.95,
-                  18.95, 19.00, 20.50, 22.20, 23.35, 25.55, 27.90, 27.80, 28.00, 24.60, 22.50, 19.20,
-                  17.70, 15.10, 16.50, 22.00, 24.00, 28.00, 28.60, 27.90, 27.00, 25.40, 23.00, 21.30,
-                  18.50, 18.00, 19.00, 23.25, 24.25, 25.40, 28.10, 28.50, 26.70, 25.70, 22.00, 18.00,
-                  18.00, 17.00, 18.00, 20.00, 24.05, 25.50, 27.55, 27.50, 26.60, 26.00, 23.50, 20.00])
+    dat = np.load("D:\PyFile\paper1\OLS35_detrended.npy")
     # 小波分析
-    wavelet_analysis = WaveletAnalysis(dat, dt=0.25, detrend=False, normal=True, signal=.95)
+    wavelet_analysis = WaveletAnalysis(dat, dt=1, detrend=True, normal=True, signal=.95, J=3)
     wavelet_analysis.plot()
