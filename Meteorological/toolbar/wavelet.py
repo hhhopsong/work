@@ -246,14 +246,14 @@ class WaveletAnalysis:
         plt.setp(cx.get_yticklabels(), visible=False)
 
         # 第四个子图，比例平均小波谱。
-        scale_avg_signif, scale_avg= self.find_periods_power(1, 2)
+        scale_avg_signif, scale_avg= self.find_periods_power(4, 8)
         dx = plt.axes([0.1, 0.07, 0.65, 0.2], sharex=ax)
         dx.axhline(scale_avg_signif, color='k', linestyle='--', linewidth=1.)
         dx.plot(t, scale_avg, 'k-', linewidth=1.5)
-        dx.set_title('d) {}--{} year scale-averaged power'.format(1, 2))
+        dx.set_title('d) {}--{} year scale-averaged power'.format(4, 8))
         dx.set_xlabel('Time (year)')
         dx.set_ylabel(r'Average variance [{}]'.format("℃"))
-        dx.set_xlim([t.min(), t.max()])
+        ax.set_xlim([t.min(), t.max()])
 
         plt.show()
 
