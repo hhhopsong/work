@@ -177,6 +177,9 @@ class WaveletAnalysis:
             data = self.normalize()
         if self.period is None:
             raise ValueError("请先运行 wavelet_analysis 函数。")
+        if start < np.min(self.period) and end < np.min(self.period):
+            if start > np.max(self.period) and end > np.max(self.period):
+                raise ValueError(f"周期范围不在有效范围内({np.min(self.period)} - {np.max(self.period)})。")
         sel = find((self.period >= start) & (self.period < end))
         Cdelta = self.mother.cdelta
         scale_avg = (self.scales * np.ones((data.size, 1))).transpose()
@@ -234,9 +237,9 @@ class WaveletAnalysis:
         var = self.var
         cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
         #cx.plot(var * fft_theor, np.log2(period), '--', color='red')
+        cx.plot(var * glbl_power, np.log2(period), '-', color='#cccccc', linewidth=1.5)
         cx.plot(var * fft_power, np.log2(1. / fft_freqs), '-', color='k', linewidth=1.)
         cx.plot(glbl_signif, np.log2(period), ':', color='red')
-        #cx.plot(var * glbl_power, np.log2(period), '-', color='#cccccc', linewidth=1.5)
         cx.set_title('c) Global Wavelet Spectrum')
         cx.set_xlabel(r'Power [({})^2]'.format('℃'))
         cx.set_xlim([0, var * fft_power.max() + var])
@@ -265,5 +268,5 @@ if __name__ == '__main__':
     dat = np.genfromtxt(url, skip_header=19)
     dat = np.load("D:\PyFile\paper1\OLS35_detrended.npy")
     # 小波分析
-    wavelet_analysis = WaveletAnalysis(dat, dt=1, detrend=True, normal=True, signal=.95, J=3)
+    wavelet_analysis = WaveletAnalysis(dat, dt=1, detrend=False, normal=True, signal=.95, J=4)
     wavelet_analysis.plot()
