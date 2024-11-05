@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from PyEMD import EEMD
 
-signal_init =  np.load("D:\PyFile\paper1\OLS35_detrended.npy")
+signal_init =  np.load("D:\PyFile\paper1\OLS35.npy")
 t = np.arange(len(signal_init))
 
 # 创建 EEMD 对象

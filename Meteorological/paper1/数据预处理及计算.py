@@ -1,3 +1,5 @@
+import multiprocessing
+
 from cartopy import crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
@@ -52,7 +54,7 @@ if info:
         EHD = xr.open_dataset(fr"D:\PyFile\paper1\EHD{info}.nc")
     EHD = masked(EHD, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
     EHD = EHD.sel(time=EHD['time.month'].isin([6, 7, 8]))  # 选择6、7、8月数据  # 格点数
-    EHD_index = EHD.sel(time=EHD['time.month'].isin([6, 7, 8])).groupby('time.year').sum('time').mean('year')
+    EHD_index = EHD.sel(time=EHD['time.month'].isin([7, 8])).groupby('time.year').sum('time').mean('year')  # 截取7-8月发生过高温的格点
     EHD_index = EHD_index.where(EHD_index > 0)
     station_num = masked((CN051_2-CN051_2+1).sel(time='2022-01-01'), r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")['tmax']  # 掩膜处理得长江流域站点数
     station_happended_num = (EHD_index - EHD_index + 1)['tmax']  # 掩膜处理得长江流域极端高温站点数
@@ -365,4 +367,57 @@ if eval(input("10)是否计算同期(0/1)?\n")):
         pre.to_netcdf(r"D:\PyFile\paper1\cache\olr\olr_same.nc")
     else:
         raise ValueError("输入错误")
+if eval(input("11)是否计算同期相关系数(0/1)?\n")):
+
+    # 多核计算部分函数
+    def multi_core(var, p, ols, sen):
+        import numpy as np
+        print(f"{p}hPa层{var}相关系数计算中...")
+        if var == 'u' or var == 'v' or var == 'z':
+            pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\{var}_same.nc")[var].sel(p=p).transpose('lat',
+                                                                                                             'lon',
+                                                                                                             'year')
+        elif var == 'sst':
+            pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].transpose('lat', 'lon',
+                                                                                                    'year')
+        elif var == 'precip':
+            pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\pre\pre_same.nc")['precip'].transpose('lat', 'lon',
+                                                                                                       'year')
+        elif var == 'olr':
+            pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\olr\olr_same.nc")['olr'].transpose('lat', 'lon',
+                                                                                                    'year')
+        shape = pre_diff.shape
+        pre_diff = pre_diff.data if isinstance(pre_diff, xr.DataArray) else pre_diff
+        pre_diff = pre_diff.reshape(shape[0] * shape[1], shape[2])
+        corr_1 = np.array([np.corrcoef(d, ols)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
+        if var == 'u' or var == 'v' or var == 'z':
+            np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy", corr_1)  # 保存缓存
+        elif var == 'sst':
+            np.save(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy", corr_1)
+        elif var == 'precip':
+            np.save(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy", corr_1)
+        elif var == 'olr':
+            np.save(fr"D:\PyFile\paper1\cache\olr\corr_olr_same.npy", corr_1)
+        if var == 'z' and p == 200:
+            reg_z = np.array([np.polyfit(ols, f, 1)[0] for f in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
+            np.save(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy", reg_z)
+        print(f"{p}hPa层{var}相关系数完成。")
+
+    ols = np.load(r"D:\PyFile\paper1\OLS35.npy")
+    M = 6  # 临界月
+    # 多核计算
+    Ncpu = multiprocessing.cpu_count()
+    data_pool = []
+    for var in ['u', 'v', 'z', 'sst', 'precip', 'olr']:
+        if var == 'u' or var == 'v' or var == 'z':
+            for p in [200, 500, 600, 700, 850]:
+                data_pool.append([var, p, ols])
+        else:
+            data_pool.append([var, 0, ols])
+    p = multiprocessing.Pool()
+    p.starmap(multi_core, data_pool)
+    p.close()
+    p.join()
+    del data_pool
+
 print("数据处理完成")

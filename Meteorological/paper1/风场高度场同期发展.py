@@ -19,7 +19,7 @@ from matplotlib.ticker import MultipleLocator
 from scipy.ndimage import filters
 from toolbar.significance_test import corr_test
 from toolbar.TN_WaveActivityFlux import TN_WAF_3D
-from toolbar.curved_quivers_master.modplot import velovect, velovect_key
+from toolbar.curved_quivers.modplot import velovect, velovect_key
 
 
 # 多核计算部分函数

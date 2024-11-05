@@ -1,3 +1,4 @@
+import cmaps
 import numpy as np
 from scipy.stats.distributions import chi2
 from matplotlib import pyplot as plt
@@ -150,14 +151,15 @@ class WaveletAnalysis:
         iwave = wavelet.icwt(wave, self.scales, self.dt, self.dj, self.mother) * self.std
         # 计算功率谱
         self.power = (np.abs(wave)) ** 2
-        fft_power = np.abs(fft) ** 2
-        self.period = 1 / freqs
-        self.power /= self.scales[:, None]
+        # 计算显著性水平
         signif, fft_theor = wavelet.significance(1.0, self.dt, self.scales, 0, self.alpha,
                                                  significance_level=self.signal, wavelet=self.mother)
-        # 计算显著性水平
         sig = np.ones([1, data.size]) * signif[:, None]
         sig = self.power / sig
+
+        fft_power = np.abs(fft) ** 2
+        self.period = 1 / freqs
+        #self.power /= self.scales[:, None]
         # 计算全局功率谱
         self.global_power = self.power.mean(axis=1)
         dof = data.size - self.scales
@@ -189,7 +191,7 @@ class WaveletAnalysis:
                                                      dof=[self.scales[sel[0]], self.scales[sel[-1]]], wavelet=self.mother)
         return scale_avg_signif, scale_avg
 
-    def plot(self):
+    def plot(self, unit="%", start_year=1961):
         """绘制小波分析结果"""
         data = self.data
         if self.detrend:
@@ -208,15 +210,18 @@ class WaveletAnalysis:
         # 第一个子图，原始时间序列异常和逆小波变换
         ax = plt.axes([0.1, 0.75, 0.65, 0.2])
         # ax.plot(t, iwave, '-', linewidth=1, color=[0.5, 0.5, 0.5])
+        ax.axhline(0, color='gray', linestyle='--', linewidth=1.)
         ax.plot(t, data, 'k', linewidth=1.5)
         ax.set_title('a) {}'.format('Raw data'))
-        ax.set_ylabel(r'[{}]'.format('℃'))
+        ax.set_ylabel(r'[{}]'.format(unit))
+        ax.set_xlim([t.min(), t.max()])
+        ax.set_xticklabels(np.array([0, 10, 20, 30, 40, 50, 60]) + start_year)
 
         # 第二个子图，归一化小波功率谱和显著性水平等值线和影响阴影区域的圆锥体。请注意，周期刻度是对数的。
         bx = plt.axes([0.1, 0.37, 0.65, 0.28], sharex=ax)
-        levels = [0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8, 16]
-        bx.contourf(t, np.log2(period), np.log2(power), level=np.log2(levels),
-                    extend='both', cmap=plt.cm.viridis)
+        levels = [0, 0.0125, 0.25, 0.5, 1, 2, 4]
+        bx_fill = bx.contourf(t, np.log2(period), power, level=levels,
+                    extend='both', cmap=cmaps.sunshine_9lev)
         extent = [t.min(), t.max(), 0, max(period)]
         bx.contour(t, np.log2(period), sig, [-99, 1], colors='k', linewidths=2,
                    extent=extent)
@@ -238,25 +243,24 @@ class WaveletAnalysis:
         cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
         #cx.plot(var * fft_theor, np.log2(period), '--', color='red')
         cx.plot(var * glbl_power, np.log2(period), '-', color='#cccccc', linewidth=1.5)
-        cx.plot(var * fft_power, np.log2(1. / fft_freqs), '-', color='k', linewidth=1.)
-        cx.plot(glbl_signif, np.log2(period), ':', color='red')
+        cx.plot(var * fft_power, np.log2(1. / fft_freqs), '-', color='k', linewidth=1)
+        cx.plot(glbl_signif, np.log2(period), ':', color='red', linewidth=1.5)
         cx.set_title('c) Global Wavelet Spectrum')
-        cx.set_xlabel(r'Power [({})^2]'.format('℃'))
-        cx.set_xlim([0, var * fft_power.max() + var])
+        cx.set_xlabel(r'Power [({})^2]'.format(unit))
+        cx.set_xlim([0, var * np.nanmax(fft_power)])
         cx.set_ylim(np.log2([period.min(), period.max()]))
         cx.set_yticks(np.log2(Yticks))
         cx.set_yticklabels(Yticks)
         plt.setp(cx.get_yticklabels(), visible=False)
 
         # 第四个子图，比例平均小波谱。
-        scale_avg_signif, scale_avg= self.find_periods_power(4, 8)
+        scale_avg_signif, scale_avg= self.find_periods_power(2, 3.5)
         dx = plt.axes([0.1, 0.07, 0.65, 0.2], sharex=ax)
-        dx.axhline(scale_avg_signif, color='k', linestyle='--', linewidth=1.)
+        dx.axhline(scale_avg_signif, color='red', linestyle=':', linewidth=1.5)
         dx.plot(t, scale_avg, 'k-', linewidth=1.5)
-        dx.set_title('d) {}--{} year scale-averaged power'.format(4, 8))
+        dx.set_title('d) {}-{} year scale-averaged power'.format(3, 4))
         dx.set_xlabel('Time (year)')
-        dx.set_ylabel(r'Average variance [{}]'.format("℃"))
-        ax.set_xlim([t.min(), t.max()])
+        dx.set_ylabel(r'Average variance [{}]'.format(unit))
 
         plt.show()
 
@@ -266,7 +270,7 @@ if __name__ == '__main__':
     # 获取数据
     url = 'http://paos.colorado.edu/research/wavelets/wave_idl/nino3sst.txt'
     dat = np.genfromtxt(url, skip_header=19)
-    dat = np.load("D:\PyFile\paper1\OLS35_detrended.npy")
+    dat = np.load("D:\PyFile\paper1\OLS35.npy")
     # 小波分析
     wavelet_analysis = WaveletAnalysis(dat, dt=1, detrend=False, normal=True, signal=.95, J=4)
-    wavelet_analysis.plot()
+    wavelet_analysis.plot(unit="1")

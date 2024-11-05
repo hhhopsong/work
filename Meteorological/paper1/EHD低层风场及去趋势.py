@@ -34,7 +34,7 @@ time = [1961, 2022]
 alpha = 0.05 # 显著性水平
 
 EHDstations_zone = xr.open_dataset(fr"D:\PyFile\paper1\EHD35stations_happended_zone.nc").sel(year=slice(f"{time[0]}", f"{time[1]}"))  # 读取缓存
-ols = np.load(r"D:\PyFile\paper1\OLS35_detrended.npy")  # 读取缓存
+ols = np.load(r"D:\PyFile\paper1\OLS35.npy")  # 读取缓存
 EHD = xr.open_dataset(r"D:\PyFile\paper1\EHD35.nc").sel(time=slice('1961-01-01', '2022-12-31'))  # 读取缓存
 EHD = EHD.sel(time=EHD['time.month'].isin([7, 8])).groupby('time.year').sum('time').mean('year')
 # 将零值替换为缺测值
@@ -112,9 +112,7 @@ ax1.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\长江区1：25万�
                    ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=0.4)
 ax1.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江\长江.shp').geometries(),
                    ccrs.PlateCarree(), facecolor='none', edgecolor='blue', linewidth=0.2)
-ax1.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
-                   ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=1, hatch='//')
-ax1.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_del长江流域\TPBoundary2500m_del长江流域.shp').geometries(),
+ax1.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp').geometries(),
                    ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=2)
 # ax1.add_feature(provinces, lw=0.5, zorder=2)
 # 设置坐标轴
@@ -174,5 +172,5 @@ cb1.ax.yaxis.set_minor_locator(MultipleLocator(.1))#显示x轴副刻度
 cb1.locator = ticker.FixedLocator([0, 5, 10, 15, 20])  # colorbar上的刻度值个数
 adjust_sub_axes(ax1, position, shrink=1, lr=-3, ud=1.0, width=0.025)
 
-plt.savefig(r'D:\PyFile\pic\EHD低层风高场及去趋势.png', dpi=1000, bbox_inches='tight')
+plt.savefig(r'D:\PyFile\pic\EHD低层风高场及趋势.png', dpi=1000, bbox_inches='tight')
 plt.show()
