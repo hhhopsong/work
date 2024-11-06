@@ -233,7 +233,7 @@ class WaveletAnalysis:
         bx.set_title('b) Wavelet Power Spectrum ({})'.format(mother.name))
         bx.set_ylabel('Period (years)')
         #
-        Yticks = 2 ** np.arange(np.ceil(np.log2(period.min())),
+        Yticks = 2 ** np.arange(np.ceil(np.log2(int(period.min()))),
                                    np.ceil(np.log2(period.max())))
         bx.set_yticks(np.log2(Yticks))
         bx.set_yticklabels(Yticks)

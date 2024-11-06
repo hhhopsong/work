@@ -29,7 +29,7 @@ sst_nextyear = sst.sel(time=slice(f'{time_data[0] + 1}-01-01', f'{time_data[1] +
 sst_term_lonavg = sst_term.mean(dim='lat')
 sst_lastyear_lonavg = sst_lastyear.mean(dim='lat')
 sst_nextyear_lonavg = sst_nextyear.mean(dim='lat')
-PC = np.load(r"D:\PyFile\paper1\OLS35_detrended.npy") # 读取时间序列
+PC = np.load(r"D:\PyFile\paper1\OLS35.npy") # 读取时间序列
 # 计算sst距平
 sst_term_anom = sst_term_lonavg - sst_term_lonavg.mean(dim='time')
 sst_lastyear_anom = sst_lastyear_lonavg - sst_lastyear_lonavg.mean(dim='time')

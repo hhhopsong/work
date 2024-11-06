@@ -174,7 +174,7 @@ if __name__ == '__main__':
                                   waf_x[:180, :], waf_y[:180, :],
                                   regrid=15, lon_trunc=-67.5, arrowsize=.3, scale=30, linewidth=0.4,
                                   color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax1, WAF图层, U=.1, label='0.1 m$^2$/s$^2$')
+                velovect_key(fig, ax1, WAF图层, U=5, label='5 m$^2$/s$^2$')
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
                 # 在赤道画一条纬线
