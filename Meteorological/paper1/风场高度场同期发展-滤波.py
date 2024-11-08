@@ -39,32 +39,23 @@ def multi_core(var, p, ols, sen):
     pre_diff = pre_diff.reshape(shape[0] * shape[1], shape[2])
     corr_1 = np.array([np.corrcoef(d, ols)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
     if var == 'u' or var == 'v' or var == 'z':
-        np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy", corr_1)  # 保存缓存
+        np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same_imfs.npy", corr_1)  # 保存缓存
     elif var == 'sst':
-        np.save(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy", corr_1)
+        np.save(fr"D:\PyFile\paper1\cache\sst\corr_sst_same_imfs.npy", corr_1)
     elif var == 'precip':
-        np.save(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy", corr_1)
+        np.save(fr"D:\PyFile\paper1\cache\pre\corr_pre_same_imfs.npy", corr_1)
     elif var == 'olr':
-        np.save(fr"D:\PyFile\paper1\cache\olr\corr_olr_same.npy", corr_1)
+        np.save(fr"D:\PyFile\paper1\cache\olr\corr_olr_same_imfs.npy", corr_1)
     if var == 'z' and p == 200:
         reg_z = np.array([np.polyfit(ols, f, 1)[0] for f in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
-        np.save(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same.npy", reg_z)
-    r'''shape = pre_diff.shape
-    pre_diff = pre_diff.data if isinstance(pre_diff, xr.DataArray) else pre_diff
-    pre_diff = pre_diff.reshape(shape[0] * shape[1], shape[2])
-    corr_2 = np.array([np.corrcoef(d, sen)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
-    if var == 'u' or var == 'v' or var == 'z':
-        np.save(fr"D:\PyFile\paper1\cache\uvz\corr2_{var}{p}_same.npy", corr_2)  # 保存缓存
-    elif var == 'sst':
-        np.save(fr"D:\PyFile\paper1\cache\sst\corr2_sst_same.npy", corr_2)
-    elif var == 'precip':
-        np.save(fr"D:\PyFile\paper1\cache\pre\corr2_pre_same.npy", corr_2)'''
+        np.save(fr"D:\PyFile\paper1\cache\uvz\reg_{var}{p}_same_imfs.npy", reg_z)
     print(f"{p}hPa层{var}相关系数完成。")
 
 
 if __name__ == '__main__':
     # 数据读取
-    ols = np.load(r"D:\PyFile\paper1\OLS35.npy")  # 读取缓存
+    ols = np.load(r"D:\PyFile\paper1\IMFs.npy")  # 读取缓存
+    ols = ols[0] + ols[1]
     sen = np.load(r"D:\PyFile\paper1\SEN35_detrended.npy")  # 读取缓存
     M = 6  # 临界月
     # 多核计算
@@ -104,13 +95,13 @@ if __name__ == '__main__':
         yticks1 = np.arange(extent1[2], extent1[3] + 1, 30)
         for p in [200, 500, 600, 700, 850]:
             u_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\u_same.nc")['u'].sel(p=p).transpose('lat', 'lon', 'year')
-            u_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_u{p}_same.npy")  # 读取缓存
+            u_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_u{p}_same_imfs.npy")  # 读取缓存
             v_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\v_same.nc")['v'].sel(p=p).transpose('lat', 'lon', 'year')
-            v_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_v{p}_same.npy")  # 读取缓存
+            v_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_v{p}_same_imfs.npy")  # 读取缓存
             z_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\z_same.nc")['z'].sel(p=p).transpose('lat', 'lon', 'year')
-            z_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_z{p}_same.npy")  # 读取缓存
+            z_corr_1 = np.load(fr"D:\PyFile\paper1\cache\uvz\corr_z{p}_same_imfs.npy")  # 读取缓存
             olr_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\olr\olr_same.nc")['olr'].transpose('lat', 'lon', 'year')
-            olr_corr_1 = np.load(fr"D:\PyFile\paper1\cache\olr\corr_olr_same.npy")  # 读取缓存
+            olr_corr_1 = np.load(fr"D:\PyFile\paper1\cache\olr\corr_olr_same_imfs.npy")  # 读取缓存
             # 绘图
             if p == 200:
                 if select == 1:
@@ -133,7 +124,7 @@ if __name__ == '__main__':
                     z显著性检验结果 = corr_test(sen, z_corr, alpha=alpha)
                     pc = sen'''
                 # 计算TN波作用通量
-                reg_z200 = np.load(fr"D:\PyFile\paper1\cache\uvz\reg_z200_same.npy")
+                reg_z200 = np.load(fr"D:\PyFile\paper1\cache\uvz\reg_z200_same_imfs.npy")
                 Geoc = xr.DataArray(z_diff.mean('year').data[np.newaxis, :, :],
                                     coords=[('level', [200]),
                                             ('lat', z_diff['lat'].data),
@@ -298,7 +289,7 @@ if __name__ == '__main__':
                     v_corr = v_corr_1
                     z_corr = z_corr_1
                     sst_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
-                    sst_corr = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy")  # 读取缓存
+                    sst_corr = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same_imfs.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(ols, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(ols, v_corr, alpha=alpha)
                     sst显著性检验结果 = corr_test(ols, sst_corr, alpha=alpha)
@@ -309,7 +300,7 @@ if __name__ == '__main__':
                     v_corr = v_corr_2
                     z_corr = z_corr_2
                     sst_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].sel(p=p).transpose('lat', 'lon', 'year')
-                    sst_corr = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy")  # 读取缓存
+                    sst_corr = np.load(fr"D:\PyFile\paper1\cache\sst\corr_sst_same_imfs.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     sst显著性检验结果 = corr_test(sen, sst_corr, alpha=alpha)
@@ -357,7 +348,8 @@ if __name__ == '__main__':
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
                 ax.add_geometries(Reader(
                     r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp').geometries(),
-                                   ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=2)
+                                  ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.',
+                                  zorder=2)
                 # 刻度线设置
                 # ax1
                 ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
@@ -394,7 +386,7 @@ if __name__ == '__main__':
                     u_corr = u_corr_1
                     v_corr = v_corr_1
                     pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\pre\pre_same.nc")['precip'].transpose('lat', 'lon', 'year')
-                    pre_corr = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy")  # 读取缓存
+                    pre_corr = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same_imfs.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(ols, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(ols, v_corr, alpha=alpha)
                     pre显著性检验结果 = corr_test(ols, pre_corr, alpha=alpha)
@@ -404,7 +396,7 @@ if __name__ == '__main__':
                     '''u_corr = u_corr_2
                     v_corr = v_corr_2
                     pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\pre\pre_same.nc")['precip'].sel(p=p).transpose('lat', 'lon', 'year')
-                    pre_corr = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same.npy")  # 读取缓存
+                    pre_corr = np.load(fr"D:\PyFile\paper1\cache\pre\corr_pre_same_imfs.npy")  # 读取缓存
                     u显著性检验结果 = corr_test(sen, u_corr, alpha=alpha)
                     v显著性检验结果 = corr_test(sen, v_corr, alpha=alpha)
                     pre显著性检验结果 = corr_test(sen, pre_corr, alpha=alpha)
@@ -445,8 +437,7 @@ if __name__ == '__main__':
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
                 ax.add_geometries(Reader(
                     r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp').geometries(),
-                                  ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.',
-                                  zorder=2)
+                                  ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=2)
 
                 # 刻度线设置
                 ax.set_xticks(xticks1, crs=ccrs.PlateCarree())
@@ -484,5 +475,5 @@ if __name__ == '__main__':
                 cbar.dividers.set_linewidth(.2)  # 设置分割线宽度
                 cbar.outline.set_linewidth(.2)  # 设置色标轮廓宽度
 
-    plt.savefig(fr"D:\PyFile\pic\uvz_corr_same.png", dpi=2000, bbox_inches='tight')
+    plt.savefig(fr"D:\PyFile\pic\uvz_corr_same_imf.png", dpi=2000, bbox_inches='tight')
     plt.show()

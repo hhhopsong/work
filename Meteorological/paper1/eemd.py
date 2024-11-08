@@ -10,7 +10,7 @@ t = np.arange(len(signal_init))
 eemd = EEMD(trials=200, noise_width=0.2)
 # 对信号进行 EEMD分解
 IMFs = eemd(signal_init)
-
+np.save(r"D:\PyFile\paper1\IMFs.npy", IMFs)
 # 可视化
 plt.figure(figsize=(20, 15))
 plt.subplot(len(IMFs) + 1, 1, 1)

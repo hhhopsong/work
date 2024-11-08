@@ -4,7 +4,7 @@ from scipy.stats.distributions import chi2
 from matplotlib import pyplot as plt
 
 import pycwt as wavelet
-from pycwt.helpers import find, rednoise
+from pycwt.helpers import find
 
 
 class WaveletAnalysis:
