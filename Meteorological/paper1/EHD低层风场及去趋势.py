@@ -87,7 +87,7 @@ ax1.set_title('200hPa UVZ', fontsize=title_size, loc='left')
 level = [0, 5, 10, 15, 20]  # 等值线间隔
 custom_colors = ["#FDB57E", "#F26E4c", "#CA1E14", "#7F0000"]
 custom_cmap = colors.ListedColormap(custom_colors)
-a1 = ax1.contourf(EHD['lon'], EHD['lat'], EHD['tmax'], cmap=custom_cmap, levels=level, extend='max', transform=proj)
+a1 = ax1.contourf(EHD['lon'], EHD['lat'], EHD['tmax'], colors='gray', extend='max', transform=proj, edgecolors='k')
 ####
 level2 = [-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4]
 z_r = gaussian_filter(z_corr, 3)
@@ -171,7 +171,7 @@ ax2.set_title('500hPa UVZ', fontsize=title_size, loc='left')
 level = [0, 5, 10, 15, 20]  # 等值线间隔
 custom_colors = ["#FDB57E", "#F26E4c", "#CA1E14", "#7F0000"]
 custom_cmap = colors.ListedColormap(custom_colors)
-a2 = ax2.contourf(EHD['lon'], EHD['lat'], EHD['tmax'], cmap=custom_cmap, levels=level, extend='max', transform=proj)
+a2 = ax2.contourf(EHD['lon'], EHD['lat'], EHD['tmax'], colors='gray', extend='max', transform=proj)
 ####
 level2 = [-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4]
 z_r = gaussian_filter(z_corr, 3)
@@ -256,7 +256,7 @@ ax3.set_title('850hPa UVZ', fontsize=title_size, loc='left')
 level = [0, 5, 10, 15, 20]  # 等值线间隔
 custom_colors = ["#FDB57E", "#F26E4c", "#CA1E14", "#7F0000"]
 custom_cmap = colors.ListedColormap(custom_colors)
-a3 = ax3.contourf(EHD['lon'], EHD['lat'], EHD['tmax'], cmap=custom_cmap, levels=level, extend='max', transform=proj)
+a3 = ax3.contourf(EHD['lon'], EHD['lat'], EHD['tmax'], colors='gray', extend='max', transform=proj)
 ####
 level2 = [-.4, -.3, -.2, -.1, 0, .1, .2, .3, .4]
 z_r = gaussian_filter(z_corr, 3)
@@ -287,7 +287,7 @@ ax3.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\长江区1：25万�
 ax3.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江\长江.shp').geometries(),
                    ccrs.PlateCarree(), facecolor='none', edgecolor='blue', linewidth=0.2)
 ax3.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp').geometries(),
-                   ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=2)
+                   ccrs.PlateCarree(), facecolor='lightgray', edgecolor='k', linewidth=1, hatch='/', zorder=2)
 # ax1.add_feature(provinces, lw=0.5, zorder=2)
 # 设置坐标轴
 xticks1=np.arange(extent_CN[0], extent_CN[1]+1, 10)
@@ -337,7 +337,7 @@ adjust_sub_axes(ax3, ax3_pc, shrink=1, lr=-.217, ud=1.0)
 k, b = mk.sens_slope(ws2001(ols))  # Theil-Sen 斜率, 截距
 #  pd.Series(ols).autocorr(2)  自相关计算=0.26
 # color bar位置
-position = fig.add_axes(ax3.get_position())#位置[x,y,width,height][0.296, 0.05, 0.44, 0.015]
+'''position = fig.add_axes(ax3.get_position())#位置[x,y,width,height][0.296, 0.05, 0.44, 0.015]
 #竖向colorbar,无尖角
 cb1 = plt.colorbar(a3, cax=position, orientation='vertical', pad=0.05)#orientation为水平或垂直
 cb1.ax.tick_params(color='black')#length为刻度线的长度
@@ -345,7 +345,7 @@ cb1.ax.tick_params(which='major',direction='in', labelsize=12, length=11)
 cb1.ax.tick_params(which='minor',direction='in', length=11)
 cb1.ax.yaxis.set_minor_locator(MultipleLocator(.1))#显示x轴副刻度
 cb1.locator = ticker.FixedLocator([0, 5, 10, 15, 20])  # colorbar上的刻度值个数
-adjust_sub_axes(ax3, position, shrink=1, lr=-3, ud=1.0, width=0.025)
+adjust_sub_axes(ax3, position, shrink=1, lr=-3, ud=1.0, width=0.025)'''
 
 plt.savefig(r'D:\PyFile\pic\EHD低层风高场及趋势.png', dpi=1000, bbox_inches='tight')
 plt.show()

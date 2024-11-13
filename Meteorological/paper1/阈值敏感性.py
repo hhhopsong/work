@@ -3,7 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.stats import linregress
+
 from toolbar.masked import masked
+from toolbar.significance_test import r_test
 
 import tqdm as tq
 
@@ -53,11 +55,14 @@ station_happended_num = (EHD_index - EHD_index + 1)['tmax']  # 掩膜处理得�
 station_happended_num = station_happended_num.sum()  # 长江流域发生过极端高温的格点数
 
 ols = np.load(r"D:\PyFile\paper1\OLS35.npy")
-
-corr = corr_series(ols, 30, 40, 0.1, EHD, station_happended_num)
-np.save(r"D:\PyFile\paper1\thresholds_corr.npy", corr)
+try:
+    corr = np.load(r"D:\PyFile\paper1\thresholds_corr.npy")
+except FileNotFoundError:
+    corr = corr_series(ols, 30, 40, 0.1, EHD, station_happended_num)
+    np.save(r"D:\PyFile\paper1\thresholds_corr.npy", corr)
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.plot(np.arange(30, 40.1, 0.1), corr)
+ax.hlines(r_test(len(ols), 0.001), 30, 40, colors='r', linestyles='dashed')
 plt.show()

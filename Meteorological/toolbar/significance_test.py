@@ -50,7 +50,7 @@ def normal_test(data, alpha=0.05):
     test = lilliefors(data, dist='norm')[1]
     return test >= alpha, test
 
-def r_test(r, N, alpha=0.05):
+def r_test(N, alpha=0.05):
     """
     :param r: 相关系数
     :param N: 样本量
