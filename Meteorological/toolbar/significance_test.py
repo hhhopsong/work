@@ -49,3 +49,16 @@ def normal_test(data, alpha=0.05):
     # 进行显著性检验
     test = lilliefors(data, dist='norm')[1]
     return test >= alpha, test
+
+def r_test(r, N, alpha=0.05):
+    """
+    :param r: 相关系数
+    :param N: 样本量
+    :param alpha: 显著性水平
+    :return: 显著性检验相关系数R阈值
+    """
+    t_critical = t.ppf(alpha / 2, N - 2)  # 双边t检验
+    r_critical = np.sqrt(t_critical**2 / (t_critical**2 + N - 2))
+
+    return r_critical
+
