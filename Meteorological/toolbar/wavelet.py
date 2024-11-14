@@ -9,7 +9,7 @@ from pycwt.helpers import find
 
 class WaveletAnalysis:
     """小波分析类, 用于时间序列数据(默认时间间隔均匀)"""
-    def __init__(self, data, dt, wavelet='Morlet', signal=0.95, s0=2, dj=12, J=7, normal=True, detrend=False):
+    def __init__(self, data, dt, wavelet='Morlet', signal=0.95, s0=2, dj=50, J=7, normal=True, detrend=False):
         """
 
         Args:
@@ -208,11 +208,11 @@ class WaveletAnalysis:
         plt.setp(cx.get_yticklabels(), visible=False)
 
         # 第四个子图，比例平均小波谱。
-        scale_avg_signif, scale_avg= self.find_periods_power(2, 20)
+        scale_avg_signif, scale_avg= self.find_periods_power(2, 6)
         dx = plt.axes([0.1, 0.07, 0.65, 0.2], sharex=ax)
         dx.axhline(scale_avg_signif, color='red', linestyle=':', linewidth=1.5)
         dx.plot(t, scale_avg, 'k-', linewidth=1.5)
-        dx.set_title('d) {}-{} year scale-averaged power'.format(2, 20))
+        dx.set_title('d) {}-{} year scale-averaged power'.format(2, 6))
         dx.set_xlabel('Time (year)')
         dx.set_ylabel(r'Average variance [{}]'.format(unit))
 
