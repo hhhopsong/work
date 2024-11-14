@@ -3,9 +3,14 @@ import numpy as np
 
 class MovingAverageFilter:
     def __init__(self, filter_value, filter_type, filter_window):
+        """
+        :param filter_value: 滤波值
+        :param filter_type: 滤波器类型[lowpass highpass bandpass bandstop]
+        :param filter_window: 滤波器窗口
+        """
         self.filter_type = filter_type
         self.filter_value = filter_value
-        self.filter_window = filter_window
+        self.filter_window = np.array(filter_window)
         if self.filter_window[0] - self.filter_window[1] < 0:
             raise ValueError("filter_window应为递增区间")
 
@@ -20,7 +25,7 @@ class MovingAverageFilter:
         temp[1:] = np.cumsum(data)
         return (temp[time_window:] - temp[:-time_window]) / time_window
 
-    def filter(self):
+    def filted(self):
         if self.filter_type == "lowpass":
             return self.lowpass()
         elif self.filter_type == "highpass":
