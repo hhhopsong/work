@@ -6,13 +6,11 @@ class MovingAverageFilter:
         """
         :param filter_value: 滤波值
         :param filter_type: 滤波器类型[lowpass highpass bandpass bandstop]
-        :param filter_window: 滤波器窗口
+        :param filter_window: 滤波器窗口, 必须为奇数
         """
         self.filter_type = filter_type
         self.filter_value = filter_value
         self.filter_window = np.array(filter_window)
-        if self.filter_window[0] - self.filter_window[1] < 0:
-            raise ValueError("filter_window应为递增区间")
 
     def __str__(self):
         return f"Filter(type={self.filter_type}, value={self.filter_value})"
@@ -40,20 +38,25 @@ class MovingAverageFilter:
     def lowpass(self):
         if self.filter_window.shape[0] != 1:
             raise ValueError("低通滤波器filter_window参数不应为区间")
-        return self.calculation_section(self.filter_value, self.filter_window)
+        return self.calculation_section(self.filter_value, self.filter_window[0])
 
 
     def highpass(self):
         if self.filter_window.shape[0] != 1:
             raise ValueError("高通滤波器filter_window参数不应为区间")
-        return self.filter_value - self.lowpass()
+        index = int((self.filter_window[0] - 1) / 2)
+        return self.filter_value[index:-index] - self.lowpass()
 
     def bandpass(self):
         if self.filter_window.shape[0] != 2:
             raise ValueError("带通滤波器filter_window参数应为区间")
-        return self.calculation_section(self.filter_value, self.filter_window[1]) - self.calculation_section(self.filter_value, self.filter_window[0])
+        if self.filter_window[0] - self.filter_window[1] >= 0:
+            raise ValueError("filter_window应为递增区间")
+        return self.calculation_section(self.filter_value, self.filter_window[0]) - self.calculation_section(self.filter_value, self.filter_window[1])
 
     def bandstop(self):
         if self.filter_window.shape[0] != 2:
             raise ValueError("带阻滤波器filter_window参数应为区间")
+        if self.filter_window[0] - self.filter_window[1] >= 0:
+            raise ValueError("filter_window应为递增区间")
         return self.filter_value - self.bandpass()
