@@ -176,7 +176,7 @@ class WaveletAnalysis:
                     extend='both', cmap=cmaps.sunshine_9lev)
         extent = [t.min(), t.max(), 0, max(period)]
         bx.contour(t, np.log2(period), sig, [1, 99], colors='k', linewidths=2, extent=extent)
-        bx.contourf(t, np.log2(period), sig, [1, 99], colors='none', hatches='.', extent='both')
+        bx.contourf(t, np.log2(period), sig, [1, 99], colors='none', hatches=['..'], extent='both')
         bx.fill(np.concatenate([t, t[-1:] + dt, t[-1:] + dt,
                                    t[:1] - dt, t[:1] - dt]),
                 np.concatenate([np.log2(coi), [1e-9], np.log2(period[-1:]),
