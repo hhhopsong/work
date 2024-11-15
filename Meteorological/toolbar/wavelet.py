@@ -102,16 +102,14 @@ class WaveletAnalysis:
         iwave = wavelet.icwt(wave, self.scales, self.dt, self.dj, self.mother) * self.std  # 计算逆小波系数
         # 计算能量谱密度,是原信号傅立叶变换的平方。
         self.power = np.power(np.abs(wave), 2)
+        fft_power = np.power(np.abs(fft), 2)
+        self.period = 1 / freqs
         # 计算显著性水平
         signif, fft_theor = wavelet.significance(1.0, self.dt, self.scales, 0, self.alpha,
                                                  significance_level=self.signal, wavelet=self.mother)
         sig = np.ones([1, data.size]) * signif[:, None]
         sig = self.power / sig
-        # 计算能量谱密度,是原信号傅立叶变换的平方。
-
-        fft_power = np.power(np.abs(fft), 2)
-        self.period = 1 / freqs
-        #self.power /= self.scales[:, None]
+        # self.power /= self.scales[:, None]
 
         self.global_power = self.power.mean(axis=1)
         dof = data.size - self.scales  # 边界填充校正 Correction for padding at edges
