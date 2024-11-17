@@ -69,6 +69,29 @@ class MovingAverageFilter:
         index = (self.filter_window[1] - 1) // 2
         return self.filter_value[index:-index] - self.bandpass()
 
+    def response(self):
+        N = self.filter_window  # 滤波器窗口
+        omega = np.linspace(0, 2 * np.pi, 10000)  # 样本频率密度
+        period = 2 * np.pi / omega  # 周期
+        if self.filter_type == "lowpass":
+            numerator = np.sin(omega * N / 2)
+            denominator = N * np.sin(omega / 2)
+            magnitude = np.abs(numerator / denominator)
+            phase = -omega * (N - 1) / 2
+            return magnitude, phase, period
+        elif self.filter_type == "highpass":
+            numerator = np.sin(omega * N / 2)
+            denominator = N * np.sin(omega / 2)
+            lowpass_magnitude = np.abs(numerator / denominator)
+            lowpass_phase = -omega * (N - 1) / 2
+            magnitude = np.sqrt((1 - lowpass_magnitude * np.cos(lowpass_phase)) ** 2 +
+                                    (lowpass_magnitude * np.sin(lowpass_phase)) ** 2)
+            phase = np.arctan2((lowpass_magnitude * np.sin(lowpass_phase)),
+                               (1 - lowpass_magnitude * np.cos(lowpass_phase)))
+            return magnitude, phase, period
+
+
+
 
 class LanczosFilter:
     def __init__(self, filter_value, filter_type, filter_window, cutoff):
