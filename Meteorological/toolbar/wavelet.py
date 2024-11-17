@@ -102,6 +102,7 @@ class WaveletAnalysis:
         iwave = wavelet.icwt(wave, self.scales, self.dt, self.dj, self.mother) * self.std  # 计算逆小波系数
         # 计算能量谱密度,是原信号傅立叶变换的平方。
         self.power = np.power(np.abs(wave), 2)
+        # self.power /= self.scales[:, None] # 功率谱校正 Liu et al. (2007) equation 24
         fft_power = np.power(np.abs(fft), 2)
         self.period = 1 / freqs
         # 计算显著性水平
@@ -109,7 +110,6 @@ class WaveletAnalysis:
                                                  significance_level=self.signal, wavelet=self.mother)
         sig = np.ones([1, data.size]) * signif[:, None]
         sig = self.power / sig
-        # self.power /= self.scales[:, None]
 
         self.global_power = self.power.mean(axis=1)
         dof = data.size - self.scales  # 边界填充校正 Correction for padding at edges
@@ -165,6 +165,7 @@ class WaveletAnalysis:
         ax.set_title('a) {}'.format('Raw data'))
         ax.set_ylabel(r'[{}]'.format(unit))
         ax.set_xlim([t.min(), t.max()])
+        ax.set_xticks([0, 10, 20, 30, 40, 50, 60])
         ax.set_xticklabels(np.array([0, 10, 20, 30, 40, 50, 60]) + start_year)
 
         # 第二个子图，归一化小波功率谱和显著性水平等值线和影响阴影区域的圆锥体。请注意，周期刻度是对数的。
