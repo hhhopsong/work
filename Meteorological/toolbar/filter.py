@@ -1,5 +1,6 @@
 import numpy as np
-
+from matplotlib import pyplot as plt
+from scipy import signal
 
 class MovingAverageFilter:
     def __init__(self, filter_value, filter_type, filter_window):
@@ -170,3 +171,121 @@ class LanczosFilter:
         index = self.filter_window // 2
         return self.filter_value[index:-index] - self.bandpass()
 
+
+class ButterworthFilter:
+    def __init__(self, filter_value, filter_type, filter_window=3, cutoff=[]):
+        """
+        :param filter_value: 滤波值
+        :param filter_type: 滤波器类型[lowpass highpass bandpass bandstop]
+        :param filter_window: 滤波器窗口, 必须为奇数
+        :param cutoff: 截止周期
+        """
+
+        self.filter_type = filter_type
+        self.filter_value = filter_value
+        self.filter_window = filter_window
+        self.cutoff = np.array(cutoff)
+        if self.filter_window % 2 == 0:
+            raise ValueError("滤波器窗口必须为奇数")
+
+    def __str__(self):
+        return f"Filter(type={self.filter_type}, value={self.filter_value})"
+
+    def __repr__(self):
+        return f"Filter(type={self.filter_type}, value={self.filter_value})"
+
+    def calculation_section(self, cutoff):
+        # 归一化截止频率计算
+        cutoff = 2 / cutoff
+        return cutoff
+
+    def filted(self):
+        data = self.filter_value
+        N = self.filter_window
+        if self.filter_type == "lowpass":
+            Wn = self.calculation_section(self.cutoff)
+            b, a = signal.butter(N, Wn, btype='lowpass')
+            filted_series = signal.filtfilt(b, a, data)
+            return filted_series
+        elif self.filter_type == "highpass":
+            Wn = self.calculation_section(self.cutoff)
+            b, a = signal.butter(N, Wn, btype='highpass')
+            filted_series = signal.filtfilt(b, a, data)
+            return filted_series
+        elif self.filter_type == "bandpass":
+            if self.cutoff.shape[0] != 2:
+                raise ValueError("带通滤波器cutoff参数应为区间")
+            if self.cutoff[0] - self.cutoff[1] >= 0:
+                raise ValueError("cutoff应为递增区间")
+            Wn = [0, 0]
+            Wn[0] = self.calculation_section(self.cutoff[1])
+            Wn[1] = self.calculation_section(self.cutoff[0])
+            b, a = signal.butter(N, Wn, btype='bandpass')
+            filted_series = signal.filtfilt(b, a, data)
+            return filted_series
+        elif self.filter_type == "bandstop":
+            if self.cutoff.shape[0] != 2:
+                raise ValueError("带通滤波器cutoff参数应为区间")
+            if self.cutoff[0] - self.cutoff[1] >= 0:
+                raise ValueError("cutoff应为递增区间")
+            Wn = [0, 0]
+            Wn[0] = self.calculation_section(self.cutoff[1])
+            Wn[1] = self.calculation_section(self.cutoff[0])
+            b, a = signal.butter(N, Wn, btype='bandstop')
+            filted_series = signal.filtfilt(b, a, data)
+            return filted_series
+        else:
+            raise ValueError("Filter type not supported")
+
+    def response(self):
+        N = self.filter_window
+        if self.filter_type == "lowpass":
+            Wn = self.calculation_section(self.cutoff)
+            b, a = signal.butter(N, Wn, btype='lowpass')
+            w, h = signal.freqs(b, a, 1000)
+            return w, h
+        elif self.filter_type == "highpass":
+            Wn = self.calculation_section(self.cutoff)
+            b, a = signal.butter(N, Wn, btype='highpass')
+            w, h = signal.freqs(b, a, 1000)
+            return w, h
+        elif self.filter_type == "bandpass":
+            if self.cutoff.shape[0] != 2:
+                raise ValueError("带通滤波器cutoff参数应为区间")
+            if self.cutoff[0] - self.cutoff[1] >= 0:
+                raise ValueError("cutoff应为递增区间")
+            Wn = [0, 0]
+            Wn[0] = self.calculation_section(self.cutoff[1])
+            Wn[1] = self.calculation_section(self.cutoff[0])
+            b, a = signal.butter(N, Wn, btype='bandpass')
+            w, h = signal.freqs(b, a, 1000)
+            return w, h
+        elif self.filter_type == "bandstop":
+            if self.cutoff.shape[0] != 2:
+                raise ValueError("带通滤波器cutoff参数应为区间")
+            if self.cutoff[0] - self.cutoff[1] >= 0:
+                raise ValueError("cutoff应为递增区间")
+            Wn = [0, 0]
+            Wn[0] = self.calculation_section(self.cutoff[1])
+            Wn[1] = self.calculation_section(self.cutoff[0])
+            b, a = signal.butter(N, Wn, btype='bandstop')
+            w, h = signal.freqs(b, a, 1000)
+            return w, h
+        else:
+            raise ValueError("Filter type not supported")
+
+    def plot_response(self):
+        w, h = self.response()
+        # 将角频率w转换为周期period
+        period = 2 * np.pi / w
+        magnitude = np.abs(h)
+
+        # 限制周期范围，防止显示问题
+        valid = period < len(self.filter_value)  # 仅显示周期 < 100 年的部分
+
+        plt.plot(period[valid], magnitude[valid])
+        plt.xlabel('Period')
+        plt.ylabel('Magnitude')
+        plt.title('Frequency Response (Filter)')
+        plt.grid(True)
+        plt.show()
