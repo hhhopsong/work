@@ -100,6 +100,7 @@ class WaveletAnalysis:
             raise ValueError("不支持的基函数。")
         wave, self.scales, freqs, coi, fft, fft_freqs = wavelet.cwt(data, self.dt, self.dj, self.s0, self.J, self.mother)  # 计算小波系数
         iwave = wavelet.icwt(wave, self.scales, self.dt, self.dj, self.mother) * self.std  # 计算逆小波系数
+        dof = data.size - self.scales  # 边界填充校正 Correction for padding at edges????
         # 计算能量谱密度,是原信号傅立叶变换的平方。
         self.power = np.power(np.abs(wave), 2)
         # self.power /= self.scales[:, None] # 功率谱校正 Liu et al. (2007) equation 24
@@ -110,9 +111,9 @@ class WaveletAnalysis:
                                                  significance_level=self.signal, wavelet=self.mother)
         sig = np.ones([1, data.size]) * signif[:, None]
         sig = self.power / sig
-
+        # x2w = chi2.ppf(1 - self.alpha, df=dof) # 白噪声
+        # fft_theor = self.power.mean() * x2w / dof # 白噪声
         self.global_power = self.power.mean(axis=1)
-        dof = data.size - self.scales  # 边界填充校正 Correction for padding at edges
         global_signif, tmp = wavelet.significance(self.var, self.dt, self.scales, 1, self.alpha,
                                                   significance_level=self.signal, dof=dof, wavelet=self.mother)
         return (self.period, self.power, self.dt, self.mother, iwave,
@@ -168,7 +169,7 @@ class WaveletAnalysis:
         ax.set_xticks([0, 10, 20, 30, 40, 50, 60])
         ax.set_xticklabels(np.array([0, 10, 20, 30, 40, 50, 60]) + start_year)
 
-        # 第二个子图，归一化小波功率谱和显著性水平等值线和影响阴影区域的圆锥体。请注意，周期刻度是对数的。
+        # 第二个子图，归一化小波功率谱和显著性水平等值线和虚部阴影区域。请注意，周期刻度是对数的。
         bx = plt.axes([0.1, 0.37, 0.65, 0.28], sharex=ax)
         levels = [0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32]
         bx_fill = bx.contourf(t, np.log2(period), np.log2(power), np.log2(levels),
@@ -188,25 +189,28 @@ class WaveletAnalysis:
             Yticks = 2 ** np.arange(np.ceil(np.log2(period.min())),
                                    np.ceil(np.log2(period.max())))
         except ValueError:
-            Yticks = 2 ** np.arange(0,
-                                   np.ceil(np.log2(period.max())))
+            Yticks = 2 ** np.arange(0, np.ceil(np.log2(period.max())))
         bx.set_yticks(np.log2(Yticks))
         bx.set_yticklabels(Yticks)
+
 
         # 第三个子图，全局小波和傅里叶功率谱以及理论噪声谱。请注意，周期刻度是对数的。
         var = self.var
         cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
-        cx.plot(var * fft_power, np.log2(1. / fft_freqs), '-', color='#cccccc', linewidth=1)
+        #cx.plot(var * fft_power, np.log2(1. / fft_freqs), '-', color='#cccccc', linewidth=1)
         cx.plot(var * fft_theor, np.log2(period), ':', color='#cccccc')
         cx.plot(var * glbl_power, np.log2(period), '-', color='k', linewidth=1.5)
         cx.plot(glbl_signif, np.log2(period), ':', color='red', linewidth=1.5)
         cx.set_title('c) Global Wavelet Spectrum')
         cx.set_xlabel(r'Power [({})^2]'.format(unit))
-        cx.set_xlim([0, var * np.nanmax(fft_power)])
-        cx.set_ylim(np.log2([period.min(), period.max()]))
+        cx.set_xlim([0, np.nanmax([glbl_signif * 1.05, var * glbl_power * 1.05])])
         cx.set_yticks(np.log2(Yticks))
         cx.set_yticklabels(Yticks)
         plt.setp(cx.get_yticklabels(), visible=False)
+        try:
+            cx.set_ylim([np.log2(period.min()), np.log2(2**int(np.log2(coi.max())))+1])
+        except ValueError:
+            cx.set_ylim([np.log2(0), np.log2(2 ** int(np.log2(coi.max()))) + 1])
 
         # 第四个子图，比例平均小波谱。
         scale_avg_signif, scale_avg= self.find_periods_power(2, 8)

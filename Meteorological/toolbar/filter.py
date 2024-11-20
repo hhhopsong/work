@@ -177,7 +177,7 @@ class ButterworthFilter:
         """
         :param filter_value: 滤波值
         :param filter_type: 滤波器类型[lowpass highpass bandpass bandstop]
-        :param filter_window: 滤波器窗口, 必须为奇数
+        :param filter_window: 滤波器阶数
         :param cutoff: 截止周期
         """
 
@@ -242,12 +242,12 @@ class ButterworthFilter:
         if self.filter_type == "lowpass":
             Wn = self.calculation_section(self.cutoff)
             b, a = signal.butter(N, Wn, btype='lowpass')
-            w, h = signal.freqs(b, a, 1000)
+            w, h = signal.freqz(b, a, 1000)
             return w, h
         elif self.filter_type == "highpass":
             Wn = self.calculation_section(self.cutoff)
             b, a = signal.butter(N, Wn, btype='highpass')
-            w, h = signal.freqs(b, a, 1000)
+            w, h = signal.freqz(b, a, 1000)
             return w, h
         elif self.filter_type == "bandpass":
             if self.cutoff.shape[0] != 2:
@@ -258,7 +258,7 @@ class ButterworthFilter:
             Wn[0] = self.calculation_section(self.cutoff[1])
             Wn[1] = self.calculation_section(self.cutoff[0])
             b, a = signal.butter(N, Wn, btype='bandpass')
-            w, h = signal.freqs(b, a, 1000)
+            w, h = signal.freqz(b, a, 1000)
             return w, h
         elif self.filter_type == "bandstop":
             if self.cutoff.shape[0] != 2:
@@ -269,7 +269,7 @@ class ButterworthFilter:
             Wn[0] = self.calculation_section(self.cutoff[1])
             Wn[1] = self.calculation_section(self.cutoff[0])
             b, a = signal.butter(N, Wn, btype='bandstop')
-            w, h = signal.freqs(b, a, 1000)
+            w, h = signal.freqz(b, a, 1000)
             return w, h
         else:
             raise ValueError("Filter type not supported")
@@ -285,7 +285,9 @@ class ButterworthFilter:
 
         plt.plot(period[valid], magnitude[valid])
         plt.xlabel('Period')
+        plt.xlim(0, len(self.filter_value))  # 限制周期范围为 0 到 100 年
         plt.ylabel('Magnitude')
+        plt.ylim(0, 1.2)
         plt.title('Frequency Response (Filter)')
         plt.grid(True)
         plt.show()
