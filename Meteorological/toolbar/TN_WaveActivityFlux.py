@@ -341,7 +341,7 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
         if not data_shape[0]==1:
             return Fx, Fy, Fz, PSI_global
         else:
-            return Fx[0], Fy[0], PSI_global
+            return Fx[0], Fy[0], PSI_global[0]
     else:
         if not data_shape[0]==1:
             return Fx, Fy, Fz
