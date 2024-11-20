@@ -25,7 +25,41 @@ from toolbar.sub_adjust import adjust_sub_axes
 import warnings
 
 
-__all__ = ['velovect']
+class Curlyquiver:
+    def __init__(self, ax, x, y, U, V,lon_trunc=0, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
+                 arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
+                 integration_direction='both', mode='loose'):
+        self.axes = ax
+        self.x = x
+        self.y = y
+        self.U = U
+        self.V = V
+        self.lon_trunc = lon_trunc
+        self.linewidth = linewidth
+        self.color = color
+        self.cmap = cmap
+        self.norm = norm
+        self.arrowsize = arrowsize
+        self.arrowstyle = arrowstyle
+        self.transform = transform
+        self.zorder = zorder
+        self.start_points = start_points
+        self.scale = scale
+        self.masked = masked
+        self.regrid = regrid
+        self.integration_direction = integration_direction
+        self.mode = mode
+
+        self.quiver = self.quiver()
+
+    def quiver(self):
+        return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
+                        self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
+                        self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.mode)
+
+    def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5}):
+        velovect_key(fig, self.axes, self.quiver, shrink, U, angle, label, color='k', arrowstyle=self.arrowstyle,
+                     linewidth=self.linewidth, fontproperties=fontproperties, lr=lr, ud=ud)
 
 
 def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
