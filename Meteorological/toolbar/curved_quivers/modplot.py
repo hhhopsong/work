@@ -857,7 +857,7 @@ def _gen_starting_points(x,y,grains):
 
 
 
-def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5, fontproperties={'size': 5}, lr=-6.045, ud=1.0):
+def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5, fontproperties={'size': 5}, lr=1., ud=1.):
     '''
     曲线矢量图例
     :param fig: 画布总底图
