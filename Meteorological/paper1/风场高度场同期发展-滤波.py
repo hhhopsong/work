@@ -18,8 +18,9 @@ from matplotlib.pyplot import quiverkey
 from matplotlib.ticker import MultipleLocator
 from scipy.ndimage import filters
 from toolbar.significance_test import corr_test
-from toolbar.TN_WaveActivityFlux import TN_WAF_3D
+from toolbar.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
 from toolbar.curved_quivers.modplot import velovect, velovect_key
+from toolbar.filter import *
 
 
 # 多核计算部分函数
@@ -54,8 +55,9 @@ def multi_core(var, p, ols, sen):
 
 if __name__ == '__main__':
     # 数据读取
-    ols = np.load(r"D:\PyFile\paper1\IMFs.npy")  # 读取缓存
-    ols = ols[0] + ols[1]
+    ols = np.load(r"D:\PyFile\paper1\OLS35.npy")  # 读取缓存
+    filter = ButterworthFilter(ols, filter_type="bandpass", filter_window=9, cutoff=[2.5, 6])
+    ols = filter.filted()
     sen = np.load(r"D:\PyFile\paper1\SEN35_detrended.npy")  # 读取缓存
     M = 6  # 临界月
     # 多核计算
@@ -142,6 +144,7 @@ if __name__ == '__main__':
                                             ('lat', z_diff['lat'].data),
                                             ('lon', z_diff['lon'].data)])
                 waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0, filt=3)
+                waf_x, waf_y = TN_WAF(Geoc.sel(level=200), Uc, Vc, GEOa.sel(level=200), lon=Geoc['lon'], lat=Geoc['lat'], mode=2)
                 ax1 = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
                 ax1.set_title('200hPa WAF&OLR', fontsize=title_size, loc='left')
                 waf, lon = add_cyclic_point(waf_streamf[0], coord=z_diff['lon'])
@@ -162,7 +165,7 @@ if __name__ == '__main__':
                 # waf_x = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_x, 0)
                 # waf_y = np.where(waf_x**2 + waf_y**2>=0.05**2, waf_y, 0)
                 WAF图层 = velovect(ax1, z_diff['lon'], z_diff['lat'][:180],
-                                  waf_x[:180, :], waf_y[:180, :],
+                                  waf_x[0, :180, :], waf_y[0, :180, :],
                                   regrid=15, lon_trunc=-67.5, arrowsize=.3, scale=30, linewidth=0.4,
                                   color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax1, WAF图层, U=5, label='5 m$^2$/s$^2$')

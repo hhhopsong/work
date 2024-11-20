@@ -13,6 +13,7 @@ def time_series(info, EHD, station_happended_num):
     EHD = EHD - info
     EHD = EHD.where(EHD >= 0, np.nan)  # 极端高温日温度距平
     EHD = EHD - EHD + 1  # 数据二值化处理(1:极端高温,np.nan:非极端高温)
+    EHD = EHD.fillna(0)
     EHD = masked(EHD, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
     EHD = EHD.sel(time=EHD['time.month'].isin([7, 8]))
 
@@ -63,6 +64,6 @@ except FileNotFoundError:
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
-ax.plot(np.arange(30, 40.1, 0.1), corr)
+ax.plot(np.arange(30, 41, 0.1), corr)
 ax.hlines(r_test(len(ols), 0.001), 30, 40, colors='r', linestyles='dashed')
 plt.show()

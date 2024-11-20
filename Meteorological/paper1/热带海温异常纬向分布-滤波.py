@@ -10,6 +10,8 @@ from cnmaps import get_adm_maps, draw_maps
 from matplotlib import ticker
 import cmaps
 from matplotlib.ticker import MultipleLocator
+
+from toolbar.filter import ButterworthFilter
 from toolbar.significance_test import corr_test
 from eofs.standard import Eof
 import geopandas as gpd
@@ -29,8 +31,9 @@ sst_nextyear = sst.sel(time=slice(f'{time_data[0] + 1}-01-01', f'{time_data[1] +
 sst_term_lonavg = sst_term.mean(dim='lat')
 sst_lastyear_lonavg = sst_lastyear.mean(dim='lat')
 sst_nextyear_lonavg = sst_nextyear.mean(dim='lat')
-PC = np.load(r"D:\PyFile\paper1\IMFs.npy")  # 读取缓存
-PC = PC[0] + PC[1]
+ols = np.load(r"D:\PyFile\paper1\OLS35.npy")  # 读取缓存
+filter = ButterworthFilter(ols, filter_type="bandpass", filter_window=9, cutoff=[2.5, 6])
+PC = filter.filted()
 # 计算sst距平
 sst_term_anom = sst_term_lonavg - sst_term_lonavg.mean(dim='time')
 sst_lastyear_anom = sst_lastyear_lonavg - sst_lastyear_lonavg.mean(dim='time')
