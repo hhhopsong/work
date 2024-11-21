@@ -100,7 +100,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         是否重新插值网格
     *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
         矢量向前、向后或双向绘制。
-    *mode* : {'loose','strict'}, default: 'loose'
+    *mode* : {'loose', 'strict'}, default: 'loose'
         流线边界绘制模式.
         'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
         'strict': 流线绘制时，严格裁切数据边界.
