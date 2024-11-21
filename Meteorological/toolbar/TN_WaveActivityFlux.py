@@ -155,7 +155,7 @@ def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.a
         return fx, fy
 
 
-def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, filt=1):
+def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, filt=1, filtmode='strict'):
     """
     计算的是三维的TN波作用通量, 请注意输入的数据格式为3D-DataArray,代码参考了下列样例,并做了勘误。\n
     https://www.bilibili.com/read/cv15633261/?spm_id_from=333.999.collection.opus.click
@@ -164,6 +164,10 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
     :param Vc:  气候态V风
     :param GEOa:    位势高度场扰动场
     :param Tc:  气候态温度
+    :param u_threshold:    风速阈值
+    :param return_streamf:    是否返回流函数
+    :param filt:    是否进行滤波
+    :param filtmode:    滤波模式['mix','strict']
     :return:    Fx, Fy, Fz
     """
     ### 常量
@@ -276,17 +280,20 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
         dims  =('level','lat','lon'),
         coords=data_coords
     )
+    Fx0 = Fx
     Fy=xr.DataArray(
         Fy,
         dims  =('level','lat','lon'),
         coords=data_coords
     )
+    Fy0 = Fy
     if not data_shape[0]==1:
         Fz=xr.DataArray(
             Fz,
             dims  =('level','lat','lon'),
             coords=data_coords
         )
+        Fz0 = Fz
 
     # 平滑处理
     if filt:
@@ -339,6 +346,16 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
         Fy = np.concatenate([Fn_nan1, Fyn, Fn_nan2, Fys, Fn_nan3], axis=1)
         if not data_shape[0]==1:
             Fz = np.concatenate([Fn_nan1, Fzn, Fn_nan2, Fzs, Fn_nan3], axis=1)
+    if filtmode == 'mix':
+        # 将平滑结果后的nan值位置加上原数据的同位置值
+        Fx_nan_index = np.isnan(Fx)
+        Fy_nan_index = np.isnan(Fy)
+        if not data_shape[0]==1:
+            Fz_nan_index = np.isnan(Fz)
+        Fx[Fx_nan_index] = Fx0[Fx_nan_index]
+        Fy[Fy_nan_index] = Fy0[Fy_nan_index]
+        if not data_shape[0]==1:
+            Fz[Fz_nan_index] = Fz0[Fz_nan_index]
 
     ### 返回结果
     if return_streamf:
