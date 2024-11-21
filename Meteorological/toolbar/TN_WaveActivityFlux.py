@@ -178,6 +178,10 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
     data_shape =GEOc.shape
     data_coords=GEOc.coords
 
+    ### 检验维度是否匹配
+    if len(data_shape) != 3:
+        raise ValueError('数据维度不匹配,请检查数据维度是否为三维(level,lat,lon)')
+
     ### 气候态和扰动
     UVc=np.sqrt(Uc**2+Vc**2)
 
