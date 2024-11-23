@@ -280,20 +280,20 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
         dims  =('level','lat','lon'),
         coords=data_coords
     )
-    Fx0 = Fx
+    Fx0 = Fx.copy()
     Fy=xr.DataArray(
         Fy,
         dims  =('level','lat','lon'),
         coords=data_coords
     )
-    Fy0 = Fy
+    Fy0 = Fy.copy()
     if not data_shape[0]==1:
         Fz=xr.DataArray(
             Fz,
             dims  =('level','lat','lon'),
             coords=data_coords
         )
-        Fz0 = Fz
+        Fz0 = Fz.copy()
 
     # 平滑处理
     if filt:
