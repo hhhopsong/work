@@ -927,7 +927,7 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     x, y = U_trans*np.cos(angle), U_trans*np.sin(angle)
     arrow = patches.FancyArrowPatch(
         (x, y), (x+(1e-1)*np.cos(angle), y+(1e-1)*np.sin(angle))
-              , arrowstyle=arrowstyle, mutation_scale=10, linewidth=linewidth)
+              , arrowstyle=arrowstyle, mutation_scale=10, linewidth=linewidth, color=color)
     axes_sub.add_patch(arrow)
     lines = [[[-x, y], [x, -y]]]
     lc = mcollections.LineCollection(lines, capstyle='round', linewidth=linewidth, color=color)
