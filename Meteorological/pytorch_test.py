@@ -43,11 +43,5 @@ def download(year):
 
 
 if __name__ == '__main__':
-    Ncpu = multiprocessing.cpu_count() - 1
-    data_pool = []
     for var in range(1961, 2025):
-        data_pool.append([var])
-    p = multiprocessing.Pool()
-    p.starmap(download, data_pool)
-    p.close()
-    p.join()
+        download(var)

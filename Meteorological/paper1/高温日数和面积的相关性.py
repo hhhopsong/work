@@ -27,5 +27,9 @@ EHD = xr.open_dataset(fr"D:\PyFile\paper1\EHD35.nc")
 EHD = masked(EHD, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域EHD温度距平
 EHD = EHD.sel(time=EHD['time.month'].isin([7, 8]))  # 截取7-8月数据
 EHD = masked(EHD.groupby('time.year').sum('time'), r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").mean(['lat', 'lon'])['tmax'] # 计算长江流域EHD年平均
-stations = np.load("D:\PyFile\paper1\OLS35.npy") # 读取站点数据
-corr = np.corrcoef(EHD, stations)[0, 1] # 进行显著性检验
+# 使用polyfit进行线性拟合，返回系数
+coefficients = np.polyfit(np.arange(len(EHD)), EHD, 1)
+detrended_EHD = EHD - np.polyval(coefficients, np.arange(len(EHD)))
+ols = np.load("D:\PyFile\paper1\OLS35_detrended.npy") # 读取站点数据
+corr = np.corrcoef(detrended_EHD, ols)[0, 1] # 进行显著性检验
+print(corr)
