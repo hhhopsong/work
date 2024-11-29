@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats.distributions import chi2
 
-def specx_anal(x,m,alpha1,alpha2):
+def specx_anal(x, m=None, alpha1=0.1, alpha2=0.1):
     '''
     功率谱分析
     :param x：需要分析的时间序列(原始序列，未标准化或距平处理)
@@ -10,12 +10,14 @@ def specx_anal(x,m,alpha1,alpha2):
     :param alpha1：红噪音检验信度
     :param alpha2：白噪音检验信度
     :return:
-    l：功率谱图的X坐标，对应的周期为2m/l，使用时自己调整tick labels
+    T：功率谱图的X坐标（周期）
     Sl：功率谱估计值
-    Sr：红噪音
-    Sw：白噪音
+    Sr：红噪音[上限，源噪声，下限]
+    Sw：白噪音[上限，源噪声，下限]
     r1：落后一个时刻的自相关函数，用于查看使用哪种噪音检验
     '''
+    if m is None:
+        m = x.shape[0]//3
     n = x.shape[0]
     x = (x - np.mean(x))/np.std(x)
     r1 = np.zeros((n-6))
@@ -44,18 +46,32 @@ def specx_anal(x,m,alpha1,alpha2):
     S=np.mean(Sl)
     for i in range(l.shape[0]):
         S0l[i]=S*(1-r[1]*r[1])/(1+r[1]*r[1]-2*r[1]*np.cos(l[i]*np.pi/m))
+    # 红噪声
     x2r = chi2.ppf(1-alpha1,df = f)
-    Sr=S0l*x2r/f
+    Sr_h=S0l*x2r/f
+    x2r = chi2.ppf(alpha1, df=f)
+    Sr_l=S0l*x2r/f
+    x2r = chi2.ppf(0.5, df=f)
+    Sr_0=S0l*x2r/f
+    Sr = [Sr_h, Sr_0, Sr_l]
+    # 白噪声
     x2w = chi2.ppf(1-alpha2,df = f)
-    Sw=S*x2w/f;
+    Sw_h=S*x2w/f
+    x2w = chi2.ppf(alpha2, df=f)
+    Sw_l=S*x2w/f
+    x2w = chi2.ppf(0.5, df=f)
+    Sw_0=S*x2w/f
+    Sw = [Sw_h, Sw_0, Sw_l]
     r1=r[1]
-    return l,Sl,Sr,Sw,r1
+    return 2*m/l, Sl, Sr, Sw, r1
 
 x = np.load("D:\PyFile\paper1\OLS35.npy")
-l,Sl,Sr,Sw,r1 = specx_anal(x,x.shape[0]//3,0.1,0.1)
+l,Sl,Sr,Sw,r1 = specx_anal(x,x.shape[0]//2,0.1,0.1)
 plt.plot(l,Sl,'-b',label='Real')
-plt.plot(l,Sr,'--r',label='red noise')
-plt.plot(l,np.linspace(Sw,Sw,l.shape[0]),'--m',label='white noise')
+plt.plot(l,Sr[1],'--r',color='gray',label='red noise')
+plt.plot(l,Sr[0],':r',label='red noise 90%')
+plt.plot(l,Sr[2],':',color='green',label='red noise 10%')
+#plt.plot(l,np.linspace(Sw[1],Sw[1],l.shape[0]),'--m',label='white noise')
 plt.legend()
 plt.show()
 print(r1)

@@ -152,7 +152,7 @@ if __name__ == '__main__':
                                             ('lon', z_diff['lon'].data)])
                 waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0, filt=3)
                 ax1 = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
-                ax1.set_title('200hPa WAF&OLR', fontsize=title_size, loc='left')
+                ax1.set_title('200hPa UV&WAF&OLR', fontsize=title_size, loc='left')
                 waf, lon = add_cyclic_point(waf_streamf[0], coord=z_diff['lon'])
                 olr, lon = add_cyclic_point(olr_corr, coord=olr_diff['lon'])
                 '''streamf图层 = ax1.contourf(lon, z_diff['lat'], waf*10**-6, levels=[-2.5, -2, -1.5, -1, -0.5,-.25,.25, 0.5, 1, 1.5, 2, 2.5],
@@ -178,10 +178,10 @@ if __name__ == '__main__':
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv_p = velovect(ax1, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, regrid=10,
+                                  lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, regrid=20,
                                   transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax1, uv_p, U=.5, label='0.5 ', lr=-5.04)
-                uv_np_ = velovect(ax1, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=10,
+                uv_np_ = velovect(ax1, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=20,
                                   lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
                 WAF图层 = velovect(ax1, z_diff['lon'], z_diff['lat'][:180],
                                   waf_x[:180, :], waf_y[:180, :],
@@ -189,7 +189,7 @@ if __name__ == '__main__':
                                   color='blue', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax1, WAF图层, U=.1, label='0.1 m$^2$/s$^2$', lr=-6.04, color='blue')
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax1.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
+                ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 # 在赤道画一条纬线
                 ax1.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
@@ -245,7 +245,7 @@ if __name__ == '__main__':
                     z显著性检验结果 = corr_test(sen, z_corr, alpha=alpha)
                     pc = sen'''
                 ax = fig.add_subplot(spec[1, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
-                ax.set_title('400hPa UVZ', fontsize=title_size, loc='left')
+                ax.set_title('300hPa UVZ', fontsize=title_size, loc='left')
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
                 相关系数图层 = ax.contourf(lon, z_diff['lat'], z_corr, levels=lev,
                                            cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
@@ -263,13 +263,13 @@ if __name__ == '__main__':
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv_p = velovect(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4,
+                                  lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, regrid=20,
                                   transform=ccrs.PlateCarree(central_longitude=0))
-                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray',
+                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=20,
                                   lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_np_, U=.25, label='0.25', lr=-6.04)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
+                ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
@@ -341,13 +341,13 @@ if __name__ == '__main__':
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv_p = velovect(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4,
+                                  lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, regrid=20,
                                   transform=ccrs.PlateCarree(central_longitude=0))
-                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray',
+                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=20,
                                   lon_trunc=-67.5, arrowsize=.5, scale=5, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_np_, U=.25, label='0.25', lr=-6.04)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
+                ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
@@ -432,14 +432,14 @@ if __name__ == '__main__':
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np,
-                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4, regrid=30,
+                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4, regrid=20,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'] ,u_corr, v_corr,
-                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4, regrid=30,
+                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4, regrid=20,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_np_, U=.25, label='0.25', lr=-6.04)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
+                ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
@@ -518,16 +518,16 @@ if __name__ == '__main__':
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist()),
-                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4,
+                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4, regrid=20,
                                color='gray', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
                                np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
-                               arrowsize=.5, scale=5,lon_trunc=-67.5, linewidth=0.4,
+                               arrowsize=.5, scale=5, lon_trunc=-67.5, linewidth=0.4, regrid=20,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 velovect_key(fig, ax, uv_, U=.5, label='0.5', lr=-6.04)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
-                ax.add_feature(cfeature.COASTLINE.with_scale('10m'), linewidth=0.2)
+                ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
                 ax.add_geometries(Reader(r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").geometries(),
                                   ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.4)
