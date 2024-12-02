@@ -28,6 +28,8 @@ def multi_core(var, p, ols, sen):
     print(f"{p}hPa层{var}相关系数计算中...")
     if var == 'u' or var == 'v' or var == 'z':
         pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\{var}_same.nc")[var].sel(p=p).transpose('lat', 'lon', 'year')
+    elif var == 'hu' or var == 'hv' or var == 'hz':
+        pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\uvz\{var[1]}_same_high.nc")[var[1]].sel(p=p).transpose('lat', 'lon', 'year')
     elif var == 'sst':
         pre_diff = xr.open_dataset(fr"D:\PyFile\paper1\cache\sst\sst_same.nc")['sst'].transpose('lat', 'lon', 'year')
     elif var == 'precip':
@@ -40,6 +42,8 @@ def multi_core(var, p, ols, sen):
     corr_1 = np.array([np.corrcoef(d, ols)[0, 1] for d in tqdm.tqdm(pre_diff)]).reshape(shape[0], shape[1])
     if var == 'u' or var == 'v' or var == 'z':
         np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var}{p}_same.npy", corr_1)  # 保存缓存
+    elif var == 'hu' or var == 'hv' or var == 'hz':
+        np.save(fr"D:\PyFile\paper1\cache\uvz\corr_{var[1]}{p}_same.npy", corr_1)
     elif var == 'sst':
         np.save(fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy", corr_1)
     elif var == 'precip':
@@ -71,9 +75,12 @@ if __name__ == '__main__':
     if eval(input("是否进行相关系数计算(0/1):")):
         Ncpu = multiprocessing.cpu_count()
         data_pool = []
-        for var in ['u', 'v', 'z', 'sst', 'precip', 'olr']:
+        for var in ['u', 'v', 'z', 'hu', 'hv', 'hz', 'sst', 'precip', 'olr']:
             if var == 'u' or var == 'v' or var == 'z':
                 for p in [200, 300, 400, 500, 600, 700, 850]:
+                    data_pool.append([var, p, ols, sen])
+            elif var == 'hu' or var == 'hv' or var == 'hz':
+                for p in [10, 30, 50, 70, 100, 150]:
                     data_pool.append([var, p, ols, sen])
             else:
                 data_pool.append([var, 0, ols, sen])

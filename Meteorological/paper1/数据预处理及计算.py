@@ -332,7 +332,7 @@ if eval(input("9)是否计算各气压层UVZ时间滚动差值(0/1)?\n")):
                 del output, forward, backfore
 
 if eval(input("10)是否计算同期(0/1)?\n")):
-    var_name = input("计算各气压层u?v?z?sst?pre?olr?\n")
+    var_name = input("计算各气压层uvz?huvz?sst?pre?olr?\n")
     if var_name == 'u' or var_name == 'v' or var_name == 'z':
         pre = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev.nc").sel(
             date=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'),
@@ -379,6 +379,40 @@ if eval(input("10)是否计算同期(0/1)?\n")):
         pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
         pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
         pre.to_netcdf(fr"D:\PyFile\paper1\cache\uvz\z_same.nc")
+    elif var_name == 'huvz':
+        pre = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev_high.nc").sel(
+            valid_time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'),
+            pressure_level=[10, 30, 50, 70, 100, 150],
+            latitude=[90 - i*0.5 for i in range(361)], longitude=[i*0.5 for i in range(720)])['u']
+        pre = xr.DataArray(pre.data, coords=[('time', pd.to_datetime(pre['valid_time'], format="%Y%m%d")),
+                                             ('p', pre['pressure_level'].data),
+                                             ('lat', pre['latitude'].data),
+                                             ('lon', pre['longitude'].data)]).to_dataset(name='u')
+        pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+        pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+        pre.to_netcdf(fr"D:\PyFile\paper1\cache\uvz\u_same_high.nc")
+        pre = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev_high.nc").sel(
+            valid_time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'),
+            pressure_level=[10, 30, 50, 70, 100, 150],
+            latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])['v']
+        pre = xr.DataArray(pre.data, coords=[('time', pd.to_datetime(pre['valid_time'], format="%Y%m%d")),
+                                             ('p', pre['pressure_level'].data),
+                                             ('lat', pre['latitude'].data),
+                                             ('lon', pre['longitude'].data)]).to_dataset(name='v')
+        pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+        pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+        pre.to_netcdf(fr"D:\PyFile\paper1\cache\uvz\v_same_high.nc")
+        pre = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev_high.nc").sel(
+            valid_time=slice(str(eval(data_year[0]) - 1) + '-01-01', str(eval(data_year[1]) + 1) + '-12-31'),
+            pressure_level=[10, 30, 50, 70, 100, 150],
+            latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])['z']
+        pre = xr.DataArray(pre.data, coords=[('time', pd.to_datetime(pre['valid_time'], format="%Y%m%d")),
+                                             ('p', pre['pressure_level'].data),
+                                             ('lat', pre['latitude'].data),
+                                             ('lon', pre['longitude'].data)]).to_dataset(name='z')
+        pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
+        pre = pre.sel(time=pre['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+        pre.to_netcdf(fr"D:\PyFile\paper1\cache\uvz\z_same_high.nc")
     elif var_name == 'sst':
         pre = xr.open_dataset(r"E:\data\NOAA\ERSSTv5\sst.mnmean.nc")['sst']
         pre = pre.sel(time=slice(str(eval(data_year[0])) + '-01-01', str(eval(data_year[1])) + '-12-31'))
