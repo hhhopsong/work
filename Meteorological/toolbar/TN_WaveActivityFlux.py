@@ -312,8 +312,23 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
                 index_.append(I+1)
                 index_.append(i)
             I = i
-        if len(index) != 4 or len(index_) != 4:
+        if len(index)%4 != 0 or len(index_)%4 != 0:
             raise ValueError('经纬度裁剪异常!')
+        ## 合并多层index
+        times = len(index) // 4
+        indexAll = np.array(index).reshape(times, 4).copy()
+        index_All = np.array(index_).reshape(times, 4).copy()
+        index = [0, 0, 0, 0]
+        index_ = [0, 0, 0, 0]
+        index[0] = indexAll[:, 0].max()
+        index[1] = indexAll[:, 1].min()
+        index[2] = indexAll[:, 2].max()
+        index[3] = indexAll[:, 3].min()
+        index_[0] = index_All[:, 0].max()
+        index_[1] = index_All[:, 1].min()
+        index_[2] = index_All[:, 2].max()
+        index_[3] = index_All[:, 3].min()
+
         index[0] = index_[0] if index_[0] > index[0] else index[0]
         index[1] = index_[1] if index_[1] < index[1] else index[1]
         index[2] = index_[2] if index_[2] > index[2] else index[2]
