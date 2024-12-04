@@ -189,11 +189,11 @@ if __name__ == '__main__':
                                             ('lon', z_diff_3d['lon'].data)])
                 waf_x, waf_y, waf_z = TN_WAF_3D(Geoc, Uc, Vc, GEOa, Tc, u_threshold=0, filt=3)
                 ax1 = fig.add_subplot(spec[1, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
-                ax1.set_title('200hPa UVZ&WAF&WAF_W', fontsize=title_size, loc='left')
+                ax1.set_title('200hPa UV&WAF&WAF_W', fontsize=title_size, loc='left')
                 waf, lon = add_cyclic_point(waf_z[1], coord=z_diff['lon'])
                 wafz图层 = ax1.contourf(lon, z_diff['lat'], waf,
                                            levels=np.array([-1., -.8, -.6, -.4, -.2, -.05, .05, .2, .4, .6, .8, 1.])*0.001,
-                                           cmap=cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
+                                           cmap=cmaps.MPL_PiYG_r[11+10:55]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PiYG_r[72:116-10],
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 '''显著性检验结果 = np.where(olr显著性检验结果 == 1, 0, np.nan)
@@ -222,12 +222,12 @@ if __name__ == '__main__':
                 velovect_key(fig, ax1, WAF图层, U=.1, label='0.1 m$^2$/s$^2$', lr=-6.04, color='blue')
                 z_corr = filters.gaussian_filter(z_corr, 4)
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
-                z_low = ax1.contour(lon, z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[0], levels=[-0.2, -0.1],
+                '''z_low = ax1.contour(lon, z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[0], levels=[-0.2, -0.1],
                                      linewidths=.5, linestyles='-', alpha=1, transform=ccrs.PlateCarree(central_longitude=0), zorder=1)
                 z_high = ax1.contour(lon, z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[17], levels=[0.2, 0.4],
                                      linewidths=.5, linestyles='-', alpha=1, transform=ccrs.PlateCarree(central_longitude=0), zorder=1)
                 plt.clabel(z_low, inline=True, fontsize=5, fmt='%.1f', inline_spacing=3)
-                plt.clabel(z_high, inline=True, fontsize=5, fmt='%.1f', inline_spacing=3)
+                plt.clabel(z_high, inline=True, fontsize=5, fmt='%.1f', inline_spacing=3)'''
                 ax1.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 # 在赤道画一条纬线
@@ -308,7 +308,7 @@ if __name__ == '__main__':
                 waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0, filt=3)
                 waf, lon = add_cyclic_point(waf_streamf[0], coord=z_diff['lon'])
                 ax = fig.add_subplot(spec[0, col], projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
-                ax.set_title('150hPa UV&OLR', fontsize=title_size, loc='left')
+                ax.set_title('150hPa UV&WAF&OLR', fontsize=title_size, loc='left')
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
                 显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
                 显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,

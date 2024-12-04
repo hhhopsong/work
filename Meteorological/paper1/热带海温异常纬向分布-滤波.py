@@ -32,7 +32,7 @@ sst_term_lonavg = sst_term.mean(dim='lat')
 sst_lastyear_lonavg = sst_lastyear.mean(dim='lat')
 sst_nextyear_lonavg = sst_nextyear.mean(dim='lat')
 ols = np.load(r"D:\PyFile\paper1\OLS35.npy")  # 读取缓存
-filter = ButterworthFilter(ols, filter_type="bandpass", filter_window=9, cutoff=[2.5, 6])
+filter = ButterworthFilter(ols, filter_type="bandpass", filter_window=9, cutoff=[2.5, 3.5])
 PC = filter.filted()
 # 计算sst距平
 sst_term_anom = sst_term_lonavg - sst_term_lonavg.mean(dim='time')
