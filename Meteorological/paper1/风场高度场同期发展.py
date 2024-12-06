@@ -396,7 +396,7 @@ if __name__ == '__main__':
                 ax.set_title('500hPa UVZ', fontsize=title_size, loc='left')
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
                 相关系数图层 = ax.contourf(lon, z_diff['lat'], z_corr, levels=lev,
-                                           cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
+                                           cmap=c,
                                            extend='both',
                                            transform=ccrs.PlateCarree(central_longitude=0))
                 显著性检验结果 = np.where(z显著性检验结果 == 1, 0, np.nan)
