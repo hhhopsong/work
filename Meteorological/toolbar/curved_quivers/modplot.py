@@ -29,6 +29,61 @@ class Curlyquiver:
     def __init__(self, ax, x, y, U, V,lon_trunc=0, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
                  integration_direction='both', mode='loose'):
+        """绘制矢量曲线.
+
+            *x*, *y* : 1d arrays
+                *规则* 网格.
+            *u*, *v* : 2d arrays
+                ``x`` 和 ``y`` 方向变量。行数应与 ``y`` 的长度匹配，列数应与 ``x`` 匹配.
+            *lon_trunc* : float
+                经度截断
+            *linewidth* : numeric or 2d array
+                给定与速度形状相同的二维阵列，改变线宽。
+            *color* : matplotlib color code, or 2d array
+                矢量颜色。给定一个与 ``u`` , ``v`` 形状相同的数组时，将使用*cmap*将值转换为*颜色*。
+            *cmap* : :class:`~matplotlib.colors.Colormap`
+                用于绘制矢量的颜色图。仅在使用*cmap*进行颜色绘制时才需要。
+            *norm* : :class:`~matplotlib.colors.Normalize`
+                用于将数据归一化。
+                如果为 ``None`` ，则将（最小，最大）拉伸到（0,1）。只有当*color*为数组时才需要。
+            *arrowsize* : float
+                箭头大小
+            *arrowstyle* : str
+                箭头样式规范。
+                详情请参见：:class:`~matplotlib.patches.FancyArrowPatch`.
+            *start_points*: Nx2 array
+                矢量起绘点的坐标。在数据坐标系中，与 ``x`` 和 ``y`` 数组相同。
+            *zorder* : int
+                ``zorder`` 属性决定了绘图元素的绘制顺序,数值较大的元素会被绘制在数值较小的元素之上。
+            *scale* : float(0-100)
+                矢量的最大长度。
+            *masked* : bool
+                原数据是否为掩码数组
+            *regrid* : int(>=2)
+                是否重新插值网格
+            *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
+                矢量向前、向后或双向绘制。
+            *mode* : {'loose', 'strict'}, default: 'loose'
+                流线边界绘制模式.
+                'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
+                'strict': 流线绘制时，严格裁切数据边界.
+
+            Returns:
+
+                *stream_container* : StreamplotSet
+                    具有属性的容器对象
+
+                        - lines: `matplotlib.collections.LineCollection` of streamlines
+
+                        - arrows: collection of `matplotlib.patches.FancyArrowPatch`
+                          objects representing arrows half-way along stream
+                          lines.
+
+                    此容器将来可能会更改，以允许更改线条和箭头的颜色图、alpha等，但这些更改应该会向下兼容。
+                *scale* : float
+                    矢量的最大长度。
+        """
+
         self.axes = ax
         self.x = x
         self.y = y
@@ -314,26 +369,21 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
-    unit = []
-    xg_, yg_ = 0., 0.
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
         xg = np.clip(xg, 0, grid.nx - 1)
         yg = np.clip(yg, 0, grid.ny - 1)
         t = integrate(xg, yg)[0:2] if integrate(xg, yg)[0][0] is not None else None
-        unit = integrate(xg, yg)[4] if t is not None else unit
-        xg_ = xg if t is not None else xg_  # 保存上一个有效点
-        yg_ = yg if t is not None else yg_  # 保存上一个有效点
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
+
+    # 单位
     try:
-        # if integrate(xg_, xg_)[0][0] is None: warnings.warn('未找到基准流线,矢量单位可能有误!', UserWarning)
-        xg_, yg_ = dmap.data2grid(sp2[integrate(xg_, yg_)[4][2]][0], sp2[integrate(xg_, yg_)[4][2]][1])
-        unit[1] = integrate(xg_, yg_)[3]
-    except TypeError:
-        warnings.warn('未找到基准流线,矢量单位可能有误!', UserWarning)
-        unit[1] = 0.
+        unit = 1 / dmap.grid.nx
+    except:
+        unit = np.nan
+        warnings.warn('格点与投影转换有误,矢量单位将不会绘制!', UserWarning)
 
     if use_multicolor_lines:
         if norm is None:
@@ -394,6 +444,14 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         arrow_head = [arrow_start[0], arrow_start[1]]
         arrow_tail = [arrow_end[0], arrow_end[1]]
 
+        # 箭头长度 格点-画布转换
+        arrow_x = arrow_head[0] - arrow_tail[0]
+        arrow_y = arrow_head[1] - arrow_tail[1]
+        arrow_length = np.sqrt(arrow_x ** 2 + arrow_y ** 2)
+        arrow_x = arrow_x / arrow_length * arrowsize * 10
+        arrow_y = arrow_y / arrow_length * arrowsize * 10
+        arrow_head = [arrow_tail[0] + arrow_x, arrow_tail[1] + arrow_y]
+
         # 防止出现纬度超过90度
         if np.abs(arrow_head[1]) >= 90 or np.abs(arrow_tail[1]) >= 90:
             error = np.argmax([np.abs(arrow_head[1]), np.abs(arrow_tail[1])])
@@ -423,9 +481,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         else:
             continue
         
-        ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
-
-        if ds<1e-15: continue  # 移除极小的箭头
+        # ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
+        # if ds<1e-15: continue  # 移除极小的箭头
 
         axes.add_patch(p)
         arrows.append(p)
@@ -918,11 +975,10 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     axes_sub.set_yticks([])
     axes_sub.set_xlim(-1, 1)
     axes_sub.set_ylim(-2, 1)
-    U_max = quiver[1][0]
-    if quiver[1][1] == 0:
-        U_trans = U / U_max * 4.8 / shrink / 100 * 0.59
-    else:
-        U_trans = U / U_max * 720 * quiver[1][1] / shrink / 100 * 0.59
+    dt_ds = quiver[1]
+    if np.isnan(dt_ds):
+        return
+    U_trans = U**2 * dt_ds / shrink / 2
     # 绘制图例
     x, y = U_trans*np.cos(angle), U_trans*np.sin(angle)
     arrow = patches.FancyArrowPatch(
@@ -943,7 +999,7 @@ if __name__ == '__main__':
     V = np.zeros(X.shape).T
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree())
-    a1 = velovect(ax1, x, y, U, V, regrid=15, lon_trunc=180, scale=2, color='black', linewidth=0.5)
+    a1 = velovect(ax1, x, y, U, V, regrid=15, lon_trunc=180, scale=1, color='black', linewidth=0.5)
     velovect_key(fig, ax1, a1, arrowstyle='->', shrink=0.15)
-    plt.savefig('D:/PyFile/pic/test.png', dpi=1000)
+    plt.savefig('D:/PyFile/pic/test.png', dpi=600)
     plt.show()
