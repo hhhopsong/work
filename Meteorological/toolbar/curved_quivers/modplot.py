@@ -420,17 +420,19 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
                 break
             except:
                 continue
-        arrow_tail = (tx[n], ty[n])
+        arrow_tail = (tx[-2], ty[-2])
         arrow_head = (tx[-1], ty[-1])
-
+        delta_ = np.array(arrow_head) - np.array(arrow_tail)
+        arrow_tail = (tx[-1], ty[-1])
+        arrow_head = (tx[-1] + delta_[0], ty[-1] + delta_[1])
         # 网格偏移避免异常箭头
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
         delta = arrow_start - arrow_end
-        if np.sqrt(delta[0] ** 2 + delta[1] ** 2) == 0.: continue  # 长度为0的箭头
+        if np.sqrt(delta[0] ** 2 + delta[1] ** 2) == 0.:
+            continue  # 长度为0的箭头
         zone_fix = np.array([360 / np.abs(extent[0] - extent[1]), 180 / np.abs(extent[2] - extent[3])]).min()  # 箭头偏移修正系数
-        delta = delta / np.sqrt(delta[0] ** 2 + delta[1] ** 2)
-        delta = delta * 10**0 / zone_fix
+        delta = delta / np.sqrt(delta[0] ** 2 + delta[1] ** 2) / zone_fix
         arrow_end =  arrow_start + delta
         a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0]  - lon_trunc
         a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0]  - lon_trunc
@@ -448,9 +450,10 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         arrow_x = arrow_head[0] - arrow_tail[0]
         arrow_y = arrow_head[1] - arrow_tail[1]
         arrow_length = np.sqrt(arrow_x ** 2 + arrow_y ** 2)
-        arrow_x = arrow_x / arrow_length * arrowsize * 10
-        arrow_y = arrow_y / arrow_length * arrowsize * 10
+        arrow_x = arrow_x / arrow_length * arrowsize
+        arrow_y = arrow_y / arrow_length * arrowsize
         arrow_head = [arrow_tail[0] + arrow_x, arrow_tail[1] + arrow_y]
+        # arrow_kw['relpos'] = [0, 0]
 
         # 防止出现纬度超过90度
         if np.abs(arrow_head[1]) >= 90 or np.abs(arrow_tail[1]) >= 90:
