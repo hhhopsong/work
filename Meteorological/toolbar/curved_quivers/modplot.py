@@ -141,7 +141,7 @@ class Curlyquiver:
 def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
-               scale=1., masked=True, regrid=30, integration_direction='both', scale_unit='relative', mode='loose'):
+               scale=100., masked=True, regrid=30, integration_direction='both', scale_unit='relative', mode='loose'):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -807,7 +807,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     # increment the location gradually. However, due to the efficient
     # nature of the interpolation, this doesn't boost speed by much
     # for quite a bit of complexity.
-    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 5e-5)
+    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 7.5e-5)
 
     ds = maxds
     stotal = 0
