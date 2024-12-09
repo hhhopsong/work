@@ -317,9 +317,14 @@ print('开始绘制地图1')
 ax1.set_title('(a)Reg. 200Z&WAF onto AST', fontsize=20, loc='left')
 a1 = ax1.contourf(a1_z_lon, lat_uvz, z200, cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
                   levels=level1_z, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
-a1_waf = Curlyquiver(ax1, lon_uvz, lat_uvz, reg_waf_x, reg_waf_y, regrid=20, lon_trunc=-67.5, arrowsize=.6, scale=10, linewidth=0.8,
+u200 = reg_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy()
+v200 = reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy()
+a1_uv = Curlyquiver(ax1, lon_uvz, lat_uvz, u200, v200, regrid=20, lon_trunc=-67.5, arrowsize=.6, scale=30, linewidth=0.8,
+                                  color='k', transform=ccrs.PlateCarree(central_longitude=0))
+a1_uv.key(fig, U=3, label='3 m/s', lr=2., width_shrink=0.5)
+a1_waf = Curlyquiver(ax1, lon_uvz, lat_uvz, reg_waf_x, reg_waf_y, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=6, linewidth=0.8,
                                   color='blue', transform=ccrs.PlateCarree(central_longitude=0))
-a1_waf.key(fig, U=0.125, label='0.5 m$^2$/s$^2$')
+a1_waf.key(fig, U=0.5, label='0.5 m$^2$/s$^2$',width_shrink =.5)
 
 # 显著性打点
 p_lbm_t2m_z200, a1_lon_p = add_cyclic_point(p_lbm_t2m_z200, coord=lon_uvz)
@@ -358,11 +363,11 @@ ax2.set_title('(b)Reg. 500ZUV onto AST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
                   levels=level_z500, extend='both', transform=ccrs.PlateCarree())
-a2_uv = Curlyquiver(ax2, lon_uvz, lat_uvz, u500, v500, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=5, linewidth=0.8,
+a2_uv = Curlyquiver(ax2, lon_uvz, lat_uvz, u500, v500, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=20, linewidth=0.8,
                                   color='k', transform=ccrs.PlateCarree(central_longitude=0))
-a2_uv_np = Curlyquiver(ax2, lon_uvz, lat_uvz, u500_np, v500_np, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=5, linewidth=0.8,
+a2_uv_np = Curlyquiver(ax2, lon_uvz, lat_uvz, u500_np, v500_np, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=20, linewidth=0.8,
                                   color='gray', transform=ccrs.PlateCarree(central_longitude=0))
-a2_uv.key(fig, U=0.5, label='0.5')
+a2_uv.key(fig, U=3, label='3 m/s')
 # 显著性打点
 p_z500, a2_p_z500 = add_cyclic_point(p_lbm_t2m_z500, coord=lon_uvz)
 p_z500 = np.where(p_z500 == 1, 0, np.nan)
@@ -395,11 +400,11 @@ v850_np = np.where(np.abs(v850_np) > uv_min, v850_np, np.nan)
 ax3.set_title('(c)Reg. 850ZUV&PRE onto AST', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a3 = ax3.contourf(a3_pre_lon, lat_pre, pre, cmap=cmaps.MPL_RdYlGn[32:56]+cmaps.CBR_wet[0]+cmaps.MPL_RdYlGn[72:96], levels=level_pre, extend='both', transform=ccrs.PlateCarree())
-a3_uv = Curlyquiver(ax3, lon_uvz, lat_uvz, u500, v500, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=5, linewidth=0.8,
+a3_uv = Curlyquiver(ax3, lon_uvz, lat_uvz, u500, v500, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=20, linewidth=0.8,
                                   color='k', transform=ccrs.PlateCarree(central_longitude=0))
-a3_uv_np = Curlyquiver(ax3, lon_uvz, lat_uvz, u500_np, v500_np, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=5, linewidth=0.8,
+a3_uv_np = Curlyquiver(ax3, lon_uvz, lat_uvz, u500_np, v500_np, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=20, linewidth=0.8,
                                   color='gray', transform=ccrs.PlateCarree(central_longitude=0))
-a3_uv.key(fig, U=0.5, label='0.5')
+a3_uv.key(fig, U=3, label='3 m/s')
 # 高度场
 z850 = filters.gaussian_filter(z850, 4)
 a3_low = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap=cmaps.BlueDarkRed18[0], levels=level_z[:5], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
