@@ -28,7 +28,7 @@ import warnings
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V,lon_trunc=0, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
-                 integration_direction='both', mode='loose'):
+                 integration_direction='both', scale_unit='relative', mode='loose'):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -63,6 +63,8 @@ class Curlyquiver:
                 是否重新插值网格
             *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
                 矢量向前、向后或双向绘制。
+            *scale_unit* : {'relative', 'absolute'}, default: 'both'
+                矢量单位相对，或者绝对(单位一)。
             *mode* : {'loose', 'strict'}, default: 'loose'
                 流线边界绘制模式.
                 'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
@@ -104,23 +106,42 @@ class Curlyquiver:
         self.regrid = regrid
         self.integration_direction = integration_direction
         self.mode = mode
+        self.scale_unit = scale_unit
 
         self.quiver = self.quiver()
 
     def quiver(self):
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
-                        self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.mode)
+                        self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.scale_unit, self.mode)
 
-    def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5}):
-        velovect_key(fig, self.axes, self.quiver, shrink, U, angle, label, color='k', arrowstyle=self.arrowstyle,
-                     linewidth=self.linewidth, fontproperties=fontproperties, lr=lr, ud=ud)
+    def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
+            width_shrink=1., height_shrink=1.):
+        '''
+        曲线矢量图例
+        :param fig: 画布总底图
+        :param axes: 目标图层
+        :param quiver: 曲线矢量图层
+        :param U: 风速
+        :param angle: 角度
+        :param label: 标签
+        :param fontproperties: 字体属性
+        :param lr: 左右偏移(>1：左偏, <1：右偏)
+        :param ud: 上下偏移(>1：上偏, <1：下偏)
+        :param width_shrink: 宽度缩放比例
+        :param height_shrink: 高度缩放比例
+
+        :return: None
+        '''
+        velovect_key(fig, self.axes, self.quiver, shrink, U, angle, label, color=self.color, arrowstyle=self.arrowstyle,
+                     linewidth=self.linewidth, fontproperties=fontproperties,
+                     lr=lr, ud=ud, width_shrink=width_shrink, height_shrink=height_shrink)
 
 
 def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
-               scale=1., masked=True, regrid=30, integration_direction='both', mode='loose'):
+               scale=1., masked=True, regrid=30, integration_direction='both', scale_unit='relative', mode='loose'):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -155,6 +176,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         是否重新插值网格
     *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
         矢量向前、向后或双向绘制。
+    *scale_unit* : {'relative', 'absolute'}, default: 'both'
+        矢量单位相对，或者绝对(单位一)。
     *mode* : {'loose', 'strict'}, default: 'loose'
         流线边界绘制模式.
         'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
@@ -281,15 +304,15 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
             v = V((Y, X))
 
     # 风速归一化
-    wind = np.sqrt(u ** 2 + v ** 2)
-    wind_shrink = wind / np.nanmax(wind)
+    wind = np.sqrt(u ** 2 + v ** 2)     # scale缩放
+    nanmax = np.nanmax(wind) if scale_unit == 'relative' else 1
+    wind_shrink = wind / nanmax / scale
     u = u * wind_shrink
     v = v * wind_shrink
 
     if regrid >= 50: warnings.warn('流线绘制格点过多，可能导致计算速度过慢!', RuntimeWarning)
     _api.check_in_list(['both', 'forward', 'backward'], integration_direction=integration_direction)
     grains = 1
-    scale = scale / 100. * 47666666 / 100000000  # scale缩放
     grid = Grid(x, y)
     mask = StreamMask(10)
     dmap = DomainMap(grid, mask)
@@ -340,9 +363,9 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
     u = np.ma.masked_invalid(u)
     v = np.ma.masked_invalid(v)
     magnitude = np.sqrt(u**2 + v**2)
-    magnitude/=np.max(magnitude)
+    #magnitude /= np.nanmax(magnitude)
 	
-    resolution = scale/grains
+    resolution = 47666666e-8 # 分辨率(最小可分辨度为47666666e-8)
     minlength = .9*resolution
     integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction, mode=mode)
     trajectories = []
@@ -369,6 +392,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
+    grids = []  # 定位正在进行绘制的流线格点
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
         xg = np.clip(xg, 0, grid.nx - 1)
@@ -377,10 +401,11 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
+        grids.append([xg, yg])
 
     # 单位
     try:
-        unit = 1 / dmap.grid.nx
+        unit = 1 / nanmax / scale
     except:
         unit = np.nan
         warnings.warn('格点与投影转换有误,矢量单位将不会绘制!', UserWarning)
@@ -395,7 +420,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
 
     streamlines = []
     arrows = []
-    for t, edge in tq.tqdm(zip(trajectories,edges), desc='绘制曲轴矢量', colour='green', unit='条', total=len(trajectories)):
+    for t, edge, grid_ing in tq.tqdm(zip(trajectories,edges,grids), desc='绘制曲轴矢量', colour='green', unit='条', total=len(trajectories)):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
 		
@@ -430,7 +455,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
         delta = arrow_start - arrow_end
         if np.sqrt(delta[0] ** 2 + delta[1] ** 2) == 0.:
-            continue  # 长度为0的箭头
+            continue        # 长度为0的轨迹
         zone_fix = np.array([360 / np.abs(extent[0] - extent[1]), 180 / np.abs(extent[2] - extent[3])]).min()  # 箭头偏移修正系数
         delta = delta / np.sqrt(delta[0] ** 2 + delta[1] ** 2) / zone_fix
         arrow_end =  arrow_start + delta
@@ -438,6 +463,15 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0]  - lon_trunc
         a_start = a_start + 360 if a_start < -180 else a_start
         a_end = a_end + 360 if a_end < -180 else a_end
+
+        '''# 箭头长度 格点-画布转换
+        arrow_x = a_start[0] - a_end[0]
+        arrow_y = a_start[1] - a_end[1]
+        arrow_length = np.sqrt(arrow_x ** 2 + arrow_y ** 2)
+        arrow_x = arrow_x / arrow_length * arrowsize * 2
+        arrow_y = arrow_y / arrow_length * arrowsize * 2
+        a_start = np.array([a_end[0] + arrow_x, a_end[1] + arrow_y])'''
+
         # 网格偏移避免异常箭头
         if np.abs(a_start - a_end) < 90:
             if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]):
@@ -445,15 +479,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
                 arrow_end =  [arrow_end[0] - a_start * 1.01, arrow_end[1] - a_start * delta[1] / delta[0] * 1.01]
         arrow_head = [arrow_start[0], arrow_start[1]]
         arrow_tail = [arrow_end[0], arrow_end[1]]
-
-        # 箭头长度 格点-画布转换
-        arrow_x = arrow_head[0] - arrow_tail[0]
-        arrow_y = arrow_head[1] - arrow_tail[1]
-        arrow_length = np.sqrt(arrow_x ** 2 + arrow_y ** 2)
-        arrow_x = arrow_x / arrow_length * arrowsize
-        arrow_y = arrow_y / arrow_length * arrowsize
-        arrow_head = [arrow_tail[0] + arrow_x, arrow_tail[1] + arrow_y]
-        # arrow_kw['relpos'] = [0, 0]
 
         # 防止出现纬度超过90度
         if np.abs(arrow_head[1]) >= 90 or np.abs(arrow_tail[1]) >= 90:
@@ -685,14 +710,12 @@ class StreamMask(object):
 def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True, mode='loose'):
 
     # rescale velocity onto grid-coordinates for integrations.
-    speed0 = np.ma.sqrt(u ** 2 + v ** 2)
     u, v = dmap.data2grid(u, v)
 
     # speed (path length) will be in axes-coordinates
     u_ax = u / dmap.grid.nx
     v_ax = v / dmap.grid.ny
     speed = np.ma.sqrt(u_ax ** 2 + v_ax ** 2)
-    unit_speed = [speed0[np.unravel_index(np.nanargmax(speed), speed.shape)], np.nanmax(speed), np.nanargmax(speed)]
 
     if integration_direction == 'both':
         speed = speed / 2.
@@ -742,10 +765,10 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
             m_total += m_total_[1:]
 
         if len(x_traj)>1:
-            return (x_traj, y_traj), hit_edge, m_total, stotal, unit_speed
+            return (x_traj, y_traj), hit_edge, m_total, stotal
         else:  # reject short trajectories
             dmap.undo_trajectory()
-            return (None, None), hit_edge, m_total, stotal, unit_speed
+            return (None, None), hit_edge, m_total, stotal
 
     return integrate
 
@@ -776,7 +799,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     # This error is below that needed to match the RK4 integrator. It
     # is set for visual reasons -- too low and corners start
     # appearing ugly and jagged. Can be tuned.
-    maxerror = 3e-4
+    maxerror = 2.25e-6
 
     # This limit is important (for all integrators) to avoid the
     # trajectory skipping some mask cells. We could relax this
@@ -784,7 +807,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     # increment the location gradually. However, due to the efficient
     # nature of the interpolation, this doesn't boost speed by much
     # for quite a bit of complexity.
-    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 1e-3)
+    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 5e-5)
 
     ds = maxds
     stotal = 0
@@ -951,7 +974,8 @@ def _gen_starting_points(x,y,grains):
 
 
 
-def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5, fontproperties={'size': 5}, lr=1., ud=1.):
+def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5,
+                 fontproperties={'size': 5}, lr=1., ud=1., width_shrink=1., height_shrink=1.):
     '''
     曲线矢量图例
     :param fig: 画布总底图
@@ -968,11 +992,13 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     :param fontproperties: 字体属性
     :param lr: 左右偏移(>1：左偏, <1：右偏)
     :param ud: 上下偏移(>1：上偏, <1：下偏)
+    :param width_shrink: 宽度缩放比例
+    :param height_shrink: 高度缩放比例
 
     :return: None
     '''
     axes_sub = fig.add_axes([0, 0, 1, 1])
-    adjust_sub_axes(axes, axes_sub, shrink=shrink, lr=lr, ud=ud)
+    adjust_sub_axes(axes, axes_sub, shrink=shrink, lr=lr, ud=ud, width=width_shrink, height=height_shrink)
     # 不显示刻度和刻度标签
     axes_sub.set_xticks([])
     axes_sub.set_yticks([])
@@ -983,7 +1009,7 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
         return
     U_trans = U**2 * dt_ds / shrink / 2
     # 绘制图例
-    x, y = U_trans*np.cos(angle), U_trans*np.sin(angle)
+    x, y = U_trans*np.cos(angle) / width_shrink, U_trans*np.sin(angle) / height_shrink
     arrow = patches.FancyArrowPatch(
         (x, y), (x+(1e-1)*np.cos(angle), y+(1e-1)*np.sin(angle))
               , arrowstyle=arrowstyle, mutation_scale=10, linewidth=linewidth, color=color)
