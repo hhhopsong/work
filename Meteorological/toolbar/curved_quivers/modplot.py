@@ -1007,7 +1007,7 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     dt_ds = quiver[1]
     if np.isnan(dt_ds):
         return
-    U_trans = U**2 * dt_ds / shrink / 2
+    U_trans = U * dt_ds / shrink / 2
     # 绘制图例
     x, y = U_trans*np.cos(angle) / width_shrink, U_trans*np.sin(angle) / height_shrink
     arrow = patches.FancyArrowPatch(
