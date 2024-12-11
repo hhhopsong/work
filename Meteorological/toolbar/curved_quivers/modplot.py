@@ -306,7 +306,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
     # 风速归一化
     wind = np.sqrt(u ** 2 + v ** 2)     # scale缩放
     nanmax = np.nanmax(wind) if scale_unit == 'relative' else 1
-    wind_shrink = wind / nanmax / scale
+    wind_shrink = np.ones(wind.shape) / nanmax / scale
     u = u * wind_shrink
     v = v * wind_shrink
 
@@ -1007,7 +1007,7 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     dt_ds = quiver[1]
     if np.isnan(dt_ds):
         return
-    U_trans = U * dt_ds / shrink / 2
+    U_trans = U * dt_ds / shrink
     # 绘制图例
     x, y = U_trans*np.cos(angle) / width_shrink, U_trans*np.sin(angle) / height_shrink
     arrow = patches.FancyArrowPatch(
