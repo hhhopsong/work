@@ -314,7 +314,7 @@ GEOa = xr.DataArray(reg_z200.data[np.newaxis, :, :],
 reg_waf_x, reg_waf_y = TN_WAF_3D(Geoc, Uc, Vc, GEOa, u_threshold=0, filt=3)
 z200, a1_z_lon = add_cyclic_point(reg_lbm_t2m_z200['__xarray_dataarray_variable__'].to_numpy(), coord=lon_uvz)  # 去除180白线
 print('开始绘制地图1')
-ax1.set_title('(a)Reg. 200Z&WAF onto AST', fontsize=20, loc='left')
+ax1.set_title('(a)Reg. 200Z&WAF', fontsize=20, loc='left')
 a1 = ax1.contourf(a1_z_lon, lat_uvz, z200, cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
                   levels=level1_z, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
 u200 = reg_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy()
@@ -359,7 +359,7 @@ u500 = np.where(np.abs(u500) > uv_min, u500, np.nan)
 v500 = np.where(np.abs(v500) > uv_min, v500, np.nan)
 u500_np = np.where(np.abs(u500_np) > uv_min, u500_np, np.nan)
 v500_np = np.where(np.abs(v500_np) > uv_min, v500_np, np.nan)
-ax2.set_title('(b)Reg. 500ZUV onto AST', fontsize=20, loc='left')
+ax2.set_title('(b)Reg. 500ZUV', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a2 = ax2.contourf(a2_z500_lon, lat_uvz, z500, cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
                   levels=level_z500, extend='both', transform=ccrs.PlateCarree())
@@ -397,7 +397,7 @@ u850 = np.where(np.abs(u850) > uv_min, u850, np.nan)
 v850 = np.where(np.abs(v850) > uv_min, v850, np.nan)
 u850_np = np.where(np.abs(u850_np) > uv_min, u850_np, np.nan)
 v850_np = np.where(np.abs(v850_np) > uv_min, v850_np, np.nan)
-ax3.set_title('(c)Reg. 850ZUV&PRE onto AST', fontsize=20, loc='left')
+ax3.set_title('(c)Reg. 850ZUV&PRE', fontsize=20, loc='left')
 #reg_z500 = filters.gaussian_filter(reg_z500, 3)
 a3 = ax3.contourf(a3_pre_lon, lat_pre, pre, cmap=cmaps.MPL_RdYlGn[32:56]+cmaps.CBR_wet[0]+cmaps.MPL_RdYlGn[72:96], levels=level_pre, extend='both', transform=ccrs.PlateCarree())
 a3_uv = Curlyquiver(ax3, lon_uvz, lat_uvz, u500, v500, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=20, linewidth=0.8,
