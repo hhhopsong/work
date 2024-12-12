@@ -134,8 +134,8 @@ class Curlyquiver:
         :return: None
         '''
         velovect_key(fig, self.axes, self.quiver, shrink, U, angle, label, color=self.color, arrowstyle=self.arrowstyle,
-                     linewidth=self.linewidth, fontproperties=fontproperties,
-                     lr=lr, ud=ud, width_shrink=width_shrink, height_shrink=height_shrink)
+                     linewidth=self.linewidth, fontproperties=fontproperties, lr=lr, ud=ud, width_shrink=width_shrink,
+                     height_shrink=height_shrink, arrowsize=self.arrowsize)
 
 
 def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
@@ -373,7 +373,9 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
     
     if start_points is None:
         if regrid:
-            start_points = np.array([X.flatten(), Y.flatten()]).T
+            x_re = np.concatenate([x[x > lon_trunc], x[:np.argmax(x > lon_trunc)]])
+            X_re, Y_re = np.meshgrid(x_re, y)
+            start_points = np.array([X_re.flatten(), Y_re.flatten()]).T
         else:
             start_points=_gen_starting_points(x,y,grains)
     
@@ -392,7 +394,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
-    grids = []  # 定位正在进行绘制的流线格点
     for xs, ys in sp2:
         xg, yg = dmap.data2grid(xs, ys)
         xg = np.clip(xg, 0, grid.nx - 1)
@@ -401,7 +402,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
-        grids.append([xg, yg])
 
     # 单位
     try:
@@ -420,7 +420,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
 
     streamlines = []
     arrows = []
-    for t, edge, grid_ing in tq.tqdm(zip(trajectories,edges,grids), desc='绘制曲轴矢量', colour='green', unit='条', total=len(trajectories)):
+    for t, edge in tq.tqdm(zip(trajectories,edges), desc='绘制曲轴矢量', colour='green', unit='条', total=len(trajectories)):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
 		
@@ -454,8 +454,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         arrow_start = np.array([arrow_head[0], arrow_head[1]])
         arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
         delta = arrow_start - arrow_end
-        if np.sqrt(delta[0] ** 2 + delta[1] ** 2) == 0.:
-            continue        # 长度为0的轨迹
+        if np.sqrt(delta[0] ** 2 + delta[1] ** 2) == 0.:    continue        # 长度为0的轨迹
         zone_fix = np.array([360 / np.abs(extent[0] - extent[1]), 180 / np.abs(extent[2] - extent[3])]).min()  # 箭头偏移修正系数
         delta = delta / np.sqrt(delta[0] ** 2 + delta[1] ** 2) / zone_fix
         arrow_end =  arrow_start + delta
@@ -975,7 +974,7 @@ def _gen_starting_points(x,y,grains):
 
 
 def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5,
-                 fontproperties={'size': 5}, lr=1., ud=1., width_shrink=1., height_shrink=1.):
+                 fontproperties={'size': 5}, lr=1., ud=1., width_shrink=1., height_shrink=1., arrowsize=1.):
     '''
     曲线矢量图例
     :param fig: 画布总底图
@@ -1007,12 +1006,12 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     dt_ds = quiver[1]
     if np.isnan(dt_ds):
         return
-    U_trans = U * dt_ds / shrink
+    U_trans = U * dt_ds / shrink / 2
     # 绘制图例
-    x, y = U_trans*np.cos(angle) / width_shrink, U_trans*np.sin(angle) / height_shrink
+    x, y = U_trans * np.cos(angle) * 2 / width_shrink, U_trans * np.sin(angle) * 3 / height_shrink
     arrow = patches.FancyArrowPatch(
         (x, y), (x+(1e-1)*np.cos(angle), y+(1e-1)*np.sin(angle))
-              , arrowstyle=arrowstyle, mutation_scale=10, linewidth=linewidth, color=color)
+              , arrowstyle=arrowstyle, mutation_scale=10 * arrowsize, linewidth=linewidth, color=color)
     axes_sub.add_patch(arrow)
     lines = [[[-x, y], [x, -y]]]
     lc = mcollections.LineCollection(lines, capstyle='round', linewidth=linewidth, color=color)
