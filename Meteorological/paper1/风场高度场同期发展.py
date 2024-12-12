@@ -20,7 +20,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy.ndimage import filters
 from toolbar.significance_test import corr_test
 from toolbar.TN_WaveActivityFlux import TN_WAF_3D
-from toolbar.curved_quivers.modplot import velovect, velovect_key
+from toolbar.curved_quivers.modplot import *
 
 
 # 多核计算部分函数
@@ -224,17 +224,17 @@ if __name__ == '__main__':
                 v_np = np.where(u_np**2 + v_np**2 >= 0.01**2, v_np, np.nan)
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
-                uv_p = velovect(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=10, linewidth=0.4, regrid=20,
+                uv_p = Curlyquiver(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
+                                  lon_trunc=-67.5, arrowsize=.5, scale=40, linewidth=0.4, regrid=20,
                                   transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_p, U=.5, label='0.5 ', lr=1)
-                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=20,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=10, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层 = velovect(ax, z_diff['lon'], z_diff['lat'][:180],
+                uv_p.key(fig, U=1, label='1', lr=-0.1)
+                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=20, nanmax=uv_p.nanmax,
+                                  lon_trunc=-67.5, arrowsize=.5, scale=40, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
+                WAF图层 = Curlyquiver(ax, z_diff['lon'], z_diff['lat'][:180],
                                   waf_x[1, :180, :], waf_y[1, :180, :],
-                                  regrid=10, lon_trunc=-67.5, arrowsize=.5, scale=.8, linewidth=0.8,
+                                  regrid=10, lon_trunc=-67.5, arrowsize=.5, scale=8, linewidth=0.8,
                                   color='blue', transform=ccrs.PlateCarree(central_longitude=0), arrowstyle='fancy')
-                velovect_key(fig, ax, WAF图层, U=10, label='10 m$^2$/s$^2$', color='blue', arrowstyle='fancy')
+                WAF图层.key(fig, U=.1, label='0.1 m$^2$/s$^2$', lr=-1.1)
                 z_corr = filters.gaussian_filter(z_corr, 4)
                 z_corr, lon = add_cyclic_point(z_corr, coord=z_diff['lon'])
                 '''z_low = ax1.contour(lon, z_diff['lat'], z_corr, cmap=cmaps.BlueDarkRed18[0], levels=[-0.2, -0.1],
@@ -269,7 +269,7 @@ if __name__ == '__main__':
                 ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
                 plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
                 # 调整刻度值字体大小
-                ax1.tick_params(axis='both', labelsize=title_size, colors='black')
+                ax.tick_params(axis='both', labelsize=title_size, colors='black')
 
                 # 设置色标
                 ax_ins1 = inset_axes(
@@ -341,11 +341,11 @@ if __name__ == '__main__':
                 显著性检验图层 = ax.quiver(z_diff['lon'], z_diff['lat'], 显著性检验结果, 显著性检验结果, scale=20,
                                            color='white', headlength=2, headaxislength=2, regrid_shape=60,
                                            transform=ccrs.PlateCarree(central_longitude=0))
-                WAF图层 = velovect(ax, z_diff['lon'], z_diff['lat'][:180],
+                WAF图层 = Curlyquiver(ax, z_diff['lon'], z_diff['lat'][:180],
                                   waf_x[:180, :], waf_y[:180, :],
-                                  regrid=10, lon_trunc=-67.5, arrowsize=.5, scale=.8, linewidth=0.8,
+                                  regrid=10, lon_trunc=-67.5, arrowsize=.5, scale=8, linewidth=0.8,
                                   color='blue', transform=ccrs.PlateCarree(central_longitude=0), arrowstyle='fancy')
-                velovect_key(fig, ax, WAF图层, U=10, label='10 m$^2$/s$^2$', color='blue', arrowstyle='fancy')
+                WAF图层.key(fig, U=.1, label='0.1 m$^2$/s$^2$', lr=-1.1)
                 olr, lon = add_cyclic_point(olr_corr, coord=olr_diff['lon'])
                 olr图层 = ax.contourf(lon, z_diff['lat'], olr,
                                            levels=[-.5, -.4, -.3, -.2, -0.1, -.05, .05, .1, .2, .3, .4, .5],
@@ -359,12 +359,12 @@ if __name__ == '__main__':
                 v_np = np.where(u_np**2 + v_np**2 >= 0.01**2, v_np, np.nan)
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
-                uv_p = velovect(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=10, linewidth=0.4, regrid=20,
+                uv_p = Curlyquiver(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
+                                  lon_trunc=-67.5, arrowsize=.5, scale=40, linewidth=0.4, regrid=20,
                                   transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=20,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=10, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_np_, U=.25, label='0.25', lr=1)
+                                  lon_trunc=-67.5, arrowsize=.5, scale=40, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0), nanmax=uv_p.nanmax)
+                uv_p.key(fig, U=1, label='1', lr=-0.1)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
@@ -449,12 +449,12 @@ if __name__ == '__main__':
                 v_np = np.where(u_np**2 + v_np**2 >= 0.01**2, v_np, np.nan)
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
-                uv_p = velovect(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=10, linewidth=0.4, regrid=20,
+                uv_p = Curlyquiver(ax, u_diff['lon'], u_diff['lat'], u_corr, v_corr,
+                                  lon_trunc=-67.5, arrowsize=.5, scale=40, linewidth=0.4, regrid=20,
                                   transform=ccrs.PlateCarree(central_longitude=0))
-                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=20,
-                                  lon_trunc=-67.5, arrowsize=.5, scale=10, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_np_, U=.25, label='0.25')
+                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, color='gray', regrid=20, nanmax=uv_p.nanmax,
+                                  lon_trunc=-67.5, arrowsize=.5, scale=40, linewidth=0.4, transform=ccrs.PlateCarree(central_longitude=0))
+                uv_p.key(fig, U=1, label='1', lr=-1.1)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
@@ -531,7 +531,7 @@ if __name__ == '__main__':
                     sst显著性检验结果 = corr_test(sen, sst_corr, alpha=alpha)
                     pc = sen'''
                 ax = fig.add_subplot(514, projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
-                ax.set_title('700hPa UVZ&SST', fontsize=title_size, loc='left')
+                ax.set_title('700hPa UVZ&SST&2mT', fontsize=title_size, loc='left')
                 # t2m
                 t2m_corr, lon = add_cyclic_point(t2m_corr, coord=t2m_diff['lon'])
                 t2m相关系数图层 = ax.contourf(lon, t2m_diff['lat'], t2m_corr, levels=lev,
@@ -567,13 +567,13 @@ if __name__ == '__main__':
                 v_np = np.where(u_np**2 + v_np**2 >= 0.01**2, v_np, np.nan)
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
-                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np,
-                               arrowsize=.5, scale=10,lon_trunc=-67.5, linewidth=0.4, regrid=20,
-                               color='gray', transform=ccrs.PlateCarree(central_longitude=0))
-                uv_ = velovect(ax, u_diff['lon'], u_diff['lat'] ,u_corr, v_corr,
-                               arrowsize=.5, scale=10,lon_trunc=-67.5, linewidth=0.4, regrid=20,
+                uv_ = Curlyquiver(ax, u_diff['lon'], u_diff['lat'] ,u_corr, v_corr,
+                               arrowsize=.5, scale=40,lon_trunc=-67.5, linewidth=0.4, regrid=20,
                                color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_np_, U=.25, label='0.25')
+                uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'], u_np, v_np, nanmax=uv_.nanmax,
+                               arrowsize=.5, scale=40,lon_trunc=-67.5, linewidth=0.4, regrid=20,
+                               color='gray', transform=ccrs.PlateCarree(central_longitude=0))
+                uv_.key(fig, U=1, label='1', lr=-1.1)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
@@ -609,7 +609,7 @@ if __name__ == '__main__':
                     width="1.25%",  # width: 5% of parent_bbox width
                     height="100%",  # height: 50%
                     loc="lower left",
-                    bbox_to_anchor=(1.02, 0., 1, 1),
+                    bbox_to_anchor=(1.01, 0., 1, 1),
                     bbox_transform=ax.transAxes,
                     borderpad=0,
                 )
@@ -684,17 +684,17 @@ if __name__ == '__main__':
                 v_np = np.where(u_np**2 + v_np**2 >= 0.01**2, v_np, np.nan)
                 u_corr = np.where(uv显著性检验结果 == 1, u_corr, np.nan)
                 v_corr = np.where(uv显著性检验结果 == 1, v_corr, np.nan)
+                uv_ = Curlyquiver(ax, u_diff['lon'], u_diff['lat'],
+                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
+                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
+                               arrowsize=.5, scale=40, lon_trunc=-67.5, linewidth=0.4, regrid=20,
+                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
                 uv_np_ = velovect(ax, u_diff['lon'], u_diff['lat'],
                                np.array(np.where(np.isnan(u_np), 0, u_np).tolist()),
                                np.array(np.where(np.isnan(v_np), 0, v_np).tolist()),
-                               arrowsize=.5, scale=10,lon_trunc=-67.5, linewidth=0.4, regrid=20,
-                               color='gray', transform=ccrs.PlateCarree(central_longitude=0))
-                uv_ = velovect(ax, u_diff['lon'], u_diff['lat'],
-                               np.array(np.where(np.isnan(u_corr),0 , u_corr).tolist()),
-                               np.array(np.where(np.isnan(v_corr),0 , v_corr).tolist()),
-                               arrowsize=.5, scale=10, lon_trunc=-67.5, linewidth=0.4, regrid=20,
-                               color='black', transform=ccrs.PlateCarree(central_longitude=0))
-                velovect_key(fig, ax, uv_, U=.5, label='0.5')
+                               arrowsize=.5, scale=40,lon_trunc=-67.5, linewidth=0.4, regrid=20,
+                               color='gray', transform=ccrs.PlateCarree(central_longitude=0), nanmax=uv_.nanmax)
+                uv_.key(fig, U=1, label='1', lr=-1.1)
                 ax.set_extent(extent1, crs=ccrs.PlateCarree(central_longitude=0))
                 ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
                 ax.plot((extent1[0], extent1[1]), (0, 0), color='red', linewidth=1, linestyle=(0,(2, 1, 1, 1)),transform=ccrs.PlateCarree(central_longitude=0))
@@ -744,7 +744,7 @@ if __name__ == '__main__':
                 ax_ins1.set_xticks([])
                 ax_ins1.set_yticks([])
 
-                cbar = plt.colorbar(pre相关系数图层, orientation='vertical', drawedges=True, cax=ax_ins1)
+                cbar = plt.colorbar(pre相关系数图层, c)
                 cbar.Location = 'eastoutside'
                 cbar.locator = ticker.FixedLocator([-.4, -.3, -.2, -.1, .1, .2, .3, .4])
                 #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)

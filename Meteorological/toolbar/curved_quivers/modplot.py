@@ -28,7 +28,7 @@ import warnings
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V,lon_trunc=0, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
-                 integration_direction='both', scale_unit='relative', mode='loose'):
+                 integration_direction='both', scale_unit='relative', mode='loose', nanmax=1.):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -69,6 +69,8 @@ class Curlyquiver:
                 流线边界绘制模式.
                 'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
                 'strict': 流线绘制时，严格裁切数据边界.
+            *nanmax* : float
+                风速单位一
 
             Returns:
 
@@ -109,7 +111,7 @@ class Curlyquiver:
         self.scale_unit = scale_unit
 
         self.quiver = self.quiver()
-
+        self.nanmax = self.quiver[2]
     def quiver(self):
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
@@ -141,7 +143,8 @@ class Curlyquiver:
 def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
-               scale=100., masked=True, regrid=30, integration_direction='both', scale_unit='relative', mode='loose'):
+               scale=100., masked=True, regrid=30, integration_direction='both',
+               scale_unit='relative', mode='loose', nanmax=1.):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -182,6 +185,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         流线边界绘制模式.
         'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
         'strict': 流线绘制时，严格裁切数据边界.
+    *nanmax* : float
+        风速单位一
 
     Returns:
 
@@ -305,8 +310,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
 
     # 风速归一化
     wind = np.sqrt(u ** 2 + v ** 2)     # scale缩放
-    nanmax = np.nanmax(wind) if scale_unit == 'relative' else 1
-    wind_shrink = np.ones(wind.shape) / nanmax / scale
+    nanmax = np.nanmax(wind) if scale_unit == 'relative' else nanmax
+    wind_shrink = 1 / nanmax / scale
     u = u * wind_shrink
     v = v * wind_shrink
 
@@ -527,7 +532,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
 
     ac = mcollections.PatchCollection(arrows)
     stream_container = StreamplotSet(lc, ac)
-    return stream_container, unit
+    return stream_container, unit, nanmax
 
 	
 
@@ -798,7 +803,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     # This error is below that needed to match the RK4 integrator. It
     # is set for visual reasons -- too low and corners start
     # appearing ugly and jagged. Can be tuned.
-    maxerror = 2.25e-6
+    maxerror = 3e-5
 
     # This limit is important (for all integrators) to avoid the
     # trajectory skipping some mask cells. We could relax this
@@ -806,7 +811,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     # increment the location gradually. However, due to the efficient
     # nature of the interpolation, this doesn't boost speed by much
     # for quite a bit of complexity.
-    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 7.5e-5)
+    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 1e-4)
 
     ds = maxds
     stotal = 0
@@ -1008,7 +1013,7 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
         return
     U_trans = U * dt_ds / shrink / 2
     # 绘制图例
-    x, y = U_trans * np.cos(angle) * 2 / width_shrink, U_trans * np.sin(angle) * 3 / height_shrink
+    x, y = U_trans * np.cos(angle) * 2. / width_shrink, U_trans * np.sin(angle) * 3. / height_shrink
     arrow = patches.FancyArrowPatch(
         (x, y), (x+(1e-1)*np.cos(angle), y+(1e-1)*np.sin(angle))
               , arrowstyle=arrowstyle, mutation_scale=10 * arrowsize, linewidth=linewidth, color=color)
@@ -1024,10 +1029,11 @@ if __name__ == '__main__':
     y = np.linspace(-90, 90, 720)
     Y, X = np.meshgrid(y, x)
     U = np.ones(X.shape).T
+    # 生成一个X大小的随机矩阵
     V = np.zeros(X.shape).T
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree())
-    a1 = velovect(ax1, x, y, U, V, regrid=15, lon_trunc=180, scale=1, color='black', linewidth=0.5)
-    velovect_key(fig, ax1, a1, arrowstyle='->', shrink=0.15)
-    plt.savefig('D:/PyFile/pic/test.png', dpi=600)
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=15, lon_trunc=0, scale=80, color='black', linewidth=0.5)
+    a1.key(fig, shrink=0.15)
+    plt.savefig('D:/PyFile/pic/test.png', dpi=2000)
     plt.show()
