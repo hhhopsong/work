@@ -28,7 +28,7 @@ import warnings
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V,lon_trunc=0, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
-                 integration_direction='both', scale_unit='relative', mode='loose', nanmax=1.):
+                 integration_direction='both', mode='loose', nanmax=None):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -63,8 +63,6 @@ class Curlyquiver:
                 是否重新插值网格
             *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
                 矢量向前、向后或双向绘制。
-            *scale_unit* : {'relative', 'absolute'}, default: 'both'
-                矢量单位相对，或者绝对(单位一)。
             *mode* : {'loose', 'strict'}, default: 'loose'
                 流线边界绘制模式.
                 'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
@@ -108,14 +106,14 @@ class Curlyquiver:
         self.regrid = regrid
         self.integration_direction = integration_direction
         self.mode = mode
-        self.scale_unit = scale_unit
+        self.NanMax = nanmax
 
         self.quiver = self.quiver()
         self.nanmax = self.quiver[2]
     def quiver(self):
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
-                        self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.scale_unit, self.mode)
+                        self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.mode, self.NanMax)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
             width_shrink=1., height_shrink=1.):
@@ -144,7 +142,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
                scale=100., masked=True, regrid=30, integration_direction='both',
-               scale_unit='relative', mode='loose', nanmax=1.):
+               mode='loose', nanmax=None):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -310,7 +308,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
 
     # 风速归一化
     wind = np.sqrt(u ** 2 + v ** 2)     # scale缩放
-    nanmax = np.nanmax(wind) if scale_unit == 'relative' else nanmax
+    nanmax = np.nanmax(wind) if nanmax == None else nanmax
     wind_shrink = 1 / nanmax / scale
     u = u * wind_shrink
     v = v * wind_shrink
