@@ -6,11 +6,18 @@ import numpy as np
 import matplotlib.ticker as ticker
 import cartopy.crs as ccrs
 import scipy.ndimage as ndimage
-from toolbar.curved_quivers.modplot import velovect
+from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+from cartopy.util import add_cyclic
+import cartopy.feature as cfeature
+from cartopy.io.shapereader import Reader
+import geopandas as gpd
+
+
+from toolbar.curved_quivers.modplot import Curlyquiver
 
 
 def draw_frc():
-    lbm = xr.open_dataset(r'\\wsl.localhost\Ubuntu-20.04\home\hopsong\lbm\data\out\Output_frc.t42l20.Tingyang.nc')
+    lbm = xr.open_dataset(r'D:\lbm\main\data\Output\Output_frc.t42l20.Tingyang.nc')
     u = lbm['u'][19:25].mean('time')
     v = lbm['v'][19:25].mean('time')
     t = lbm['t'][19:25].mean('time')
@@ -20,81 +27,149 @@ def draw_frc():
     # 绘图
     # 图1
     lev = 200
-    n = 10
-    lev_Z = np.array([-1, -0.8, -0.6, -0.4, -0.2, -0.05, 0.05, 0.2, 0.4, 0.6, 0.8, 1]) * 4
-    lev_T = np.array([-.1, -.09, -.08, -.07, -.06, -.05, -.04, -.03, -.02, -.01,-.002, .002, .01, .02, .03, .04, .05, .06, .07, .08, .09, .1]) * 4
-    extent1 = [-180, 180, -80, 80]
+    lev_Z = np.array([-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0.1, 0.2, 0.4, 0.6, 0.8, 1]) * 40
+    extent1 = [-180, 180, -30, 80]
     fig = plt.figure(figsize=(10, 5))
-    ax1 = fig.add_subplot(411, projection=ccrs.PlateCarree(central_longitude=180))
-    ax1.set_title('200hPa UVZ', fontsize=4, loc='left')
+    ax1 = fig.add_subplot(411, projection=ccrs.PlateCarree(central_longitude=180-67.5))
+    ax1.set_title('200hPa UVZ', fontsize=6, loc='left')
     ax1.coastlines(linewidths=0.3)
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.3), 1, 0)
-    U, V = U * W, V * W
-    t200 = ax1.contourf(lon_Z, lat, Z, levels=lev_Z, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind200 = velovect(ax1, lon_UV, lat, U, V, arrowstyle='fancy', arrowsize=.3, scale=5, grains=30, linewidth=0.75,
-                        color='black', transform=ccrs.PlateCarree(central_longitude=0))
+    z_fill_white, lon_fill_white = add_cyclic(Z, lon_Z)
+    t200 = ax1.contourf( lon_fill_white, lat, z_fill_white, levels=lev_Z, cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
+                        transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.3, scale=20, regrid=15, linewidth=0.4,
+                        color='black', lon_trunc=-67.5, transform=ccrs.PlateCarree(central_longitude=0))
 
     # 图2
     lev = 500
-    lev_Z = [-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+    lev_Z = np.array([-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0.1, 0.2, 0.4, 0.6, 0.8, 1]) * 40
     extent1 = extent1
-    ax2 = fig.add_subplot(412, projection=ccrs.PlateCarree(central_longitude=180))
-    ax2.set_title('500hPa UVZ', fontsize=4, loc='left')
+    ax2 = fig.add_subplot(412, projection=ccrs.PlateCarree(central_longitude=180-67.5))
+    ax2.set_title('500hPa UVZ', fontsize=6, loc='left')
     ax2.coastlines(linewidths=0.3)
     ax2.set_extent(extent1, crs=ccrs.PlateCarree())
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.3), 1, 0)
-    U, V = U * W, V * W
-    t500 = ax2.contourf(lon_Z, lat, Z, levels=lev_Z, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind500 = velovect(ax2, lon_UV, lat, U, V, arrowstyle='fancy', arrowsize=.3, scale=5, grains=30, linewidth=0.75,
-                        color='black', transform=ccrs.PlateCarree(central_longitude=0))
+    z_fill_white, lon_fill_white = add_cyclic(Z, lon_Z)
+    t500 = ax2.contourf(lon_fill_white, lat, z_fill_white, levels=lev_Z, cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
+                        transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.3, scale=20, regrid=15, linewidth=0.4,
+                        color='black', lon_trunc=-67.5, transform=ccrs.PlateCarree(central_longitude=0))
 
     # 图1
     lev = 700
-    lev_Z = [-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+    lev_Z = np.array([-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0.1, 0.2, 0.4, 0.6, 0.8, 1]) * 20
     extent1 = extent1
-    ax3 = fig.add_subplot(413, projection=ccrs.PlateCarree(central_longitude=180))
-    ax3.set_title('700hPa UVZ&T', fontsize=4, loc='left')
+    ax3 = fig.add_subplot(413, projection=ccrs.PlateCarree(central_longitude=180-67.5))
+    ax3.set_title('700hPa UVZ', fontsize=6, loc='left')
     ax3.coastlines(linewidths=0.3)
     ax3.set_extent(extent1, crs=ccrs.PlateCarree())
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.3), 1, 0)
-    U, V = U * W, V * W
-    t850 = ax3.contourf(lon_Z, lat, T, levels=lev_T, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    z850 = ax3.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
-    wind850 = velovect(ax3, lon_UV, lat, U, V, arrowstyle='fancy', arrowsize=.3, scale=5, grains=30, linewidth=0.75,
-                        color='black', transform=ccrs.PlateCarree(central_longitude=0))
+    z_fill_white, lon_fill_white = add_cyclic(Z, lon_Z)
+    t850 = ax3.contourf(lon_fill_white, lat, z_fill_white, levels=lev_Z, cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
+                        transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    #z850 = ax3.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
+    wind850 = Curlyquiver(ax3, lon_UV, lat, U, V, arrowsize=.3, scale=20, regrid=15, linewidth=0.4,
+                        color='black', lon_trunc=-67.5, transform=ccrs.PlateCarree(central_longitude=0))
 
+    shp = fr"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp"
+    split_shp = gpd.read_file(shp)
+    split_shp.crs = 'wgs84'
+    ax3.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=1)
+    DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
+    provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
+    ax3.add_feature(provinces, lw=0.5, zorder=2)
     # 图1
     lev = 850
-    lev_Z = [-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+    lev_Z = np.array([-1, -0.8, -0.6, -0.4, -0.2, -0.1, 0.1, 0.2, 0.4, 0.6, 0.8, 1]) * 4
     extent1 = extent1
-    ax4 = fig.add_subplot(414, projection=ccrs.PlateCarree(central_longitude=180))
-    ax4.set_title('850hPa UVZ&T', fontsize=4, loc='left')
+    ax4 = fig.add_subplot(414, projection=ccrs.PlateCarree(central_longitude=180-67.5))
+    ax4.set_title('850hPa UVZ', fontsize=6, loc='left')
     ax4.coastlines(linewidths=0.3)
     ax4.set_extent(extent1, crs=ccrs.PlateCarree())
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
     U, lon_UV = u.sel(lev=lev), lon
     V, lon_UV = v.sel(lev=lev), lon
-    W = np.where(np.sqrt(U**2 + V**2) > np.sqrt(U**2 + V**2).quantile(0.3), 1, 0)
-    U, V = U * W, V * W
-    t850 = ax4.contourf(lon_Z, lat, T, levels=lev_T, cmap=cmaps.GMT_polar, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
-    wind850 = velovect(ax4, lon_UV, lat, U, V, arrowstyle='fancy', arrowsize=.3, scale=5, grains=30, linewidth=0.75,
-                        color='black', transform=ccrs.PlateCarree(central_longitude=0))
-    plt.savefig(r'D:\CODES\Python\Meteorological\frc_nc\Output.png', dpi=1000, bbox_inches='tight')
+    z_fill_white, lon_fill_white = add_cyclic(Z, lon_Z)
+    t850 = ax4.contourf(lon_fill_white, lat, z_fill_white, levels=lev_Z, cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
+                        transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
+    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.3, scale=20, regrid=15, linewidth=0.4,
+                        color='black', lon_trunc=-67.5, transform=ccrs.PlateCarree(central_longitude=0))
+    ax4.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=1)
+    DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
+    provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
+    ax4.add_feature(provinces, lw=0.5, zorder=2)
+
+
+    # 刻度线设置
+    xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
+    yticks1 = np.arange(extent1[2], extent1[3] + 1, 10)
+    lon_formatter = LongitudeFormatter()
+    lat_formatter = LatitudeFormatter()
+    # ax1
+    ax1.set_yticks(yticks1, crs=ccrs.PlateCarree())
+    ax1.yaxis.set_major_formatter(lat_formatter)
+    # ax2
+    ax2.set_yticks(yticks1, crs=ccrs.PlateCarree())
+    ax2.yaxis.set_major_formatter(lat_formatter)
+    # ax3
+    ax3.set_yticks(yticks1, crs=ccrs.PlateCarree())
+    ax3.yaxis.set_major_formatter(lat_formatter)
+    # ax4
+    ax4.set_xticks(xticks1, crs=ccrs.PlateCarree())
+    ax4.set_yticks(yticks1, crs=ccrs.PlateCarree())
+    ax4.xaxis.set_major_formatter(lon_formatter)
+    ax4.yaxis.set_major_formatter(lat_formatter)
+
+    xmajorLocator = ticker.MultipleLocator(60)  # 先定义xmajorLocator，再进行调用
+    xminorLocator = ticker.MultipleLocator(10)
+    ymajorLocator = ticker.MultipleLocator(30)
+    yminorLocator = ticker.MultipleLocator(10)
+    ax4.xaxis.set_major_locator(xmajorLocator)  # x轴最大刻度
+    ax4.xaxis.set_minor_locator(xminorLocator)  # x轴最小刻度
+
+    ax1.yaxis.set_major_locator(ymajorLocator)  # y轴最大刻度
+    ax2.yaxis.set_major_locator(ymajorLocator)  # y轴最大刻度
+    ax3.yaxis.set_major_locator(ymajorLocator)  # y轴最大刻度
+    ax4.yaxis.set_major_locator(ymajorLocator)  # y轴最大刻度
+
+    ax1.yaxis.set_minor_locator(yminorLocator)  # y轴最小刻度
+    ax2.yaxis.set_minor_locator(yminorLocator)  # y轴最小刻度
+    ax3.yaxis.set_minor_locator(yminorLocator)  # y轴最小刻度
+    ax4.yaxis.set_minor_locator(yminorLocator)  # y轴最小刻度
+    # ax1.axes.xaxis.set_ticklabels([]) ##隐藏刻度标签
+    # 最大刻度、最小刻度的刻度线长短，粗细设置
+    ax1.tick_params(which='major', length=4, width=.3, color='darkgray')  # 最大刻度长度，宽度设置，
+    ax1.tick_params(which='minor', length=2, width=.3, color='darkgray')  # 最小刻度长度，宽度设置
+    ax1.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+    ax2.tick_params(which='major', length=4, width=.3, color='darkgray')  # 最大刻度长度，宽度设置，
+    ax2.tick_params(which='minor', length=2, width=.3, color='darkgray')  # 最小刻度长度，宽度设置
+    ax2.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+    ax3.tick_params(which='major', length=4, width=.3, color='darkgray')  # 最大刻度长度，宽度设置，
+    ax3.tick_params(which='minor', length=2, width=.3, color='darkgray')  # 最小刻度长度，宽度设置
+    ax3.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+    ax4.tick_params(which='major', length=4, width=.3, color='darkgray')  # 最大刻度长度，宽度设置，
+    ax4.tick_params(which='minor', length=2, width=.3, color='darkgray')  # 最小刻度长度，宽度设置
+    ax4.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+    plt.rcParams['xtick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
+    # 调整刻度值字体大小
+    ax1.tick_params(axis='both', labelsize=6, colors='black')
+    ax2.tick_params(axis='both', labelsize=6, colors='black')
+    ax3.tick_params(axis='both', labelsize=6, colors='black')
+    ax4.tick_params(axis='both', labelsize=6, colors='black')
+
+    plt.savefig(r'D:\PyFile\pic\Output.png', dpi=600, bbox_inches='tight')
     plt.show()
 
 

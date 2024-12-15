@@ -105,7 +105,6 @@ if __name__ == '__main__':
     # 刻度线设置
     xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
     yticks1 = np.arange(extent1[2], extent1[3] + 1, 10)
-    ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     lon_formatter = LongitudeFormatter()
     lat_formatter = LatitudeFormatter()
     # ax1
