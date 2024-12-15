@@ -112,11 +112,9 @@ lat_t2m = T2m['lat']
 lon_olr = olr['lon']
 lat_olr = olr['lat']
 
-lon1, lon2, lat1, lat2 = [122.5, 155], [-180, -85], [5, -5], [5, -5]
-sat_78 = sst.groupby('time.year').mean('time')
-sat_78_1 = sat_78.sel(lat=slice(lat1[0], lat1[1]), lon=slice(lon1[0], lon1[1])).mean(['lat', 'lon'])  # 赤道西太平洋
-sat_78_2 = sat_78.sel(lat=slice(lat2[0], lat2[1]), lon=slice(lon2[0]+360, lon2[1]+360)).mean(['lat', 'lon'])  # 赤道东太平洋
-sat_78 = sat_78_1 - sat_78_2
+lon1, lat1= [60, 80], [5, -15]
+sat_78 = pre.groupby('time.year').mean('time')
+sat_78 = sat_78.sel(lat=slice(lat1[0], lat1[1]), lon=slice(lon1[0], lon1[1])).mean(['lat', 'lon'])  # 赤道西太平  # 赤道东太平洋
 sat_78 = np.array(sat_78)
 sat_detrend = np.polyfit(np.arange(len(sat_78)), sat_78[:],1)
 sat_detrend = np.polyval(sat_detrend, np.arange(len(sat_78)))
@@ -159,73 +157,73 @@ u200_c = u200.mean('time')
 v200_c = v200.mean('time')
 try:
     # 读取相关系数
-    reg_lbm_t2m_z200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z200.nc')
-    reg_lbm_t2m_u200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u200.nc')
-    reg_lbm_t2m_v200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v200.nc')
-    reg_lbm_t2m_z500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z500.nc')
-    reg_lbm_t2m_u500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u500.nc')
-    reg_lbm_t2m_v500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v500.nc')
-    reg_lbm_t2m_z700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z700.nc')
-    reg_lbm_t2m_u700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u700.nc')
-    reg_lbm_t2m_v700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v700.nc')
-    reg_lbm_t2m_z850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z850.nc')
-    reg_lbm_t2m_u850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u850.nc')
-    reg_lbm_t2m_v850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v850.nc')
-    reg_lbm_t2m_pre = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_pre.nc')
-    reg_lbm_t2m_sst = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_sst.nc')
-    reg_lbm_t2m_t2m = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_t2m.nc')
-    reg_lbm_t2m_olr = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_olr.nc')
+    reg_lbm_t2m_z200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z200.nc')
+    reg_lbm_t2m_u200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u200.nc')
+    reg_lbm_t2m_v200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v200.nc')
+    reg_lbm_t2m_z500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z500.nc')
+    reg_lbm_t2m_u500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u500.nc')
+    reg_lbm_t2m_v500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v500.nc')
+    reg_lbm_t2m_z700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z700.nc')
+    reg_lbm_t2m_u700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u700.nc')
+    reg_lbm_t2m_v700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v700.nc')
+    reg_lbm_t2m_z850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z850.nc')
+    reg_lbm_t2m_u850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u850.nc')
+    reg_lbm_t2m_v850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v850.nc')
+    reg_lbm_t2m_pre = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_pre.nc')
+    reg_lbm_t2m_sst = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_sst.nc')
+    reg_lbm_t2m_t2m = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_t2m.nc')
+    reg_lbm_t2m_olr = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_olr.nc')
 except:
     # 将数据回归到PC上
     reg_z200 = [[np.polyfit(sat_78[:], z200_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT Z200', position=0, leave=True)]
-    xr.DataArray(reg_z200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z200.nc')
+    xr.DataArray(reg_z200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z200.nc')
     reg_u200 = [[np.polyfit(sat_78[:], u200_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT U200', position=0, leave=True)]
-    xr.DataArray(reg_u200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u200.nc')
+    xr.DataArray(reg_u200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u200.nc')
     reg_v200 = [[np.polyfit(sat_78[:], v200_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT V200', position=0, leave=True)]
-    xr.DataArray(reg_v200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v200.nc')
+    xr.DataArray(reg_v200, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v200.nc')
     reg_z500 = [[np.polyfit(sat_78[:], z500_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT Z500', position=0, leave=True)]
-    xr.DataArray(reg_z500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z500.nc')
+    xr.DataArray(reg_z500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z500.nc')
     reg_u500 = [[np.polyfit(sat_78[:], u500_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT U500', position=0, leave=True)]
-    xr.DataArray(reg_u500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u500.nc')
+    xr.DataArray(reg_u500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u500.nc')
     reg_v500 = [[np.polyfit(sat_78[:], v500_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT V500', position=0, leave=True)]
-    xr.DataArray(reg_v500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v500.nc')
+    xr.DataArray(reg_v500, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v500.nc')
     reg_z700 = [[np.polyfit(sat_78[:], z700_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT Z700', position=0, leave=True)]
-    xr.DataArray(reg_z700, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z700.nc')
+    xr.DataArray(reg_z700, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z700.nc')
     reg_u700 = [[np.polyfit(sat_78[:], u700_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT U700', position=0, leave=True)]
-    xr.DataArray(reg_u700, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u700.nc')
+    xr.DataArray(reg_u700, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u700.nc')
     reg_v700 = [[np.polyfit(sat_78[:], v700_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT V700', position=0, leave=True)]
-    xr.DataArray(reg_v700, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v700.nc')
+    xr.DataArray(reg_v700, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v700.nc')
     reg_z850 = [[np.polyfit(sat_78[:], z850_78[:, ilat, ilon]/9.8,1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT Z850', position=0, leave=True)]
-    xr.DataArray(reg_z850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z850.nc')
+    xr.DataArray(reg_z850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z850.nc')
     reg_u850 = [[np.polyfit(sat_78[:], u850_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT U850', position=0, leave=True)]
-    xr.DataArray(reg_u850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u850.nc')
+    xr.DataArray(reg_u850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u850.nc')
     reg_v850 = [[np.polyfit(sat_78[:], v850_78[:, ilat, ilon],1)[0] for ilon in range(len(lon_uvz))] for ilat in tqdm(range(len(lat_uvz)), desc='计算LBM 2mT V850', position=0, leave=True)]
-    xr.DataArray(reg_v850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v850.nc')
+    xr.DataArray(reg_v850, coords=[lat_uvz, lon_uvz], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v850.nc')
     reg_pre = [[np.polyfit(sat_78[:], pre_78[:, ilat, ilon], 1)[0] for ilon in range(len(lon_pre))] for ilat in tqdm(range(len(lat_pre)), desc='计算LBM 2mT pre', position=0, leave=True)]
-    xr.DataArray(reg_pre, coords=[lat_pre, lon_pre], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_pre.nc')
+    xr.DataArray(reg_pre, coords=[lat_pre, lon_pre], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_pre.nc')
     reg_sst = [[np.polyfit(sat_78[:], sst_78[:, ilat, ilon], 1)[0] if not np.isnan(sst_78[:, ilat, ilon]).any() else np.nan for ilon in range(len(lon_sst))] for ilat in tqdm(range(len(lat_sst)), desc='计算LBM 2mT sst', position=0, leave=True)]
-    xr.DataArray(reg_sst, coords=[lat_sst, lon_sst], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_sst.nc')
+    xr.DataArray(reg_sst, coords=[lat_sst, lon_sst], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_sst.nc')
     reg_t2m = [[np.polyfit(sat_78[:], t2m_78[:, ilat, ilon], 1)[0] for ilon in range(len(lon_t2m))] for ilat in tqdm(range(len(lat_t2m)), desc='计算LBM 2mT t2m', position=0, leave=True)]
-    xr.DataArray(reg_t2m, coords=[lat_t2m, lon_t2m], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_t2m.nc')
+    xr.DataArray(reg_t2m, coords=[lat_t2m, lon_t2m], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_t2m.nc')
     reg_olr = [[np.polyfit(sat_78[:], olr[:, ilat, ilon], 1)[0] for ilon in range(len(lon_olr))] for ilat in tqdm(range(len(lat_olr)), desc='计算LBM 2mT olr', position=0, leave=True)]
-    xr.DataArray(reg_olr, coords=[lat_olr, lon_olr], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_olr.nc')
+    xr.DataArray(reg_olr, coords=[lat_olr, lon_olr], dims=['lat', 'lon']).to_netcdf(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_olr.nc')
     ###数据再读取
-    reg_lbm_t2m_z200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z200.nc')
-    reg_lbm_t2m_u200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u200.nc')
-    reg_lbm_t2m_v200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v200.nc')
-    reg_lbm_t2m_z500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z500.nc')
-    reg_lbm_t2m_u500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u500.nc')
-    reg_lbm_t2m_v500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v500.nc')
-    reg_lbm_t2m_z700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z700.nc')
-    reg_lbm_t2m_u700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u700.nc')
-    reg_lbm_t2m_v700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v700.nc')
-    reg_lbm_t2m_z850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_z850.nc')
-    reg_lbm_t2m_u850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_u850.nc')
-    reg_lbm_t2m_v850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_v850.nc')
-    reg_lbm_t2m_pre = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_pre.nc')
-    reg_lbm_t2m_sst = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_sst.nc')
-    reg_lbm_t2m_t2m = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_t2m.nc')
-    reg_lbm_t2m_olr = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\sst\reg_lbm_t2m_olr.nc')
+    reg_lbm_t2m_z200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z200.nc')
+    reg_lbm_t2m_u200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u200.nc')
+    reg_lbm_t2m_v200 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v200.nc')
+    reg_lbm_t2m_z500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z500.nc')
+    reg_lbm_t2m_u500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u500.nc')
+    reg_lbm_t2m_v500 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v500.nc')
+    reg_lbm_t2m_z700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z700.nc')
+    reg_lbm_t2m_u700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u700.nc')
+    reg_lbm_t2m_v700 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v700.nc')
+    reg_lbm_t2m_z850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_z850.nc')
+    reg_lbm_t2m_u850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_u850.nc')
+    reg_lbm_t2m_v850 = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_v850.nc')
+    reg_lbm_t2m_pre = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_pre.nc')
+    reg_lbm_t2m_sst = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_sst.nc')
+    reg_lbm_t2m_t2m = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_t2m.nc')
+    reg_lbm_t2m_olr = xr.open_dataset(r'D:\PyFile\paper1\cache\reg_lbm\pre\reg_lbm_t2m_olr.nc')
 # 进行显著性0.05检验
 from scipy.stats import t
 
@@ -447,11 +445,6 @@ lon_1 = [i for i in np.linspace(lon1[0], lon1[1], smoonth)] + [i for i in np.lin
 lat_1 = [lat1[1] for i in range(smoonth)] + [lat1[0] for i in range(smoonth)] + [lat1[1]]
 ax1.plot(lon_1, lat_1, color='red', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
 
-smoonth = 100
-lon_2 = [i for i in np.linspace(lon2[0], lon2[1], smoonth)] + [i for i in np.linspace(lon2[0], lon2[1], smoonth)][::-1] + [lon2[0]]
-lat_2 = [lat2[1] for i in range(smoonth)] + [lat2[0] for i in range(smoonth)] + [lat2[1]]
-ax1.plot(lon_2, lat_2, color='blue', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
-
 ax1.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black',linewidth=1) # orientation为水平或垂直
 ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 
@@ -491,7 +484,6 @@ ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加�
 ax2.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none',edgecolor='black', linewidth=1)
 # 框选预测因子
 ax2.plot(lon_1, lat_1, color='red', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
-ax2.plot(lon_2, lat_2, color='blue', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
 # ax3 Reg 850ZUV onto AST
 level_sst = [-.3, -.2, -.1, -.05, .05, .1, .2, .3]
 size_uv = 30
@@ -546,7 +538,6 @@ provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCa
 ax3.add_feature(provinces, lw=0.5, zorder=2)
 # 框选预测因子
 ax3.plot(lon_1, lat_1, color='red', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
-ax3.plot(lon_2, lat_2, color='blue', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
 # ax4 Reg 850ZUV onto AST
 level_pre = [-.6, -.4, -.2, -.1, .1, .2, .4, .6]
 size_uv = 30
@@ -587,7 +578,6 @@ provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCa
 ax4.add_feature(provinces, lw=0.5, zorder=2)
 # 框选预测因子
 ax4.plot(lon_1, lat_1, color='red', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
-ax4.plot(lon_2, lat_2, color='blue', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
 # 刻度线设置
 lon_formatter = LongitudeFormatter()
 lat_formatter = LatitudeFormatter()
@@ -712,5 +702,5 @@ ax_ins4 = inset_axes(
 cb4 = plt.colorbar(a4, orientation='vertical', drawedges=True, cax=ax_ins4)
 cb4.ax.tick_params(length=1, labelsize=14)  # length为刻度线的长度
 
-plt.savefig(r'D:\PyFile\pic\热带海温回归.png', dpi=600, bbox_inches='tight')
+plt.savefig(r'D:\PyFile\pic\印度洋降水回归.png', dpi=600, bbox_inches='tight')
 plt.show()

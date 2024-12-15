@@ -744,7 +744,7 @@ if __name__ == '__main__':
                 ax_ins1.set_xticks([])
                 ax_ins1.set_yticks([])
 
-                cbar = plt.colorbar(pre相关系数图层, c)
+                cbar = plt.colorbar(pre相关系数图层, orientation='vertical', drawedges=True, cax=ax_ins1)
                 cbar.Location = 'eastoutside'
                 cbar.locator = ticker.FixedLocator([-.4, -.3, -.2, -.1, .1, .2, .3, .4])
                 #cbar.ax.set_title('Proportion of EHT-Grids(%)', fontsize=5)

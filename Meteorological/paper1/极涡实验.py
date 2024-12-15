@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from metpy.units import units
 import metpy.calc as mpcalc
 from metpy.xarray import grid_deltas_from_dataarray
-from toolbar.curved_quivers_master.modplot import velovect
+from toolbar.curved_quivers.modplot import Curlyquiver
 from scipy.ndimage import filters
 
 import xarray as xr
@@ -65,8 +65,8 @@ vor = xr.Dataset({'v':(['lev', 'lat', 'lon'], np.where(np.isnan(vor), 0, vor))},
                     coords={'lev': [850, 700, 600, 500, 200], 'lat': info_z['lat'], 'lon': info_z['lon']})
 
 lon, lat = np.meshgrid(frc['lon'], frc['lat'])
-mask = ((np.where(lon<= 86.61, 1, 0) * np.where(lon>= 38.71, 1, 0))
-        * (np.where(lat>= 50.60, 1, 0) * np.where(lat<= 74.15, 1, 0))
+mask = ((np.where(lon<= 87.5, 1, 0) * np.where(lon>= 35.00, 1, 0))
+        * (np.where(lat>= 49.00, 1, 0) * np.where(lat<= 78.00, 1, 0))
         * np.where(vor['v'] <= 0, 1, 0) * corr_test(ols, frc['z'], alpha=0.05, other=0))
 
 vor_mask = vor.where(mask != 0, 0)
@@ -86,8 +86,8 @@ ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 lev_range = np.linspace(-np.max(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.max(np.abs(frc_nc_p[var].sel(lev=lev).data)), 10)
 var200 = ax1.contourf(frc_nc_p[var]['lon'], frc_nc_p[var]['lat'], frc_nc_p[var].sel(lev=lev, time=0),
                     levels=lev_range, cmap=cmaps.GMT_polar_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-quiver = velovect(ax1, uv['u']['lon'], uv['u']['lat'], uv['u'].sel(lev=lev), uv['v'].sel(lev=lev),
-                  arrowsize=.5, scale=5, linewidth=0.4, regrid=30,
+quiver = Curlyquiver(ax1, uv['u']['lon'], uv['u']['lat'], uv['u'].sel(lev=lev), uv['v'].sel(lev=lev),
+                  arrowsize=.5, scale=30, linewidth=0.4, regrid=15,
                   transform=ccrs.PlateCarree(central_longitude=0))
 plt.show()
 
