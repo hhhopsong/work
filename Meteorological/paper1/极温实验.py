@@ -12,6 +12,7 @@ from matplotlib.ticker import MultipleLocator, FixedLocator, ScalarFormatter
 from metpy.units import units
 import metpy.calc as mpcalc
 from metpy.xarray import grid_deltas_from_dataarray
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from toolbar.curved_quivers.modplot import Curlyquiver
 from scipy.ndimage import filters
@@ -70,8 +71,8 @@ if __name__ == '__main__':
     t30 = np.nan_to_num(np.load(r"D:\PyFile\paper1\cache\t\reg_t30_same.npy"), nan=0)
     t10 = np.nan_to_num(np.load(r"D:\PyFile\paper1\cache\t\reg_t10_same.npy"), nan=0)
     frc = xr.Dataset({'t':(['lev', 'lat', 'lon'],
-                           np.array([t850, t700, t600, t500, t400, t300, t200, t150, t100, t70, t50, t30, t10]))},
-                     coords={'lev': [850, 700, 600, 500, 400, 300, 200, 150, 100, 70, 50, 30, 10],
+                           np.array([t850, t700, t600, t500, t400, t300]))},
+                     coords={'lev': [850, 700, 600, 500, 400, 300],
                              'lat': info_t['lat'],
                              'lon': info_t['lon']})
     # 读取强迫场
@@ -94,8 +95,7 @@ if __name__ == '__main__':
     n = 10
     extent1 = [-180, 180, -30, 80]
     fig = plt.figure(figsize=(10, 5), constrained_layout=True)
-    spec = gridspec.GridSpec(ncols=2, nrows=1, width_ratios=[4, 1], height_ratios=[1])
-    ax1 = fig.add_subplot(spec[0, 0], projection=ccrs.PlateCarree(central_longitude=180-67.5))
+    ax1 = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180-67.5))
     ax1.coastlines(linewidths=0.3)
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
@@ -131,7 +131,17 @@ if __name__ == '__main__':
     # 调整刻度值字体大小
     ax1.tick_params(axis='both', labelsize=12, colors='black')
     # ax2 垂直层结
-    ax2 = fig.add_subplot(spec[0, 1])
+    ax_ins = inset_axes(
+        ax1,
+        width="15%",  # width: 5% of parent_bbox width
+        height="100%",  # height: 50%
+        loc="lower left",
+        bbox_to_anchor=(1.1, 0., 1, 1),
+        bbox_transform=ax1.transAxes,
+        borderpad=0,
+    )
+
+    ax2 = ax_ins
     S2D = 86400.
     # 计算各层平均温度
     avg_temp = T_mask['t'].sel(lon=slice(25, 87.5), lat=slice(78, 49)).mean(dim=['lat', 'lon']).values.squeeze()  # 按纬度和经度平均
@@ -144,24 +154,27 @@ if __name__ == '__main__':
     ax2.plot(avg_temp_frc_nc_np, pressure_levels_frc_nc_np, marker='.', color='r', label='Frc', alpha=0.7)
 
     # 设置横纵坐标范围
-    ax2.set_ylim(10, 1000)  # 设置横轴范围
+    ax2.set_ylim(100, 1000)  # 设置横轴范围
     ax2.set_xlim(-.003, 0.4)  # 设置纵轴范围
     # 设置纵轴为反转的气压坐标
     ax2.set_yscale('log')  # 气压通常采用对数坐标
     ax2.invert_yaxis()  # 倒置 y 轴，使高压在下，低压在上
 
     # 设置坐标轴标签和标题
-    ax2.set_xlabel('T/K', fontsize=14)
+    #ax2.set_xlabel('T/K', fontsize=14)
     #ax2.set_ylabel('P/hPa', fontsize=14)
 
     # 设置刻度和网格
-    ax2.yaxis.set_major_locator(FixedLocator([1000, 700, 500, 200, 100, 50, 10]))  # 使用线性刻度标注
+    ax2.yaxis.set_major_locator(FixedLocator([1000, 850, 700, 500, 300, 200, 100]))  # 使用线性刻度标注
     ax2.yaxis.set_major_formatter(ScalarFormatter())
+    ax2.yaxis.set_minor_locator(FixedLocator([]))  # 设置次要刻度线
+    ax2.yaxis.set_minor_formatter(ScalarFormatter())
     ax2.grid(which='both', linestyle='--', linewidth=0.5)
     ax2.tick_params(axis='both', which='major', labelsize=12)
 
     # 添加图例
     ax2.legend(fontsize=12)
+    plt.savefig(r"D:\PyFile\pic\frc_data.png", dpi=600, bbox_inches='tight')
     plt.show()
 
     if input("是否导出?(1/0)") == '1':
