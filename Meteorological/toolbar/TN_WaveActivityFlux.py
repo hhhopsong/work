@@ -297,7 +297,8 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
     if filt:
         Fx0 = Fx.copy()
         Fy0 = Fy.copy()
-        Fz0 = Fz.copy()
+        if not data_shape[0] == 1:
+            Fz0 = Fz.copy()
         ## 裁取非nan数据
         index = []
         I = 0
