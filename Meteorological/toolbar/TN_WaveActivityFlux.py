@@ -280,23 +280,24 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
         dims  =('level','lat','lon'),
         coords=data_coords
     )
-    Fx0 = Fx.copy()
     Fy=xr.DataArray(
         Fy,
         dims  =('level','lat','lon'),
         coords=data_coords
     )
-    Fy0 = Fy.copy()
     if not data_shape[0]==1:
         Fz=xr.DataArray(
             Fz,
             dims  =('level','lat','lon'),
             coords=data_coords
         )
-        Fz0 = Fz.copy()
+
 
     # 平滑处理
     if filt:
+        Fx0 = Fx.copy()
+        Fy0 = Fy.copy()
+        Fz0 = Fz.copy()
         ## 裁取非nan数据
         index = []
         I = 0
@@ -361,12 +362,13 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=5, return_streamf=False, 
         Fy = np.concatenate([Fn_nan1, Fyn, Fn_nan2, Fys, Fn_nan3], axis=1)
         if not data_shape[0]==1:
             Fz = np.concatenate([Fn_nan1, Fzn, Fn_nan2, Fzs, Fn_nan3], axis=1)
-    if filtmode == 'mix':
-        # 将平滑结果后的nan值位置加上原数据的同位置值
-        Fx = np.where(np.isnan(Fx), Fx0, Fx)
-        Fy = np.where(np.isnan(Fy), Fy0, Fy)
-        if not data_shape[0]==1:
-            Fz = np.where(np.isnan(Fz), Fz0, Fz)
+
+        if filtmode == 'mix':
+            # 将平滑结果后的nan值位置加上原数据的同位置值
+            Fx = np.where(np.isnan(Fx), Fx0, Fx)
+            Fy = np.where(np.isnan(Fy), Fy0, Fy)
+            if not data_shape[0]==1:
+                Fz = np.where(np.isnan(Fz), Fz0, Fz)
 
     ### 返回结果
     if return_streamf:
