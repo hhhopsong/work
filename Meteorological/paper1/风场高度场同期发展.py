@@ -202,7 +202,7 @@ if __name__ == '__main__':
                                     coords=[('level', [150, 200, 300]),
                                             ('lat', z_diff_3d['lat'].data),
                                             ('lon', z_diff_3d['lon'].data)])
-                waf_x, waf_y, waf_z = TN_WAF_3D(Geoc, Uc, Vc, GEOa, Tc, u_threshold=0, filt=3)
+                waf_x, waf_y, waf_z = TN_WAF_3D(Geoc, Uc, Vc, GEOa, Tc, u_threshold=0)
                 ax = fig.add_subplot(512, projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
                 ax.set_title('200hPa UV&WAF&WAF_W', fontsize=title_size, loc='left')
                 waf, lon = add_cyclic_point(waf_z[1], coord=z_diff['lon'])
@@ -332,7 +332,7 @@ if __name__ == '__main__':
                                         coords=[('level', [150]),
                                                 ('lat', z_diff['lat'].data),
                                                 ('lon', z_diff['lon'].data)])
-                waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0, filt=3)
+                waf_x, waf_y, waf_streamf = TN_WAF_3D(Geoc, Uc, Vc, GEOa, return_streamf=True, u_threshold=0)
                 waf, lon = add_cyclic_point(waf_streamf[0], coord=z_diff['lon'])
                 ax = fig.add_subplot(511, projection=ccrs.PlateCarree(central_longitude=180+extent1[0]))
                 ax.set_title('150hPa UV&WAF&OLR', fontsize=title_size, loc='left')

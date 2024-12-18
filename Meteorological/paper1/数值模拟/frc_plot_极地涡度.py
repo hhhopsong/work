@@ -199,7 +199,7 @@ def draw_frc():
     ax3.tick_params(axis='both', labelsize=6, colors='black')
     ax4.tick_params(axis='both', labelsize=6, colors='black')
 
-    plt.savefig(r'D:\PyFile\pic\Output.png', dpi=600, bbox_inches='tight')
+    plt.savefig(r'D:\PyFile\pic\Output_极地涡度.png', dpi=600, bbox_inches='tight')
     plt.show()
 
 
