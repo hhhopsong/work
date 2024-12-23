@@ -120,10 +120,11 @@ sat_78 = sat_78.mean(['lat', 'lon'])
 sat_78 = np.array(sat_78)
 sat_detrend = np.polyfit(np.arange(len(sat_78)), sat_78[:],1)
 sat_detrend = np.polyval(sat_detrend, np.arange(len(sat_78)))
-sat_78 = sat_78 - sat_detrend
+#sat_78 = sat_78 - sat_detrend
+sat_78 = (sat_78 - sat_78.mean()) / sat_78.std()
 
 # 热带对流活动
-lon1, lon2, lat1, lat2 = [122.5, 155], [-180, -85], [5, -5], [5, -5]
+'''lon1, lon2, lat1, lat2 = [122.5, 155], [-180, -85], [5, -5], [5, -5]
 sst_78 = sst.groupby('time.year').mean('time')
 sst_78_1 = sst_78.sel(lat=slice(lat1[0], lat1[1]), lon=slice(lon1[0], lon1[1])).mean(['lat', 'lon'])  # 赤道西太平洋
 sst_78_2 = sst_78.sel(lat=slice(lat2[0], lat2[1]), lon=slice(lon2[0]+360, lon2[1]+360)).mean(['lat', 'lon'])  # 赤道东太平洋
@@ -132,6 +133,20 @@ sst_78 = np.array(sst_78)
 sst_detrend = np.polyfit(np.arange(len(sst_78)), sst_78[:],1)
 sst_detrend = np.polyval(sst_detrend, np.arange(len(sst_78)))
 sst_78 = sst_78 - sst_detrend
+sst_78 = (sst_78 - sst_78.mean()) / sst_78.std()'''
+
+# 热带对流活动
+lon1, lat1 = [122.5, 275], [5, -5]
+sst_r = np.load((fr"D:\PyFile\paper1\cache\sst\corr_sst_same.npy"))
+sst_r = xr.DataArray(sst_r, coords=[('lat', sst.lat.data), ('lon', sst.lon.data)])
+sst_r = sst_r.sel(lat=slice(lat1[0], lat1[1]), lon=slice(lon1[0], lon1[1]))
+sst_78 = sst.groupby('time.year').mean('time')
+sst_78 = sst_78.sel(lat=slice(lat1[0], lat1[1]), lon=slice(lon1[0], lon1[1])) * sst_r
+sst_78 = np.array(sst_78.mean(['lat', 'lon']))
+sst_detrend = np.polyfit(np.arange(len(sst_78)), sst_78[:],1)
+sst_detrend = np.polyval(sst_detrend, np.arange(len(sst_78)))
+#sst_78 = sst_78 - sst_detrend
+sst_78 = (sst_78 - sst_78.mean()) / sst_78.std()
 
 # 印度洋降水异常
 lon1, lat1= [60, 80], [5, -15]
@@ -144,16 +159,14 @@ pre_78 = pre_78 - pre_detrend
 
 # obs
 ols = np.load(r"D:\PyFile\paper1\OLS35_detrended.npy")  # 读取缓存
+ols = (ols - ols.mean()) / ols.std()
 
 corr_t2m_sst = np.corrcoef([sat_78, sst_78])[0, 1]
-corr_pre_sst = np.corrcoef([pre_78, sst_78])[0, 1]
-corr_t2m_pre = np.corrcoef([sat_78, pre_78])[0, 1]
-corr_all = np.corrcoef([ols, sat_78, sst_78, pre_78])
+corr_all = np.corrcoef([ols, sat_78, sst_78])
 plt.axhline(0, color='gray', linestyle='-')
 plt.plot(ols, label='Obs', color='k', alpha=0.5, lw=1)
 plt.plot(sat_78, label='2mT', color='r', alpha=0.7, lw=1)
 plt.plot(sst_78, label='sst', color='b', alpha=0.7, lw=1)
-plt.plot(pre_78, label='pre', color='g', alpha=0.7, lw=1)
 # 网格线
 plt.grid(axis='x', linestyle='--')
 plt.grid(axis='y', linestyle='--')
@@ -162,6 +175,4 @@ plt.legend()
 plt.savefig(r'D:\PyFile\pic\corr_is.png', dpi=600, bbox_inches='tight')
 plt.show()
 print(f'Corr. 2mT&sst :{corr_t2m_sst}')
-print(f'Corr. pre&sst :{corr_pre_sst}')
-print(f'Corr. 2mT&pre :{corr_t2m_pre}')
 print(f'Corr. all :{corr_all}')

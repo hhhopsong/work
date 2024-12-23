@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 from scipy import signal
 
 class MovingAverageFilter:
-    def __init__(self, filter_value, filter_type, filter_window):
+    def __init__(self, filter_value, filter_type, filter_window, fill_nan=0.):
         """
         :param filter_value: 滤波值
         :param filter_type: 滤波器类型[lowpass highpass bandpass bandstop]
@@ -12,6 +12,7 @@ class MovingAverageFilter:
         self.filter_type = filter_type
         self.filter_value = filter_value
         self.filter_window = np.array(filter_window)
+        self.fill_nan = fill_nan
         if self.filter_window[0] % 2 == 0:
             raise ValueError("滤波器窗口必须为奇数")
 
@@ -22,7 +23,7 @@ class MovingAverageFilter:
         return f"Filter(type={self.filter_type}, value={self.filter_value})"
 
     def calculation_section(self, data, time_window):
-        temp = np.zeros(len(data)+1)
+        temp = np.full((len(data)+1), self.fill_nan)
         temp[1:] = np.cumsum(data)
         return (temp[time_window:] - temp[:-time_window]) / time_window
 

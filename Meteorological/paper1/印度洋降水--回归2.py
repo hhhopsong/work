@@ -112,7 +112,7 @@ lat_t2m = T2m['lat']
 lon_olr = olr['lon']
 lat_olr = olr['lat']
 
-lon1, lat1= [50, 82.5], [30, 12]
+lon1, lat1= [50, 82.5], [40, 22]
 sat_78 = pre.groupby('time.year').mean('time')
 sat_78 = sat_78.sel(lat=slice(lat1[0], lat1[1]), lon=slice(lon1[0], lon1[1])).mean(['lat', 'lon'])  # 赤道西太平  # 赤道东太平洋
 sat_78 = np.array(sat_78)
@@ -395,8 +395,8 @@ shp = fr"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（20
 split_shp = gpd.read_file(shp)
 split_shp.crs = 'wgs84'
 # ##ax1 Corr. PC1 & JA SST,2mT
-level1 = [-4, -3, -2, -1, -.5, .5, 1, 2, 3, 4]
-level1_z = [-10, -8, -6, -4, -2, 2, 4, 6, 8, 10]
+level1 = np.array([-4, -3, -2, -1, -.5, .5, 1, 2, 3, 4]) * 10
+level1_z = np.array([-10, -8, -6, -4, -2, 2, 4, 6, 8, 10])*10
 ax1 = fig.add_subplot(411, projection=ccrs.PlateCarree(central_longitude=180-67.5))
 ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 # WAF
@@ -428,10 +428,10 @@ u200 = reg_lbm_t2m_u200['__xarray_dataarray_variable__'].to_numpy()
 v200 = reg_lbm_t2m_v200['__xarray_dataarray_variable__'].to_numpy()
 a1_uv = Curlyquiver(ax1, lon_uvz, lat_uvz, u200, v200, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=30, linewidth=0.8,
                                   color='k', transform=ccrs.PlateCarree(central_longitude=0))
-a1_uv.key(fig, U=2, label='2 m/s', lr=2., width_shrink=0.5)
+a1_uv.key(fig, U=10, label='10 m/s', lr=2., width_shrink=0.5)
 a1_waf = Curlyquiver(ax1, lon_uvz, lat_uvz[:180], reg_waf_x[:180, :], reg_waf_y[:180, :], regrid=10, lon_trunc=-67.5, arrowsize=.7, scale=7, linewidth=1.1,
                                   color='blue', transform=ccrs.PlateCarree(central_longitude=0), arrowstyle='fancy')
-a1_waf.key(fig, U=.2, label='0.2 m$^2$/s$^2$', width_shrink =.5)
+a1_waf.key(fig, U=.5, label='0.5 m$^2$/s$^2$', width_shrink =.5)
 
 # 显著性打点
 p_lbm_t2m_olr, a1_lon_p = add_cyclic_point(p_lbm_t2m_olr, coord=lon_olr)
@@ -449,7 +449,7 @@ ax1.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none
 ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=.3)  # 添加海岸线
 
 # ax2 Reg 500ZUV onto AST
-level_z500 = [-10, -8, -6, -4, -2, 2, 4, 6, 8, 10]
+level_z500 = np.array([-10, -8, -6, -4, -2, 2, 4, 6, 8, 10])*10
 size_uv = 40
 reshape_uv = 20
 uv_min = 0
@@ -474,7 +474,7 @@ a2_uv = Curlyquiver(ax2, lon_uvz, lat_uvz, u500, v500, regrid=15, lon_trunc=-67.
                                   color='k', transform=ccrs.PlateCarree(central_longitude=0))
 a2_uv_np = Curlyquiver(ax2, lon_uvz, lat_uvz, u500_np, v500_np, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=20, linewidth=0.8,
                                   color='gray', transform=ccrs.PlateCarree(central_longitude=0), nanmax=a2_uv.nanmax)
-a2_uv.key(fig, U=1, label='1 m/s', width_shrink=0.5)
+a2_uv.key(fig, U=5, label='5 m/s', width_shrink=0.5)
 # 显著性打点
 p_z500, a2_p_z500 = add_cyclic_point(p_lbm_t2m_z500, coord=lon_uvz)
 p_z500 = np.where(p_z500 == 1, 0, np.nan)
@@ -485,7 +485,7 @@ ax2.add_geometries(Reader(shp).geometries(), ccrs.PlateCarree(), facecolor='none
 # 框选预测因子
 ax2.plot(lon_1, lat_1, color='red', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
 # ax3 Reg 850ZUV onto AST
-level_sst = [-.3, -.2, -.1, -.05, .05, .1, .2, .3]
+level_sst = np.array([-.3, -.2, -.1, -.05, .05, .1, .2, .3])*10
 size_uv = 30
 reshape_uv = 20
 uv_min = 0
@@ -513,7 +513,7 @@ a3_uv = Curlyquiver(ax3, lon_uvz, lat_uvz, u500, v500, regrid=15, lon_trunc=-67.
                                   color='k', transform=ccrs.PlateCarree(central_longitude=0))
 a3_uv_np = Curlyquiver(ax3, lon_uvz, lat_uvz, u500_np, v500_np, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=20, linewidth=0.8,
                                   color='gray', transform=ccrs.PlateCarree(central_longitude=0), nanmax=a3_uv.nanmax)
-a3_uv.key(fig, U=1, label='1 m/s', width_shrink=0.5)
+a3_uv.key(fig, U=5, label='5 m/s', width_shrink=0.5)
 # 高度场
 z850 = filters.gaussian_filter(z850, 4)
 a3_low = ax3.contour(a3_z850_lon, lat_uvz, z850, cmap=cmaps.BlueDarkRed18[0], levels=[-8, -4], linewidths=1, linestyles='--', alpha=1, transform=ccrs.PlateCarree())
@@ -539,7 +539,7 @@ ax3.add_feature(provinces, lw=0.5, zorder=2)
 # 框选预测因子
 ax3.plot(lon_1, lat_1, color='red', linewidth=1, linestyle='--', transform=ccrs.PlateCarree(central_longitude=0))
 # ax4 Reg 850ZUV onto AST
-level_pre = [-.6, -.4, -.2, -.1, .1, .2, .4, .6]
+level_pre = np.array([-.6, -.4, -.2, -.1, .1, .2, .4, .6])*10
 size_uv = 30
 reshape_uv = 20
 uv_min = 0
@@ -564,7 +564,7 @@ a4_uv = Curlyquiver(ax4, lon_uvz, lat_uvz, u500, v500, regrid=15, lon_trunc=-67.
                                   color='k', transform=ccrs.PlateCarree(central_longitude=0))
 a4_uv_np = Curlyquiver(ax4, lon_uvz, lat_uvz, u500_np, v500_np, regrid=15, lon_trunc=-67.5, arrowsize=.6, scale=20, linewidth=0.8,
                                   color='gray', transform=ccrs.PlateCarree(central_longitude=0), nanmax=a4_uv.nanmax)
-a4_uv.key(fig, U=1, label='1 m/s', width_shrink=0.5)
+a4_uv.key(fig, U=5, label='5 m/s', width_shrink=0.5)
 
 # 显著性打点
 p_pre, a4_p_pre = add_cyclic_point(p_lbm_t2m_pre, coord=lon_pre)

@@ -37,7 +37,7 @@ if eval(input("2)是否计算全国极端高温日温度距平(0/1)?\n")):
     info = eval(input("相对阈值0/绝对阈值（摄氏度）?\n"))
     if info == 0:
         EHD = Tmax_cn051.sel(time=slice(data_year[0]+'-01-01', data_year[1]+'-12-31')) - Tmax_sort95  # 温度距平
-        EHD = EHD.where(EHD >= 0, np.nan)  # 极端高温日温度距平
+        EHD = EHD.where(EHD >= 0, np.nna)  # 极端高温日温度距平
         EHD = EHD-EHD+1  # 数据二值化处理(1:极端高温,np.nan:非极端高温)
         EHD.to_netcdf(r"D:\PyFile\paper1\EHD.nc")
     else:
