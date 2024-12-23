@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b31587d4-ad49-4624-b84b-41f2abe7b205" name="更改" comment="修改了gitignore">
-      <change afterPath="$PROJECT_DIR$/Meteorological/toolbar/K_Mean.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Meteorological/toolbar/download_data.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Meteorological/toolbar/download_data.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -202,7 +203,7 @@
       <updated>1728349287244</updated>
       <workItem from="1734959017543" duration="197000" />
       <workItem from="1734959227222" duration="1228000" />
-      <workItem from="1734960518031" duration="241000" />
+      <workItem from="1734960518031" duration="3345000" />
     </task>
     <task id="LOCAL-00001" summary="241008-工位">
       <option name="closed" value="true" />
@@ -244,7 +245,15 @@
       <option name="project" value="LOCAL" />
       <updated>1734960674466</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="修改了gitignore">
+      <option name="closed" value="true" />
+      <created>1734960787497</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1734960787497</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
