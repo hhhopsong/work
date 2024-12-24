@@ -60,9 +60,11 @@ def plot_test(data, max_clusters=10):
     :param max_clusters: 最大聚类数
     """
     inertia = []
+    explained_variance_ratio = []  # 用于存储解释方差占比
     silhouette_scores = []
     cluster_range = range(2, max_clusters + 1)
     flattened_data = data.reshape(data.shape[0], -1)
+
 
     for n_clusters in cluster_range:
         # 流水线
@@ -74,14 +76,15 @@ def plot_test(data, max_clusters=10):
         kmeans = pipeline['kmeans']
         labels = pipeline['kmeans'].labels_
         inertia.append(kmeans.inertia_)
+        explained_variance_ratio.append(kmeans.inertia_)  # 解释方差占比
         silhouette_scores.append(metrics.silhouette_score(flattened_data, labels))
 
-    # 绘制肘部图
+    # 绘制肘部图（使用解释方差占比）
     plt.figure(figsize=(10, 5))
-    plt.plot(cluster_range, inertia, marker='o')
-    plt.title('Variance')
+    plt.plot(cluster_range, explained_variance_ratio, marker='o')
+    plt.title('Explained Variance Ratio')
     plt.xlabel('Number of Clusters')
-    plt.ylabel('Variance')
+    plt.ylabel('Explained Variance Ratio')
     plt.grid()
     plt.show()
 
@@ -132,13 +135,13 @@ def K_Mean(data, n_clusters=3):
         }
 
     # 按聚类标签分类原始分布图
-    for cluster in range(3):
+    for cluster in range(n_clusters):
         cluster_indices = np.where(labels == cluster)[0]
         print(f"Cluster {cluster}: 图像索引 {cluster_indices}")
 
         # 可视化某个聚类类型的分布
         mean_distribution = np.mean(data[cluster_indices], axis=0)
-        plt.figure(figsize=(5, 5))
+        plt.figure(figsize=(10, 1))
         plt.title(f"Cluster {cluster} 平均分布")
         if mean_distribution.ndim == 1:  # 修正为单行显示
             plt.imshow(mean_distribution.reshape(1, -1), cmap='hot', aspect='auto')
