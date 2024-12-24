@@ -85,6 +85,8 @@ def plot_test(data, max_clusters=10):
     plt.title('Explained Variance Ratio')
     plt.xlabel('Number of Clusters')
     plt.ylabel('Explained Variance Ratio')
+    # 整数x轴刻度
+    plt.xticks(np.arange(2, max_clusters + 1, 1))
     plt.grid()
     plt.show()
 
@@ -94,6 +96,8 @@ def plot_test(data, max_clusters=10):
     plt.title('Silhouette Coefficient')
     plt.xlabel('Number of Clusters')
     plt.ylabel('Silhouette Score')
+    # 整数x轴刻度
+    plt.xticks(np.arange(2, max_clusters + 1, 1))
     plt.grid()
     plt.show()
 
