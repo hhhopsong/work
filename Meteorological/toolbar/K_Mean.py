@@ -141,7 +141,7 @@ def K_Mean(data, n_clusters=3):
     # 按聚类标签分类原始分布图
     for cluster in range(n_clusters):
         cluster_indices = np.where(labels == cluster)[0]
-        print(f"Cluster {cluster}: 图像索引 {cluster_indices}")
+        #print(f"Cluster {cluster}: 图像索引 {cluster_indices}")
 
         # 可视化某个聚类类型的分布
         mean_distribution = np.mean(data[cluster_indices], axis=0)
