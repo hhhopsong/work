@@ -155,11 +155,10 @@ def TN_WAF(Geopotential_climatic, U_climatic, V_climatic, Geopotential, lon=np.a
         return fx, fy
 
 
-def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=None, return_streamf=False, filt=0, filtmode='strict'):
+def TN_WAF_3D(Uc, Vc, GEOa, Tc=None, u_threshold=None, return_streamf=False, filt=0, filtmode='strict'):
     """
     计算的是三维的TN波作用通量, 请注意输入的数据格式为3D-DataArray,代码参考了下列样例,并做了勘误。\n
     https://www.bilibili.com/read/cv15633261/?spm_id_from=333.999.collection.opus.click
-    :param GEOc:    气候态位势高度场
     :param Uc:    气候态U风
     :param Vc:  气候态V风
     :param GEOa:    位势高度场扰动场
@@ -179,8 +178,8 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=None, return_streamf=Fals
 
 ### 函数  给定气候态和位势扰动；输入三维(level,lat,lon)的DataArray数据
     ### 数据维度和坐标
-    data_shape =GEOc.shape
-    data_coords=GEOc.coords
+    data_shape =GEOa.shape
+    data_coords=GEOa.coords
 
     ### 检验维度是否匹配
     if len(data_shape) != 3:
@@ -194,21 +193,19 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=None, return_streamf=Fals
     Uc  =xr.where(abs(Uc  ['lat'])<=20,np.nan,Uc  ).transpose('level','lat','lon')
     Vc  =xr.where(abs(Vc  ['lat'])<=20,np.nan,Vc  ).transpose('level','lat','lon')
     UVc =xr.where(abs(UVc ['lat'])<=20,np.nan,UVc ).transpose('level','lat','lon')
-    GEOc=xr.where(abs(GEOc['lat'])<=20,np.nan,GEOc).transpose('level','lat','lon')
     PSI_global = GEOa.transpose('level','lat','lon')
     GEOa=xr.where(abs(GEOa['lat'])<=20,np.nan,GEOa).transpose('level','lat','lon')
 
 
-    lon=np.array(GEOc['lon'  ])[np.newaxis,np.newaxis,:         ]
-    lat=np.array(GEOc['lat'  ])[np.newaxis,:         ,np.newaxis]
-    pp =np.array(GEOc['level'])[:         ,np.newaxis,np.newaxis]
+    lon=np.array(GEOa['lon'  ])[np.newaxis,np.newaxis,:         ]
+    lat=np.array(GEOa['lat'  ])[np.newaxis,:         ,np.newaxis]
+    pp =np.array(GEOa['level'])[:         ,np.newaxis,np.newaxis]
 
     if not data_shape[0]==1:
         Tc  =np.array(Tc  )
     Uc  =np.array(Uc  )
     Vc  =np.array(Vc  )
     UVc =np.array(UVc )
-    GEOc=np.array(GEOc)
     GEOa=np.array(GEOa)
 
     if not u_threshold is None:
@@ -217,7 +214,6 @@ def TN_WAF_3D(GEOc, Uc, Vc, GEOa, Tc=None, u_threshold=None, return_streamf=Fals
         Uc  =np.where(Uc>=u_threshold,Uc  ,np.nan)
         Vc  =np.where(Uc>=u_threshold,Vc  ,np.nan)
         UVc =np.where(Uc>=u_threshold,UVc ,np.nan)
-        GEOc=np.where(Uc>=u_threshold,GEOc,np.nan)
         GEOa=np.where(Uc>=u_threshold,GEOa,np.nan)
 
     ### 坐标、常数补充
