@@ -24,16 +24,17 @@ def nanmean_filter(data, size):
     result = generic_filter(data, nanmean_function, size=size, mode='constant', cval=np.nan)
     return result
 
-# 示例数据
-data = np.array([[1, 2, np.nan],
-                 [4, np.nan, 6],
-                 [7, 8, 9]])
+if __name__ == "__main__":
+    # 示例数据
+    data = np.array([[1, 2, np.nan],
+                     [4, np.nan, 6],
+                     [7, 8, 9]])
 
-# 3x3 窗口大小
-window_size = 3
+    # 3x3 窗口大小
+    window_size = 3
 
-# 平滑处理
-smoothed_data = nanmean_filter(data, size=window_size)
+    # 平滑处理
+    smoothed_data = nanmean_filter(data, size=window_size)
 
-print("原始数据：\n", data)
-print("平滑后的数据：\n", smoothed_data)
+    print("原始数据：\n", data)
+    print("平滑后的数据：\n", smoothed_data)
