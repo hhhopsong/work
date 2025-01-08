@@ -75,7 +75,7 @@ def corr(K, uvz):
     return corr_
 
 
-K_type = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_95%_0.45_4.nc")
+K_type = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_AverFiltAll0.9%_0.3%_3.nc")
 
 try:
     uvz = xr.open_dataset(r"D:\PyFile\p2\data\uvz_678.nc")
@@ -124,5 +124,5 @@ for i in K_type['type']:
     corr_K_z = corr(time_ser, uvz['z'].data)
     corr_K_t2m = corr(time_ser, t2m['t2m'].data)
     pic(fig, picloc, uvz['lat'], uvz['lon'], corr_K_u, corr_K_v, corr_K_z, corr_K_t2m)
-plt.savefig(r"D:\PyFile\p2\pic\K_uvz_t2m.png", dpi=600, bbox_inches='tight')
+plt.savefig(r"D:\PyFile\p2\pic\图4.png", dpi=600, bbox_inches='tight')
 plt.show()

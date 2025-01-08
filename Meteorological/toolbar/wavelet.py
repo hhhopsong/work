@@ -1,5 +1,6 @@
 import cmaps
 import numpy as np
+import xarray as xr
 from scipy.stats.distributions import chi2
 from matplotlib import pyplot as plt
 
