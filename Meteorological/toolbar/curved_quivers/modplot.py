@@ -28,7 +28,7 @@ import warnings
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V,lon_trunc=0, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
-                 integration_direction='both', mode='loose', nanmax=None):
+                 integration_direction='both', mode='loose', nanmax=None, edgecolor='k'):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -69,6 +69,8 @@ class Curlyquiver:
                 'strict': 流线绘制时，严格裁切数据边界.
             *nanmax* : float
                 风速单位一
+            *edgecolor* : str
+                单位矢量边框颜色
 
             Returns:
 
@@ -107,6 +109,7 @@ class Curlyquiver:
         self.integration_direction = integration_direction
         self.mode = mode
         self.NanMax = nanmax
+        self.edgecolor = edgecolor
 
         self.quiver = self.quiver()
         self.nanmax = self.quiver[2]
@@ -135,7 +138,7 @@ class Curlyquiver:
         '''
         velovect_key(fig, self.axes, self.quiver, shrink, U, angle, label, color=self.color, arrowstyle=self.arrowstyle,
                      linewidth=self.linewidth, fontproperties=fontproperties, lr=lr, ud=ud, width_shrink=width_shrink,
-                     height_shrink=height_shrink, arrowsize=self.arrowsize)
+                     height_shrink=height_shrink, arrowsize=self.arrowsize, edgecolor=self.edgecolor)
 
 
 def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
@@ -977,7 +980,7 @@ def _gen_starting_points(x,y,grains):
 
 
 def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5,
-                 fontproperties={'size': 5}, lr=1., ud=1., width_shrink=1., height_shrink=1., arrowsize=1.):
+                 fontproperties={'size': 5}, lr=1., ud=1., width_shrink=1., height_shrink=1., arrowsize=1., edgecolor='k'):
     '''
     曲线矢量图例
     :param fig: 画布总底图
@@ -1006,6 +1009,8 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     axes_sub.set_yticks([])
     axes_sub.set_xlim(-1, 1)
     axes_sub.set_ylim(-2, 1)
+    for spine in axes_sub.spines.values():
+        spine.set_edgecolor(edgecolor)
     dt_ds = quiver[1]
     if np.isnan(dt_ds):
         return
