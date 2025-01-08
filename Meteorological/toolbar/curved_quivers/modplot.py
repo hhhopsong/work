@@ -28,7 +28,7 @@ import warnings
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V,lon_trunc=0, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
-                 integration_direction='both', mode='loose', nanmax=None, edgecolor='k'):
+                 integration_direction='both', mode='loose', nanmax=None):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -69,8 +69,6 @@ class Curlyquiver:
                 'strict': 流线绘制时，严格裁切数据边界.
             *nanmax* : float
                 风速单位一
-            *edgecolor* : str
-                单位矢量边框颜色
 
             Returns:
 
@@ -109,7 +107,6 @@ class Curlyquiver:
         self.integration_direction = integration_direction
         self.mode = mode
         self.NanMax = nanmax
-        self.edgecolor = edgecolor
 
         self.quiver = self.quiver()
         self.nanmax = self.quiver[2]
@@ -119,7 +116,7 @@ class Curlyquiver:
                         self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.mode, self.NanMax)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
-            width_shrink=1., height_shrink=1.):
+            width_shrink=1., height_shrink=1., edgecolor='k'):
         '''
         曲线矢量图例
         :param fig: 画布总底图
@@ -133,12 +130,13 @@ class Curlyquiver:
         :param ud: 上下偏移(>1：上偏, <1：下偏)
         :param width_shrink: 宽度缩放比例
         :param height_shrink: 高度缩放比例
+        :param edgecolor: 边框颜色
 
         :return: None
         '''
         velovect_key(fig, self.axes, self.quiver, shrink, U, angle, label, color=self.color, arrowstyle=self.arrowstyle,
                      linewidth=self.linewidth, fontproperties=fontproperties, lr=lr, ud=ud, width_shrink=width_shrink,
-                     height_shrink=height_shrink, arrowsize=self.arrowsize, edgecolor=self.edgecolor)
+                     height_shrink=height_shrink, arrowsize=self.arrowsize, edgecolor=edgecolor)
 
 
 def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
