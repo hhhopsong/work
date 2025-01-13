@@ -1,5 +1,5 @@
 import numpy as np
-import tensorflow as tf
+import xarray as xr
 import matplotlib.pyplot as plt
 from time import time
 from sklearn.cluster import KMeans
@@ -53,18 +53,24 @@ def bench_k_means(kmeans, name, data, labels):
     print(formatter_result.format(*results))
 
 
-def plot_test(data, max_clusters=10):
+def plot_test(data, max_clusters=15):
     """
-    显示Variance肘部图和Silhouette系数图
+    显示Variance肘部图和Silhouette系数图的双折线图
     :param data: 数据
     :param max_clusters: 最大聚类数
     """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.cluster import KMeans
+    from sklearn import metrics
+
     inertia = []
     explained_variance_ratio = []  # 用于存储解释方差占比
     silhouette_scores = []
     cluster_range = range(2, max_clusters + 1)
     flattened_data = data.reshape(data.shape[0], -1)
-
 
     for n_clusters in cluster_range:
         # 流水线
@@ -79,28 +85,40 @@ def plot_test(data, max_clusters=10):
         explained_variance_ratio.append(kmeans.inertia_)  # 解释方差占比
         silhouette_scores.append(metrics.silhouette_score(flattened_data, labels))
 
-    # 绘制肘部图（使用解释方差占比）
-    plt.figure(figsize=(10, 5))
-    plt.plot(cluster_range, explained_variance_ratio, marker='o')
-    plt.title('Explained Variance Ratio')
-    plt.xlabel('Number of Clusters')
-    plt.ylabel('Explained Variance Ratio')
-    # 整数x轴刻度
-    plt.xticks(np.arange(2, max_clusters + 1, 1))
-    plt.grid()
+    # 绘制双折线图，设置双y轴
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+
+    ax1.plot(cluster_range, silhouette_scores, marker='s', color='b', label='Silhouette Coefficient', zorder=4)
+    ax1.set_xlabel('Number of Clusters')
+    ax1.set_ylabel('Silhouette Coefficient')
+    ax1.tick_params(axis='y')
+    ax1.set_ylim(bottom=min(silhouette_scores) - 0.1 * abs(min(silhouette_scores)),
+                 top=max(silhouette_scores) + 0.1 * abs(max(silhouette_scores)))
+    ax1.set_xlim(left=min(cluster_range), right=max(cluster_range))
+    ax2 = ax1.twinx()
+    ax2.plot(cluster_range, explained_variance_ratio, marker='o', color='r', label='Explained Variance', zorder=3)
+    ax2.set_ylabel('Explained Variance')
+    ax2.tick_params(axis='y')
+    ax2.set_ylim(bottom=min(explained_variance_ratio) - 0.1 * abs(min(explained_variance_ratio)),
+                 top=max(explained_variance_ratio) + 0.1 * abs(max(explained_variance_ratio)))
+
+    # 添加图例
+    lines_1, labels_1 = ax1.get_legend_handles_labels()
+    lines_2, labels_2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right', edgecolor='none')
+    ax1.set_title('a) Explained Variance & Silhouette Coefficient', fontsize=14, loc='left')
+
+    plt.xticks(np.arange(2, max_clusters + 1, 1))  # 整数x轴刻度
+    fig.tight_layout()
     plt.show()
 
-    # 绘制Silhouette系数图
-    plt.figure(figsize=(10, 5))
-    plt.plot(cluster_range, silhouette_scores, marker='o')
-    plt.title('Silhouette Coefficient')
-    plt.xlabel('Number of Clusters')
-    plt.ylabel('Silhouette Score')
-    # 整数x轴刻度
-    plt.xticks(np.arange(2, max_clusters + 1, 1))
-    plt.grid()
-    plt.show()
+    score = xr.Dataset({
+        'inertia': ('cluster', inertia),
+        'var': ('cluster', explained_variance_ratio),
+        'scores': ('cluster', silhouette_scores),
+    }, coords={'cluster': cluster_range})
 
+    return score
 
 def K_Mean(data, n_clusters=3):
     """
