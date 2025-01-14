@@ -96,8 +96,8 @@ def plot_test(data, max_clusters=15):
                  top=max(silhouette_scores) + 0.1 * abs(max(silhouette_scores)))
     ax1.set_xlim(left=min(cluster_range), right=max(cluster_range))
     ax2 = ax1.twinx()
-    ax2.plot(cluster_range, explained_variance_ratio, marker='o', color='r', label='Explained Variance', zorder=3)
-    ax2.set_ylabel('Explained Variance')
+    ax2.plot(cluster_range, explained_variance_ratio, marker='o', color='r', label='Variance', zorder=3)
+    ax2.set_ylabel('Variance')
     ax2.tick_params(axis='y')
     ax2.set_ylim(bottom=min(explained_variance_ratio) - 0.1 * abs(min(explained_variance_ratio)),
                  top=max(explained_variance_ratio) + 0.1 * abs(max(explained_variance_ratio)))
@@ -106,7 +106,7 @@ def plot_test(data, max_clusters=15):
     lines_1, labels_1 = ax1.get_legend_handles_labels()
     lines_2, labels_2 = ax2.get_legend_handles_labels()
     ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right', edgecolor='none')
-    ax1.set_title('a) Explained Variance & Silhouette Coefficient', fontsize=14, loc='left')
+    ax1.set_title('a) Variance & Silhouette Coefficient', fontsize=14, loc='left')
 
     plt.xticks(np.arange(2, max_clusters + 1, 1))  # 整数x轴刻度
     fig.tight_layout()
