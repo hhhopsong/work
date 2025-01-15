@@ -24,27 +24,6 @@ from toolbar.TN_WaveActivityFlux import TN_WAF_3D
 from toolbar.curved_quivers.modplot import *
 from toolbar.data_read import *
 
-def corr(time_series, data):
-    # 计算相关系数
-    # 将 data 重塑为二维：时间轴为第一个维度
-    reshaped_data = data.reshape(len(time_series), -1)
-
-    # 减去均值以标准化
-    time_series_mean = time_series - np.mean(time_series)
-    data_mean = reshaped_data - np.mean(reshaped_data, axis=0)
-
-    # 计算分子（协方差）
-    numerator = np.sum(data_mean * time_series_mean[:, np.newaxis], axis=0)
-
-    # 计算分母（标准差乘积）
-    denominator = np.sqrt(np.sum(data_mean ** 2, axis=0)) * np.sqrt(np.sum(time_series_mean ** 2))
-
-    # 相关系数
-    correlation = numerator / denominator
-
-    # 重塑为 (lat, lon)
-    correlation_map = correlation.reshape(data.shape[1:])
-    return correlation_map
 
 K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
 # z
@@ -67,15 +46,14 @@ t = xr.concat([t_high, t_low], dim='level')
 pre = prec("E:/data/NOAA/PREC/precip.mon.anom.nc", 1961, 2022)
 # sst
 sst = ersst("E:/data/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
-#%%
 Z = z.sel(time=slice('1961-01-01', '2022-12-31'))
-Z = Z.sel(time=Z['time.month'].isin([6, 7, 8])).groupby('time.year').mean('time').transpose('year', 'level', 'lat', 'lon')
+Z = Z.sel(time=Z['time.month'].isin([3, 4, 5])).groupby('time.year').mean('time').transpose('year', 'level', 'lat', 'lon')
 U = u.sel(time=slice('1961-01-01', '2022-12-31'))
-U = U.sel(time=U['time.month'].isin([6, 7, 8])).groupby('time.year').mean('time').transpose('year', 'level', 'lat', 'lon')
+U = U.sel(time=U['time.month'].isin([3, 4, 5])).groupby('time.year').mean('time').transpose('year', 'level', 'lat', 'lon')
 V = v.sel(time=slice('1961-01-01', '2022-12-31'))
-V = V.sel(time=V['time.month'].isin([6, 7, 8])).groupby('time.year').mean('time').transpose('year', 'level', 'lat', 'lon')
+V = V.sel(time=V['time.month'].isin([3, 4, 5])).groupby('time.year').mean('time').transpose('year', 'level', 'lat', 'lon')
 T = t.sel(time=slice('1961-01-01', '2022-12-31'))
-T = T.sel(time=T['time.month'].isin([6, 7, 8])).groupby('time.year').mean('time').transpose('year', 'level', 'lat', 'lon')
+T = T.sel(time=T['time.month'].isin([3, 4, 5])).groupby('time.year').mean('time').transpose('year', 'level', 'lat', 'lon')
 Pre = pre.sel(time=slice('1961-01-01', '2022-12-31')).sel(time=pre['time.month'].isin([6, 7, 8])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon')
 Sst = sst.sel(time=slice('1961-01-01', '2022-12-31')).sel(time=sst['time.month'].isin([6, 7, 8])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon')
 corr_z = np.zeros((len(K_type['type']), len(Z['level']), len(Z['lat']), len(Z['lon'])))
