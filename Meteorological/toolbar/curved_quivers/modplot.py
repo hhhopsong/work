@@ -19,6 +19,7 @@ import matplotlib.colors as mcolors
 import matplotlib.collections as mcollections
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
+import cartopy.feature as cfeature
 
 import tqdm as tq
 from toolbar.sub_adjust import adjust_sub_axes
@@ -26,9 +27,9 @@ import warnings
 
 
 class Curlyquiver:
-    def __init__(self, ax, x, y, U, V,lon_trunc=0, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
+    def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
-                 integration_direction='both', mode='loose', nanmax=None):
+                 integration_direction='both', mode='loose', nanmax=None, center_lon=180.):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -69,6 +70,8 @@ class Curlyquiver:
                 'strict': 流线绘制时，严格裁切数据边界.
             *nanmax* : float
                 风速单位一
+            *center_lon* : float
+                中心经度
 
             Returns:
 
@@ -91,7 +94,7 @@ class Curlyquiver:
         self.y = y
         self.U = U
         self.V = V
-        self.lon_trunc = lon_trunc
+        self.lon_trunc = lon_trunc if lon_trunc is not None else center_lon - 180.
         self.linewidth = linewidth
         self.color = color
         self.cmap = cmap
@@ -107,13 +110,14 @@ class Curlyquiver:
         self.integration_direction = integration_direction
         self.mode = mode
         self.NanMax = nanmax
+        self.center_lon = center_lon
 
         self.quiver = self.quiver()
         self.nanmax = self.quiver[2]
     def quiver(self):
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
-                        self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.mode, self.NanMax)
+                        self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.mode, self.NanMax, self.center_lon)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
             width_shrink=1., height_shrink=1., edgecolor='k'):
@@ -139,11 +143,11 @@ class Curlyquiver:
                      height_shrink=height_shrink, arrowsize=self.arrowsize, edgecolor=edgecolor)
 
 
-def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
+def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
                scale=100., masked=True, regrid=30, integration_direction='both',
-               mode='loose', nanmax=None):
+               mode='loose', nanmax=None, center_lon=180.):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -186,7 +190,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
         'strict': 流线绘制时，严格裁切数据边界.
     *nanmax* : float
         风速单位一
-
+    *center_lon* : float
+        中心经度(regrid=True时有效)
     Returns:
 
         *stream_container* : StreamplotSet
@@ -294,15 +299,18 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
             x = np.linspace(x[1], x[-2], regrid)
         x = np.linspace(x[0], x[-1], regrid)
         y = np.linspace(y[0], y[-1], regrid)
+        center_lon -= 180
         if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
             x = np.arange(x[0], x[-1], np.abs(x[0] - x[1]))
             y = np.arange(y[0], y[-1], np.abs(x[0] - x[1]))
+            x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]]) # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
         else:
             x = np.arange(x[0], x[-1], np.abs(y[0] - y[1]))
             y = np.arange(y[0], y[-1], np.abs(y[0] - y[1]))
+            x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])  # 将center_lon在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
@@ -377,7 +385,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
     
     if start_points is None:
         if regrid:
-            x_re = np.concatenate([x[x > lon_trunc], x[:np.argmax(x > lon_trunc)]])
+            x_re = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])
             X_re, Y_re = np.meshgrid(x_re, y)
             start_points = np.array([X_re.flatten(), Y_re.flatten()]).T
         else:
@@ -398,11 +406,12 @@ def velovect(axes, x, y, u, v, lon_trunc=0, linewidth=.5, color='black',
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
-    for xs, ys in sp2:
+    for xs, ys in tq.tqdm(sp2, desc='路径积分', colour='green', unit='points', total=len(sp2)):
         xg, yg = dmap.data2grid(xs, ys)
         xg = np.clip(xg, 0, grid.nx - 1)
         yg = np.clip(yg, 0, grid.ny - 1)
-        t = integrate(xg, yg)[0:2] if integrate(xg, yg)[0][0] is not None else None
+        integrate_ = integrate(xg, yg)
+        t = integrate_[0:2] if integrate_[0][0] is not None else None
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
@@ -638,11 +647,11 @@ class Grid(object):
         self.dx = x[1] - x[0]
         self.dy = y[1] - y[0]
 
-        self.x_origin = x[0]
-        self.y_origin = y[0]
+        self.x_origin = np.nanmin(x)
+        self.y_origin = np.nanmin(y)
 
-        self.width = x[-1] - x[0]
-        self.height = y[-1] - y[0]
+        self.width = np.nanmax(x) - np.nanmin(x)
+        self.height = np.nanmax(y) - np.nanmin(y)
 
     @property
     def shape(self):
@@ -1026,15 +1035,26 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
 
 if __name__ == '__main__':
     "test"
-    x = np.linspace(-180, 180, 1440)
-    y = np.linspace(-90, 90, 720)
+    x = np.linspace(-180, 179.5, 361)
+    y = np.linspace(-90, 90, 180)
     Y, X = np.meshgrid(y, x)
-    U = np.ones(X.shape).T
+    U = np.random.randn(361, 180).T
     # 生成一个X大小的随机矩阵
-    V = np.zeros(X.shape).T
+    V = np.random.randn(361, 180).T
+    #####
+    corr_mam = xr.open_dataset(r"D:/PyFile/p2/data/Corr_MAM.nc")
+    corr_u = corr_mam['corr_u']
+    corr_v = corr_mam['corr_v']
+    U = corr_u.sel(type=1, level=500)
+    V = corr_v.sel(type=1, level=500)
+    x = U['lon']
+    y = U['lat']
+    #####
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
-    ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree())
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=15, lon_trunc=0, scale=80, color='black', linewidth=0.5)
+    ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(central_longitude=112.5))
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=50, center_lon=112.5,scale=20, color='gray', linewidth=0.2, arrowsize=.25)
     a1.key(fig, shrink=0.15)
-    plt.savefig('D:/PyFile/pic/test.png', dpi=2000)
+    #设置中心经度
+    ax1.add_feature(cfeature.COASTLINE)
+    plt.savefig('D:/PyFile/pic/test.png', dpi=600, bbox_inches='tight')
     plt.show()
