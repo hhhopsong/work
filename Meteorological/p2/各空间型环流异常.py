@@ -25,10 +25,10 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     cont.clabel(inline=1, fontsize=4)
     cont_.clabel(inline=1, fontsize=4)
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
-    #Cq = Curlyquiver(ax, lon, lat, corr_u, corr_v,
-    #                              lon_trunc=-70, arrowsize=.8, scale=20, linewidth=0.6, regrid=20, color='black',
-    #                              transform=ccrs.PlateCarree(central_longitude=0))
-    #Cq.key(fig, U=1, label='1')
+    '''Cq = Curlyquiver(ax, lon, lat, corr_u, corr_v,
+                                  center_lon=110, scale=20, linewidth=0.2, arrowsize=.25, regrid=30, color='gray',
+                     transform=ccrs.PlateCarree(central_longitude=0))
+    Cq.key(fig, U=1, label='1')'''
     q = ax.quiver(lon, lat, corr_u, corr_v,
                    transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=20,
                    scale=10, width=.004, headwidth=3, headlength=4, headaxislength=3.5,
@@ -78,7 +78,7 @@ def corr(K, uvz):
 K_type = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_AverFiltAll0.9%_0.3%_3.nc")
 
 try:
-    uvz = xr.open_dataset(r"D:\PyFile\p2\data\uvz_678.nc")
+    uvz = xr.open_dataset(r"D:\PyFile\p2\data\uvz_78.nc")
 except:
     uvz = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev.nc").sel(
         date=slice('1961-01-01', '2023-12-31'),
@@ -93,13 +93,13 @@ except:
                              'lat': uvz['latitude'].data,
                              'lon': uvz['longitude'].data})
     uvz = uvz.sel(time=slice('1961-01-01', '2022-12-31'))
-    uvz = uvz.sel(time=uvz['time.month'].isin([6, 7, 8])).groupby('time.year').mean('time')
-    uvz.to_netcdf(r"D:\PyFile\p2\data\uvz_678.nc")
+    uvz = uvz.sel(time=uvz['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+    uvz.to_netcdf(r"D:\PyFile\p2\data\uvz_78.nc")
 uvz = uvz.sel(p=500).transpose('lat', 'lon', 'year')  # 500hPa
 uvz_clim = uvz.mean('year')
 
 try:
-    t2m = xr.open_dataset(r"D:\PyFile\p2\data\t2m_678.nc")
+    t2m = xr.open_dataset(r"D:\PyFile\p2\data\t2m_78.nc")
 except:
     t2m = xr.open_dataset(r"E:\data\ERA5\ERA5_singleLev\ERA5_sgLEv.nc")['t2m']
     t2m = t2m.sel(date=slice('1961-01-01', '2023-12-31'))
@@ -109,8 +109,8 @@ except:
                              'lat': t2m['latitude'].data,
                              'lon': t2m['longitude'].data})
     t2m = t2m.sel(time=slice('1961-01-01', '2022-12-31'))
-    t2m = t2m.sel(time=t2m['time.month'].isin([6, 7, 8])).groupby('time.year').mean('time')
-    t2m.to_netcdf(r"D:\PyFile\p2\data\t2m_678.nc")
+    t2m = t2m.sel(time=t2m['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+    t2m.to_netcdf(r"D:\PyFile\p2\data\t2m_78.nc")
 t2m = t2m.transpose('lat', 'lon', 'year')
 t2m_clim = t2m.mean('year')
 
