@@ -433,7 +433,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
 
     streamlines = []
     arrows = []
-    for t, edge in tq.tqdm(zip(trajectories,edges), desc='绘制曲轴矢量', colour='green', unit='条', total=len(trajectories)):
+    for t, edge in zip(trajectories,edges):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
 		
