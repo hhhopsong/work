@@ -120,7 +120,7 @@ class Curlyquiver:
                         self.start_points, self.scale, self.masked, self.regrid, self.integration_direction, self.mode, self.NanMax, self.center_lon)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
-            width_shrink=1., height_shrink=1., edgecolor='k'):
+            width_shrink=1., height_shrink=1., edgecolor='k', arrowsize=self.arrowsize):
         '''
         曲线矢量图例
         :param fig: 画布总底图
@@ -140,7 +140,7 @@ class Curlyquiver:
         '''
         velovect_key(fig, self.axes, self.quiver, shrink, U, angle, label, color=self.color, arrowstyle=self.arrowstyle,
                      linewidth=self.linewidth, fontproperties=fontproperties, lr=lr, ud=ud, width_shrink=width_shrink,
-                     height_shrink=height_shrink, arrowsize=self.arrowsize, edgecolor=edgecolor)
+                     height_shrink=height_shrink, arrowsize=arrowsize, edgecolor=edgecolor)
 
 
 def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
