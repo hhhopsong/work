@@ -98,7 +98,7 @@ a1 = ax1.contourf(lon, time, corr, cmap=cmaps.cmp_b2r[:30]
 # 通过打点显示出通过显著性检验的区域
 p_corr, lon = add_cyclic_point(p_lead_lag_corr, coord=lon_sst)
 a1_p = ax1.contourf(lon, time, p_corr, levels=[0, 1], hatches=['//', None], colors="none", add_colorbar=False, zorder=5)
-ax1.axhline(9, color='black', linewidth=2)
+ax1.axhline(10, color='black', linewidth=2)
 ax1.axhline(11, color='black', linewidth=2)
 
 # 刻度线设置
