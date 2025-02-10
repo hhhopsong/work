@@ -199,7 +199,7 @@ def draw_frc():
     #ax3.tick_params(axis='both', labelsize=6, colors='black')
     ax4.tick_params(axis='both', labelsize=6, colors='black')
 
-    plt.savefig(r'D:\PyFile\p2\pic\Output_温度实验.png', dpi=600, bbox_inches='tight')
+    plt.savefig(r'D:\PyFile\p2\pic\Output_对流实验.png', dpi=600, bbox_inches='tight')
     plt.show()
 
 

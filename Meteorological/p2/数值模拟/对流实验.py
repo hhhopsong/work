@@ -42,79 +42,91 @@ def multi_core(data, var, p, ols):
     print(f"{p}hPa层{var}相关系数完成。")
     return
 
+def corr(time_series, data):
+    # 计算相关系数
+    # 将 data 重塑为二维：时间轴为第一个维度
+    reshaped_data = data.reshape(len(time_series), -1)
+
+    # 减去均值以标准化
+    time_series_mean = time_series - np.mean(time_series)
+    data_mean = reshaped_data - np.mean(reshaped_data, axis=0)
+
+    # 计算分子（协方差）
+    numerator = np.sum(data_mean * time_series_mean[:, np.newaxis], axis=0)
+
+    # 计算分母（标准差乘积）
+    denominator = np.sqrt(np.sum(data_mean ** 2, axis=0)) * np.sqrt(np.sum(time_series_mean ** 2))
+
+    # 相关系数
+    correlation = numerator / denominator
+
+    # 重塑为 (lat, lon)
+    correlation_map = correlation.reshape(data.shape[1:])
+    return correlation_map
+
+def regress(time_series, data):
+    # 将 data 重塑为二维：时间轴为第一个维度
+    reshaped_data = data.reshape(len(time_series), -1)
+
+    # 减去均值以中心化（标准化自变量和因变量）
+    time_series_mean = time_series - np.mean(time_series)
+    data_mean = reshaped_data - np.mean(reshaped_data, axis=0)
+
+    # 计算分子（协方差的分子）
+    numerator = np.sum(data_mean * time_series_mean[:, np.newaxis], axis=0)
+
+    # 计算分母（自变量的平方和）
+    denominator = np.sum(time_series_mean ** 2)
+
+    # 计算回归系数
+    regression_coef = numerator / denominator
+    correlation = numerator / (np.sqrt(np.sum(data_mean ** 2, axis=0)) * np.sqrt(np.sum(time_series_mean ** 2)))
+    # 重塑为 (lat, lon)
+    regression_map = regression_coef.reshape(data.shape[1:])
+    correlation_map = correlation.reshape(data.shape[1:])
+    return regression_map, correlation_map
+
 if __name__ == '__main__':
     info_t = xr.open_dataset(r"E:\data\self\q1_1961-2024.nc").sel(time=slice('1961-01-01', '2022-12-31'))
-    info_t = info_t.sel(time=info_t['time.month'].isin([7, 8])).groupby('time.year').mean('time')
-    ols = np.load(r"D:\PyFile\paper1\OLS35_detrended.npy")  # 读取缓存
-    # 多核计算
-    if eval(input("是否进行相关系数计算(0/1):")):
-        data_pool = []
-        for p in [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100]:
-            data_pool.append([info_t, 'q', p, ols])
-        Ncpu = multiprocessing.cpu_count()-2
-        p = multiprocessing.Pool()
-        p.starmap(multi_core, data_pool)
-        p.close()
-        p.join()
-        del data_pool
+    info_t = info_t.sel(time=info_t['time.month'].isin([7, 8])).groupby('time.year').mean('time')['q']
+    info_pre = xr.open_dataset(r"D:/PyFile/p2/data/pre.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['pre']
+    K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
+    K_series = K_type.sel(type=1)['K'].data
+    K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
+    K_series = (K_series - np.mean(K_series)) / np.std(K_series)
 
-    t1000 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q1000_same.npy")
-    c1000 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q1000_same.npy") * t1000
+    zone = [120, 360 - 80, 20, -10]
+    corr_weight = corr(K_series, info_pre.data)
+    corr_weight_1times = np.abs(1 / np.nanmean(corr(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
+    corr_weight = corr_weight * corr_weight_1times
+    ols = K_series  # 读取缓存
 
-    t925 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q925_same.npy")
-    c925 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q925_same.npy") * t925
+    t1000 = np.nan_to_num(regress(ols, info_t.sel(level=1000).data)[0], nan=0)
+    t850 = np.nan_to_num(regress(ols, info_t.sel(level=850).data)[0], nan=0)
+    t500 = np.nan_to_num(regress(ols, info_t.sel(level=500).data)[0], nan=0)
+    t200 = np.nan_to_num(regress(ols, info_t.sel(level=200).data)[0], nan=0)
+    t150 = np.nan_to_num(regress(ols, info_t.sel(level=150).data)[0], nan=0)
+    t100 = np.nan_to_num(regress(ols, info_t.sel(level=100).data)[0], nan=0)
 
-    t850 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q850_same.npy")
-    c850 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q850_same.npy") * t850
-
-    t700 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q700_same.npy")
-    c700 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q700_same.npy") * t700
-
-    t600 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q600_same.npy")
-    c600 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q600_same.npy") * t600
-
-    t500 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q500_same.npy")
-    c500 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q500_same.npy") * t500
-
-    t400 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q400_same.npy")
-    c400 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q400_same.npy") * t400
-
-    t300 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q300_same.npy")
-    c300 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q300_same.npy") * t300
-
-    t250 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q250_same.npy")
-    c250 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q250_same.npy") * t250
-
-    t200 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q200_same.npy")
-    c200 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q200_same.npy") * t200
-
-    t150 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q150_same.npy")
-    c150 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q150_same.npy") * t150
-
-    t100 = np.load(r"D:\PyFile\paper1\cache\q1\reg_q100_same.npy")
-    c100 = np.load(r"D:\PyFile\paper1\cache\q1\corr_q100_same.npy") * t100
-
-    pre = np.load(r"D:\PyFile\paper1\cache\pre\corr_pre_same.npy")
-    pre_lon = xr.open_dataset(r"E:\data\NOAA\PREC\precip.mon.anom.nc").lon
-    pre_lat = xr.open_dataset(r"E:\data\NOAA\PREC\precip.mon.anom.nc").lat
-    t_lon = xr.open_dataset(r"E:\data\self\q1_1961-2024.nc").lon
-    t_lat = xr.open_dataset(r"E:\data\self\q1_1961-2024.nc").lat
-    # 将pre双线性插值到t网格
-    pre = xr.DataArray(pre, coords=[('lat', pre_lat.data), ('lon', pre_lon.data)])
-    pre = pre.interp(lat=t_lat.data, lon=t_lon.data, method='linear')
     frc = xr.Dataset({'t':(['lev', 'lat', 'lon'],
-                           np.array([c1000, c925, c850, c700, c600, c500, c400, c300, c250, c200, c150, c100]) * pre.data)},
-                     coords={'lev': [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100],
+                           np.array([t1000, t850, t500, t200, t150, t100]))},
+                     coords={'lev': [1000, 850, 500, 200, 150, 100],
                              'lat': info_t['lat'],
                              'lon': info_t['lon']})
     # 读取强迫场
     # 选择45-90N，35W-35E的区域
 
-    T = frc * units('K')
+    T = np.abs(frc) * corr_weight * units('K')
     lon, lat = np.meshgrid(frc['lon'], frc['lat'])
     mask = (
-            (np.where(lon<= 275.0, 1, 0) * np.where(lon>= 122.00, 1, 0))
-            * (np.where(lat>= -5.00, 1, 0) * np.where(lat<= 5.00, 1, 0))
+            (np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
+            * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
+            * np.where(T['t'] <= 0, 1, 0)
+            )
+    mask_pattern = (
+            (np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
+            * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
+            * np.where(corr_weight <= 0, 1, 0)
             )
 
     T_mask = T.where(mask != 0, 0)
@@ -128,19 +140,14 @@ if __name__ == '__main__':
     n = 10
     extent1 = [-180, 180, -30, 80]
     fig = plt.figure(figsize=(10, 5), constrained_layout=True)
-    ax1 = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180-67.5))
+    ax1 = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=110))
     ax1.coastlines(linewidths=0.3)
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
 
-    prelon, prelat = np.meshgrid(pre['lon'], pre['lat'])
-    premask = (
-            (np.where(prelon<= 275.0, 1, 0) * np.where(prelon>= 122.00, 1, 0))
-            * (np.where(prelat>= -5.00, 1, 0) * np.where(prelat<= 5.00, 1, 0))
-            )
-    pre_mask = pre.where(premask != 0, 0)
-    frc_fill_white, lon_fill_white = add_cyclic(pre_mask, pre_mask['lon'])
+    pre_mask = corr_weight * mask_pattern
+    frc_fill_white, lon_fill_white = add_cyclic(pre_mask, info_pre['lon'])
     lev_range = np.linspace(-np.nanmax(np.abs(pre_mask.data)), np.nanmax(np.abs(pre_mask.data)), 10)
-    var200 = ax1.contourf(lon_fill_white, pre_mask['lat'], frc_fill_white,
+    var200 = ax1.contourf(lon_fill_white, info_pre['lat'], frc_fill_white,
                         levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[20:-20], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     # 刻度线设置
     xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
@@ -184,8 +191,8 @@ if __name__ == '__main__':
     ax2 = ax_ins
     S2D = 86400.
     # 计算各层平均温度
-    avg_temp = T_mask['t'].sel(lon=slice(122, 275), lat=slice(5, -5)).mean(dim=['lat', 'lon']).values.squeeze()  # 按纬度和经度平均
-    avg_temp_frc_nc_np = frc_nc_p['t'].sel(lon=slice(122, 275), lat=slice(5, -5)).mean(dim=['lat', 'lon']).values.squeeze() * S2D  # frc_nc_p 各层平均温度
+    avg_temp = T_mask['t'].sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).mean(dim=['lat', 'lon']).values.squeeze()  # 按纬度和经度平均
+    avg_temp_frc_nc_np = frc_nc_p['t'].sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).mean(dim=['lat', 'lon']).values.squeeze() * S2D  # frc_nc_p 各层平均温度
     pressure_levels = frc['lev'].values  # 气压层次
     pressure_levels_frc_nc_np = frc_nc_p['lev'].values  # frc_nc_p 的气压层次
 
@@ -196,7 +203,7 @@ if __name__ == '__main__':
     ax2.axvline(0, color='k', linestyle='-', linewidth=0.5)
     # 设置横纵坐标范围
     ax2.set_ylim(100, 1000)  # 设置纵轴范围
-    maxabs = np.nanmax([np.nanmax(np.abs(avg_temp)), np.nanmax(np.abs(avg_temp_frc_nc_np))]) * 1.05
+    maxabs = np.nanmax([np.nanmax(np.abs(avg_temp)), np.nanmax(np.abs(avg_temp_frc_nc_np))]) * 1.1
     ax2.set_xlim(-maxabs, maxabs)  # 设置横轴范围
     # 设置纵轴为反转的气压坐标
     ax2.set_yscale('log')  # 气压通常采用对数坐标
@@ -216,7 +223,7 @@ if __name__ == '__main__':
 
     # 添加图例
     ax2.legend(fontsize=12)
-    plt.savefig(r"D:\PyFile\pic\frc_data_热带对流.png", dpi=600, bbox_inches='tight')
+    plt.savefig(r"D:\PyFile\p2\pic\frc_data_对流实验.png", dpi=600, bbox_inches='tight')
     plt.show()
 
     if input("是否导出?(1/0)") == '1':

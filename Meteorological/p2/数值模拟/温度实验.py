@@ -73,7 +73,7 @@ def regress(time_series, data):
 
 if __name__ == '__main__':
     info_t = xr.open_dataset(r"D:/PyFile/p2/data/T.nc")['t']
-    info_sst = xr.open_dataset(r"D:/PyFile/p2/data/SST.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['sst']
+    info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['sst']
     K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
     K_series = K_type.sel(type=1)['K'].data
     K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
