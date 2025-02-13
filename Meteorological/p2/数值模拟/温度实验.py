@@ -75,14 +75,26 @@ if __name__ == '__main__':
     info_t = xr.open_dataset(r"D:/PyFile/p2/data/T.nc")['t']
     info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['sst']
     K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
-    K_series = K_type.sel(type=1)['K'].data
+
+    K_series = K_type.sel(type=1)['K'].data #东部型
+    zone = [360 - 70, 360 - 10, 80, 30] #北大西洋暖
+    #K_series = K_type.sel(type=2)['K'].data #全局一致型
+    #zone = [360 - 80, 360 - 15, 50, 0] #北大西洋涛动
     K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
 
-    zone = [360 - 65, 360 - 10, 65, 30]
-    corr_weight = corr(K_series, info_sst.data)
-    corr_weight_1times = 1 / np.nanmean(corr(K_series, info_sst.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data))
-    corr_weight = corr_weight * corr_weight_1times
+    corr_ = corr(K_series, info_sst.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)
+    time_series = ((info_sst.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3]))
+                    - info_sst.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).mean(['year']))
+                   * corr_).mean(['lat', 'lon']).to_numpy()
+    time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
+                                           range(len(time_series)))  # 去除线性趋势
+    time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    reg_sst = regress(time_series, info_sst.data)[0]
+    corr_weight = reg_sst
+
+    '''corr_weight = corr(K_series, info_sst.data)
+    corr_weight = corr_weight'''
     ols = K_series # 读取缓存
 
     t1000 = np.nan_to_num(regress(ols, info_t.sel(level=1000).data)[0], nan=0)
@@ -96,9 +108,22 @@ if __name__ == '__main__':
                      coords={'lev': [1000, 850, 500, 200, 150, 100],
                              'lat': info_t['lat'],
                              'lon': info_t['lon']})
+
+    frc['t'] = np.abs(frc['t'])
+    lon, lat = np.meshgrid(frc['lon'], frc['lat'])
+    mask_pattern = (
+            (np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
+            * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
+            * np.where(corr_weight >= 0, 1, 0)
+            )
+
+    # corr_weight 均一化
+    corr_weight_1times = corr_weight * mask_pattern
+    corr_weight_1times = np.nanmean(corr_weight_1times * np.where(corr_weight_1times!=0, 1, np.nan))
+    corr_weight = corr_weight / corr_weight_1times
+
     # 读取强迫场
     T = frc * corr_weight * units('K')
-    lon, lat = np.meshgrid(frc['lon'], frc['lat'])
     mask = ((np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
             * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
             * np.where(T['t'] >= 0, 1, 0))
@@ -117,10 +142,11 @@ if __name__ == '__main__':
     ax1 = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180-70))
     ax1.coastlines(linewidths=0.3)
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(0, np.max(np.abs(frc_nc_p[var].sel(lev=lev).data)), 10)
-    var200 = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'], frc_fill_white,
-                        levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[126:-40], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    sst_mask = corr_weight * mask_pattern
+    frc_fill_white, lon_fill_white = add_cyclic(sst_mask, info_sst['lon'])
+    lev_range = np.linspace(-np.nanmax(np.abs(sst_mask.data)), np.nanmax(np.abs(sst_mask.data)), 10)
+    var200 = ax1.contourf(lon_fill_white, info_sst['lat'], frc_fill_white,
+                        levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[40:-40], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     # 刻度线设置
     xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
     yticks1 = np.arange(extent1[2], extent1[3] + 1, 10)
@@ -172,9 +198,13 @@ if __name__ == '__main__':
     ax2.plot(avg_temp, pressure_levels, marker='x', color='gray', label='Obs', alpha=0.7)
     ax2.plot(avg_temp_frc_nc_np, pressure_levels_frc_nc_np, marker='.', color='r', label='Frc', alpha=0.7)
 
+    # 横轴零刻度线
+    ax2.axvline(0, color='k', linestyle='-', linewidth=0.5)
+
     # 设置横纵坐标范围
     ax2.set_ylim(100, 1000)  # 设置横轴范围
-    ax2.set_xlim(-.003, 0.2)  # 设置纵轴范围
+    maxabs = np.nanmax([np.nanmax(np.abs(avg_temp)), np.nanmax(np.abs(avg_temp_frc_nc_np))]) * 1.1
+    ax2.set_xlim(-maxabs, maxabs)  # 设置横轴范围
     # 设置纵轴为反转的气压坐标
     ax2.set_yscale('log')  # 气压通常采用对数坐标
     ax2.invert_yaxis()  # 倒置 y 轴，使高压在下，低压在上

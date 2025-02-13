@@ -80,53 +80,84 @@ def regress(time_series, data):
 
     # 计算回归系数
     regression_coef = numerator / denominator
-    correlation = numerator / (np.sqrt(np.sum(data_mean ** 2, axis=0)) * np.sqrt(np.sum(time_series_mean ** 2)))
     # 重塑为 (lat, lon)
     regression_map = regression_coef.reshape(data.shape[1:])
-    correlation_map = correlation.reshape(data.shape[1:])
-    return regression_map, correlation_map
+    return regression_map
 
 if __name__ == '__main__':
     info_t = xr.open_dataset(r"E:\data\self\q1_1961-2024.nc").sel(time=slice('1961-01-01', '2022-12-31'))
     info_t = info_t.sel(time=info_t['time.month'].isin([7, 8])).groupby('time.year').mean('time')['q']
     info_pre = xr.open_dataset(r"D:/PyFile/p2/data/pre.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['pre']
+    info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['sst']
     K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
-    K_series = K_type.sel(type=1)['K'].data
+
+    '''K_series = K_type.sel(type=1)['K'].data #东部型
     K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
+    zone_corr = [120, 360-80, 20, -10] # 拉尼娜
+    corr_NPW = corr(K_series,
+                    info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+                    - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
+                ['year']))
+                   * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
+                                           range(len(time_series)))  # 去除线性趋势
+    time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    zone = [140, 360 - 80, 20, -20] #拉尼娜'''
 
-    zone = [120, 360 - 80, 20, -10]
-    corr_weight = corr(K_series, info_pre.data)
-    corr_weight_1times = np.abs(1 / np.nanmean(corr(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
+    K_series = K_type.sel(type=2)['K'].data #全局一致型
+    K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
+    K_series = (K_series - np.mean(K_series)) / np.std(K_series)
+    zone_corr = [170, 360-70, 10, -30] #  印度洋对流
+    corr_NPW = corr(K_series,
+                    info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+                    - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
+                ['year']))
+                   * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
+                                           range(len(time_series)))  # 去除线性趋势
+    time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    ols = time_series  # 读取缓存
+    zone = [50, 360 - 80, 10, -10]  # 拉尼娜'
+
+    #################
+    K_series = time_series
+    corr_weight = regress(K_series, info_pre.data)
+    corr_weight_1times = 1 / np.nanmean(np.abs(regress(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
     corr_weight = corr_weight * corr_weight_1times
-    ols = K_series  # 读取缓存
 
-    t1000 = np.nan_to_num(regress(ols, info_t.sel(level=1000).data)[0], nan=0)
-    t850 = np.nan_to_num(regress(ols, info_t.sel(level=850).data)[0], nan=0)
-    t500 = np.nan_to_num(regress(ols, info_t.sel(level=500).data)[0], nan=0)
-    t200 = np.nan_to_num(regress(ols, info_t.sel(level=200).data)[0], nan=0)
-    t150 = np.nan_to_num(regress(ols, info_t.sel(level=150).data)[0], nan=0)
-    t100 = np.nan_to_num(regress(ols, info_t.sel(level=100).data)[0], nan=0)
+    t1000 = np.nan_to_num(regress(ols, info_t.sel(level=1000).data), nan=0)
+    t850 = np.nan_to_num(regress(ols, info_t.sel(level=850).data), nan=0)
+    t500 = np.nan_to_num(regress(ols, info_t.sel(level=500).data), nan=0)
+    t200 = np.nan_to_num(regress(ols, info_t.sel(level=200).data), nan=0)
+    t150 = np.nan_to_num(regress(ols, info_t.sel(level=150).data), nan=0)
+    t100 = np.nan_to_num(regress(ols, info_t.sel(level=100).data), nan=0)
 
     frc = xr.Dataset({'t':(['lev', 'lat', 'lon'],
                            np.array([t1000, t850, t500, t200, t150, t100]))},
                      coords={'lev': [1000, 850, 500, 200, 150, 100],
                              'lat': info_t['lat'],
                              'lon': info_t['lon']})
+
+    #各个格点在垂直层次上归一化
+    frc['t'] = np.abs(frc['t']) / np.abs(frc['t']).max(dim='lev')
+
     # 读取强迫场
     # 选择45-90N，35W-35E的区域
 
-    T = np.abs(frc) * corr_weight * units('K')
+    T = frc * corr_weight * units('K')
     lon, lat = np.meshgrid(frc['lon'], frc['lat'])
     mask = (
             (np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
             * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
-            * np.where(T['t'] <= 0, 1, 0)
+            * np.where(T['t'] != 0, 1, 0)
             )
     mask_pattern = (
             (np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
             * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
-            * np.where(corr_weight <= 0, 1, 0)
+            * np.where(corr_weight != 0, 1, 0)
             )
 
     T_mask = T.where(mask != 0, 0)
