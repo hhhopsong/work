@@ -119,11 +119,29 @@ if __name__ == '__main__':
     time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
                                            range(len(time_series)))  # 去除线性趋势
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    ols = time_series  # 读取缓存
-    zone = [50, 360 - 80, 10, -10]  # 拉尼娜'
+    zone = [50, 360 - 80, 10, -10]  # 拉尼娜
+
+    '''## 西部型
+    K_series = K_type.sel(type=3)['K'].data
+    K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
+    K_series = (K_series - np.mean(K_series)) / np.std(K_series)
+    #### 厄尔尼诺
+    zone_corr = [180, 360 - 70, 10, -10]  # 厄尔尼诺
+    corr_NPW = corr(K_series,
+                    info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+                    - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
+                ['year']))
+                   * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
+                                           range(len(time_series)))  # 去除线性趋势
+    time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    zone = [55, 360 - 80, 13, -13]  # 厄尔尼诺'''
+
 
     #################
     K_series = time_series
+    ols = time_series  # 读取缓存
     corr_weight = regress(K_series, info_pre.data)
     corr_weight_1times = 1 / np.nanmean(np.abs(regress(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
     corr_weight = corr_weight * corr_weight_1times

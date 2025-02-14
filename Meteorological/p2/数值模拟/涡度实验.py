@@ -84,13 +84,13 @@ time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zo
                *corr_NPW).mean(['lat', 'lon']).to_numpy()
 time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1), range(len(time_series)))  # 去除线性趋势
 time_series = (time_series - np.mean(time_series))/np.std(time_series)
-K_series = time_series
-zone = [360 - 70, 360 - 0, 70, 35] #北大西洋强迫'''
+zone = [360 - 60, 360 - 0, 70, 35] #北大西洋强迫'''
+
 ## 全局一致型
 K_series = K_type.sel(type=2)['K'].data
 K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
 K_series = (K_series - np.mean(K_series))/np.std(K_series)
-#### 北大西洋暖
+#### NAO
 zone_corr = [360-80, 360-15, 50, 0]
 corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
 time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
@@ -98,9 +98,24 @@ time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zo
                *corr_NPW).mean(['lat', 'lon']).to_numpy()
 time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1), range(len(time_series)))  # 去除线性趋势
 time_series = (time_series - np.mean(time_series))/np.std(time_series)
-K_series = time_series
 zone = [360-80, 360-15, 60, 0] #NAO
 
+'''## 西部型
+K_series = K_type.sel(type=3)['K'].data
+K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
+K_series = (K_series - np.mean(K_series))/np.std(K_series)
+#### 北大西洋经向异常
+zone_corr = [360-80, 360-15, 55, 10]
+corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+                -info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
+               *corr_NPW).mean(['lat', 'lon']).to_numpy()
+time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1), range(len(time_series)))  # 去除线性趋势
+time_series = (time_series - np.mean(time_series))/np.std(time_series)
+zone = [360-70, 360-20, 55, 10] #'''
+
+#############
+K_series = time_series
 z1000 = np.nan_to_num(regress(K_series, info_z.sel(level=1000).data), nan=0)
 z850 = np.nan_to_num(regress(K_series, info_z.sel(level=850).data), nan=0)
 z500 = np.nan_to_num(regress(K_series, info_z.sel(level=500).data), nan=0)
@@ -135,7 +150,7 @@ dx, dy = mpcalc.lat_lon_grid_deltas(np.meshgrid(heights.lon, heights.lat)[0], np
 vor = np.zeros(heights.shape)
 p=0
 for i in [1000, 850, 500, 200, 150, 100]:
-    ug, vg = wind[0].sel(lev=i)*(np.std(info_u.sel(level=i), axis=0)/np.std(K_series)), wind[1].sel(lev=i)*(np.std(info_v.sel(level=i), axis=0)/np.std(K_series))
+    ug, vg = wind[0].sel(lev=i), wind[1].sel(lev=i)
     vor[p] = mpcalc.vorticity(ug, vg, dx=dx, dy=dy) # 计算水平风的垂直涡度
     p += 1
 

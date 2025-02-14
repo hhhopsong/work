@@ -134,7 +134,7 @@ def draw_frc():
     t850_high = ax4.contour( lon_fill_white, lat, z_fill_white, levels=lev_Z[lev_Z > 0], cmap=cmaps.BlueDarkRed18[-1],
                         transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.2)'''
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
-    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.2, scale=20, regrid=20, linewidth=0.25,
+    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.2, scale=10, regrid=20, linewidth=0.25,
                         color='black', center_lon=180-70)
     wind850.key(fig, U=1, label='3 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
     DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"

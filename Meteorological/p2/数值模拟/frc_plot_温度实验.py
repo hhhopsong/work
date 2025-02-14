@@ -53,7 +53,7 @@ def draw_frc():
                         transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.2)'''
     wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.2, scale=20, regrid=20, linewidth=0.25,
                         color='black', center_lon=180-70)
-    wind200.key(fig, U=1, label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
+    wind200.key(fig, U=3, label='3 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
     # 图2
     lev = 500
     lev_Z = np.array([-10, -5, 5, 10]) * 2
@@ -79,7 +79,7 @@ def draw_frc():
                         transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.2)'''
     wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.2, scale=20, regrid=20, linewidth=0.25,
                         color='black', center_lon=180-70)
-    wind500.key(fig, U=1, label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
+    wind500.key(fig, U=3, label='3 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
 
     '''# 图1
     lev = 700
@@ -136,7 +136,7 @@ def draw_frc():
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.2, scale=20, regrid=20, linewidth=0.25,
                         color='black', center_lon=180-70)
-    wind850.key(fig, U=1, label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
+    wind850.key(fig, U=3, label='3 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
     DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
     provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
     ax4.add_feature(provinces, lw=0.5, zorder=2)
