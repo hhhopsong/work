@@ -3,6 +3,7 @@ import numpy as np
 import tqdm as tq
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import cartopy.crs as ccrs
 import cmaps
 
@@ -135,17 +136,17 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 K_s = 3
 K = K_Mean(EHD20_.to_numpy(), K_s)
 # 绘制三种聚类的平均分布图
-fig = plt.figure(figsize=(10, 5))
+fig = plt.figure(figsize=(10, 6))
 time = [[] for i in range(K_s)]
 abc_index = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
-lev = np.array([[950, 975, 1000, 1050, 1075, 1100],
+lev = np.array([[800, 900, 1000, 1100, 1130, 1150],
                 [400, 500, 600, 700, 800, 900],
                 [150, 175, 200, 225, 250, 275]])
 Tavg_weight = np.zeros((K_s, 163, 283))
 for cluster in range(K_s):
     extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
-    ax = fig.add_subplot(1, K_s + 1, cluster + 1, projection=ccrs.PlateCarree())
-    ax.set_title(f"{abc_index[cluster]})Type {cluster + 1}", loc='left', fontsize=8)
+    ax = fig.add_subplot(2, K_s, cluster + 1, projection=ccrs.PlateCarree())
+    ax.set_title(f"{abc_index[cluster]})Type {cluster + 1}", loc='left', fontsize=12, weight='bold')
     ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(
@@ -162,7 +163,7 @@ for cluster in range(K_s):
     xticks1=np.arange(extent_CN[0], extent_CN[1]+1, 10)
     yticks1=np.arange(extent_CN[2], extent_CN[3]+1, 10)
     ax.set_xticks(xticks1, crs=proj)
-    ax.set_yticks(yticks1, crs=proj)
+    if cluster == 0: ax.set_yticks(yticks1, crs=proj)  # 设置经纬度坐标,只在第一个图上显示y轴坐标
     lon_formatter = LongitudeFormatter()
     lat_formatter = LatitudeFormatter()
     ax.xaxis.set_major_formatter(lon_formatter)
@@ -176,7 +177,7 @@ for cluster in range(K_s):
     yminorLocator = MultipleLocator(1)
     ax.yaxis.set_minor_locator(yminorLocator)#y轴最小刻度
     # 调整刻度值字体大小
-    ax.tick_params(axis='both', labelsize=6, colors='black')
+    ax.tick_params(axis='both', labelsize=10, colors='black')
     # 最大刻度、最小刻度的刻度线长短，粗细设置
     ax.tick_params(which='major', length=3.5, width=1, color='black')  # 最大刻度长度，宽度设置，
     ax.tick_params(which='minor', length=2, width=.9, color='black')  # 最小刻度长度，宽度设置
@@ -190,20 +191,21 @@ for cluster in range(K_s):
     KM = np.array(KM).sum(axis=0)
     custom_colors = ["#FDDDB1", "#FDB57E", "#F26E4C", "#CA1E14", "#7F0000"]
     custom_cmap = colors.ListedColormap(custom_colors)
+    norm = mcolors.BoundaryNorm(lev[cluster], custom_cmap.N)
     con = ax.contourf(CN051_2['lon'], CN051_2['lat'], KM.reshape(163, 283),
                       cmap=custom_cmap, transform=ccrs.PlateCarree(),
-                      levels=lev[cluster], extend='max')
+                      levels=lev[cluster], extend='max', norm=norm)
     ax.contour(CN051_2['lon'], CN051_2['lat'], KM.reshape(163, 283),
                 colors='w', linewidths=0.1, transform=ccrs.PlateCarree(), linestyles='solid',
                 levels=lev[cluster][1:-1])
     # 色标
-    ax_colorbar = inset_axes(ax, width="60%", height="5%", loc='upper right', bbox_to_anchor=(-0.03, 0.2, 1, 1),
+    ax_colorbar = inset_axes(ax, width="60%", height="5%", loc='upper right', bbox_to_anchor=(-0.03, 0.17, 1, 1),
                              bbox_transform=ax.transAxes, borderpad=0)
     cb1 = plt.colorbar(con, cax=ax_colorbar, orientation='horizontal', drawedges=True)
     cb1.locator = ticker.FixedLocator(lev[cluster])
     #cb1.set_label('EHDs', fontsize=0, loc='left')
     cb1.set_ticklabels(lev[cluster])
-    cb1.ax.tick_params(length=0, labelsize=5, direction='in')  # length为刻度线的长度
+    cb1.ax.tick_params(length=0, labelsize=8, direction='in')  # length为刻度线的长度
 
     print(f'---{cluster}---' * 10)
 Tavg_weight = xr.Dataset({'W': (['type', 'lat', 'lon'], Tavg_weight)},
@@ -211,8 +213,6 @@ Tavg_weight = xr.Dataset({'W': (['type', 'lat', 'lon'], Tavg_weight)},
                                'lat': CN051_2['lat'].data,
                                'lon': CN051_2['lon'].data})
 Tavg_weight.to_netcdf(fr"D:\PyFile\p2\data\Tavg_weight.nc")
-plt.savefig(fr"D:\PyFile\p2\pic\图3.png", dpi=600, bbox_inches='tight')
-plt.show()
 
 Time_type = np.zeros((62, K_s))
 for i in range(K_s):
@@ -246,17 +246,17 @@ proportion_by_type = grouped_data.div(total_by_year, axis=0)  # 每种类型的�
 contrasting_colors = ['blue', 'red', 'green']
 
 # 开始绘制图表
-fig, ax1 = plt.subplots(figsize=(16, 10))
+ax1 = fig.add_subplot(2, 1, 2)
 
 # 绘制柱状图（单色表示每年的总天数）
 bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='')
-ax1.set_title('Percentage of types', fontsize=22, weight='bold', pad=20)  # 设置标题
+ax1.set_title('d)Percentage of types', loc='left', fontsize=12, weight='bold', pad=20)  # 设置标题
 ax1.set_xlim(1960, 2023)
-ax1.set_xlabel('Year', fontsize=22, labelpad=15, weight='bold')  # 设置 x 轴标签
-ax1.set_ylim(0, 80)
-ax1.set_ylabel('Days', fontsize=22, labelpad=15, weight='bold')  # 设置 y 轴标签
-ax1.tick_params(axis='x', rotation=0, labelsize=18)  # 设置 x 轴刻度标签旋转和大小
-ax1.tick_params(axis='y', labelsize=18)  # 设置 y 轴刻度标签大小
+ax1.set_xlabel('Year', fontsize=10, labelpad=15)  # 设置 x 轴标签
+ax1.set_ylim(0, 63)
+ax1.set_ylabel('Days', fontsize=10, labelpad=15)  # 设置 y 轴标签
+ax1.tick_params(axis='x', rotation=0, labelsize=10)  # 设置 x 轴刻度标签旋转和大小
+ax1.tick_params(axis='y', labelsize=10)  # 设置 y 轴刻度标签大小
 ax1.set_xticks(range(1961, 1961+len(total_by_year), 5))  # 设置 x 轴的刻度点间隔为 5 年
 ax1.set_xticklabels(total_by_year.index[::5])  # 设置 x 轴的刻度标签
 
@@ -264,7 +264,7 @@ ax1.set_xticklabels(total_by_year.index[::5])  # 设置 x 轴的刻度标签
 for bar in bars:
     height = bar.get_height()
     if height > 0:
-        ax1.text(bar.get_x() + bar.get_width() / 2, height, f'{int(height)}', ha='center', va='bottom', fontsize=14)
+        ax1.text(bar.get_x() + bar.get_width() / 2, height, f'{int(height)}', ha='center', va='bottom', fontsize=8)
 
 # 添加网格线，使图表更加美观
 #ax1.grid(axis='y', linestyle='--', alpha=0.7)
@@ -289,9 +289,9 @@ for i, col in enumerate(grouped_data.columns):
         alpha=0.8
     )
 
-ax.set_ylim(0, 80)
+ax.set_ylim(0, 63)
 ax.yaxis.set_visible(False)  # ax隐藏y轴标签
-ax.legend(fontsize=14, loc='upper right', edgecolor='none')
+ax.legend(fontsize=10, loc='upper right', bbox_to_anchor=(1, 1.2), edgecolor='none', ncol=3)
 
 ax_reg = ax.twinx()
 # 获取 type=1 的数据并转换为 Pandas DataFrame
@@ -303,7 +303,7 @@ y = type_1_data['K']
 y = y.fillna(0)
 ax_reg = sns.regplot(data=type_1_data, x=x, y=y, ax=ax_reg, scatter=False, ci=0, line_kws={"linestyle": "--", "color": "b"})  # 长江流域极端高温格点逐年占比
 ax_reg.yaxis.set_visible(False)  # ax2隐藏y轴标签
-ax_reg.set_ylim(0, 80)
+ax_reg.set_ylim(0, 63)
 
 ax_reg = ax.twinx()
 # 获取 type=1 的数据并转换为 Pandas DataFrame
@@ -315,7 +315,7 @@ y = type_2_data['K']
 y = y.fillna(0)
 ax_reg = sns.regplot(data=type_2_data, x=x, y=y, ax=ax_reg, scatter=False, color='r')  # 长江流域极端高温格点逐年占比
 ax_reg.yaxis.set_visible(False)  # ax2隐藏y轴标签
-ax_reg.set_ylim(0, 80)
+ax_reg.set_ylim(0, 63)
 
 ax_reg = ax.twinx()
 # 获取 type=1 的数据并转换为 Pandas DataFrame
@@ -327,7 +327,7 @@ y = type_3_data['K']
 y = y.fillna(0)
 ax_reg = sns.regplot(data=type_3_data, x=x, y=y, ax=ax_reg, scatter=False, ci=0, line_kws={"linestyle": "--", "color": "g"})  # 长江流域极端高温格点逐年占比
 ax_reg.yaxis.set_visible(False)  # ax2隐藏y轴标签
-ax_reg.set_ylim(0, 80)
+ax_reg.set_ylim(0, 63)
 
 # Add gridlines
 ax.grid(axis='y', linestyle='--', alpha=0.7)
@@ -336,5 +336,5 @@ ax.grid(axis='y', linestyle='--', alpha=0.7)
 plt.tight_layout()
 
 # 显示图表
-plt.savefig(fr"D:\PyFile\p2\pic\图3-2.png", dpi=600, bbox_inches='tight')
+plt.savefig(fr"D:\PyFile\p2\pic\图3.png", dpi=600, bbox_inches='tight')
 plt.show()

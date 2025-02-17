@@ -71,7 +71,8 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 K_s = 3
 K = K_Mean(EHD20_.to_numpy(), K_s)
 # 绘制三种聚类的平均分布图
-fig = plt.figure(figsize=(10, 5))
+# 设置画布的大小并创建一个2行1列的子图
+fig = plt.figure(figsize=(12, 6))
 time = [[] for i in range(K_s)]
 for cluster in range(K_s):
     extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
@@ -134,8 +135,8 @@ cb1 = plt.colorbar(con, cax=ax_colorbar, orientation='vertical')
 cb1.locator = ticker.FixedLocator(np.array([.85,.88,.91,.94,.97, 1.]))
 cb1.set_ticklabels(['85%', '88%', '91%', '94%', '97%', '100%'])
 cb1.ax.tick_params(length=3.5, labelsize=6, direction='in')  # length为刻度线的长度
-plt.savefig(fr"D:\PyFile\p2\pic\图3.png", dpi=600, bbox_inches='tight')
-plt.show()
+
+
 Time_type = np.zeros((62, K_s))
 for i in range(K_s):
     for iyear in time[i]:
@@ -167,7 +168,7 @@ proportion_by_type = grouped_data.div(total_by_year, axis=0)  # 每种类型的�
 contrasting_colors = ['red', 'blue', 'green']
 
 # 开始绘制图表
-fig, ax1 = plt.subplots(figsize=(16, 10))
+ax1 = fig.add_subplot(2, 1, 2)
 
 # 绘制柱状图（单色表示每年的总天数）
 bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='')
@@ -188,7 +189,7 @@ for bar in bars:
         ax1.text(bar.get_x() + bar.get_width() / 2, height, f'{int(height)}', ha='center', va='bottom', fontsize=14)
 
 # 添加网格线，使图表更加美观
-#ax1.grid(axis='y', linestyle='--', alpha=0.7)
+#ax2.grid(axis='y', linestyle='--', alpha=0.7)
 
 # 颜色
 colors = ['red', 'blue', 'green']
@@ -258,4 +259,5 @@ ax.grid(axis='y', linestyle='--', alpha=0.7)
 plt.tight_layout()
 
 # 显示图表
+plt.savefig(fr'D:\PyFile\p2\pic\图3.png', dpi=600, bbox_inches='tight')
 plt.show()

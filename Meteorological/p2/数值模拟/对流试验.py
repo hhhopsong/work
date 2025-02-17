@@ -91,7 +91,7 @@ if __name__ == '__main__':
     info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['sst']
     K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
 
-    '''K_series = K_type.sel(type=1)['K'].data #东部型
+    K_series = K_type.sel(type=1)['K'].data #东部型
     K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
     zone_corr = [120, 360-80, 20, -10] # 拉尼娜
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
     zone = [140, 360 - 80, 20, -20] #拉尼娜'''
 
-    K_series = K_type.sel(type=2)['K'].data #全局一致型
+    '''K_series = K_type.sel(type=2)['K'].data #全局一致型
     K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
     zone_corr = [170, 360-70, 10, -30] #  印度洋对流
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
                                            range(len(time_series)))  # 去除线性趋势
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [50, 360 - 80, 10, -10]  # 拉尼娜
+    zone = [50, 360 - 80, 10, -10]  # 拉尼娜'''
 
     '''## 西部型
     K_series = K_type.sel(type=3)['K'].data
@@ -170,12 +170,12 @@ if __name__ == '__main__':
     mask = (
             (np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
             * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
-            * np.where(T['t'] != 0, 1, 0)
+            * np.where(T['t'] <= 0, 1, 0)
             )
     mask_pattern = (
             (np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
             * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
-            * np.where(corr_weight != 0, 1, 0)
+            * np.where(corr_weight <= 0, 1, 0)
             )
 
     T_mask = T.where(mask != 0, 0)
