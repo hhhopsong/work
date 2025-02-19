@@ -44,6 +44,25 @@ def era5_hp(data_path, begin_year, end_year, level, var_name):
                                 'lon': era5['longitude'].data})
     return pre
 
+def era5_p_AfterOpen(data, begin_year, end_year, level, var_name):
+    try:
+        era5 = data.sel(date=slice(str(begin_year) + '-01-01', str(end_year + 1) + '-12-31'), pressure_level=level,
+            latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])[var_name]
+        var = xr.Dataset({var_name:(['time', 'level', 'lat', 'lon'], era5.data)},
+                        coords={'time': pd.to_datetime(era5['date'], format="%Y%m%d"),
+                                'level': era5['pressure_level'].data,
+                                'lat': era5['latitude'].data,
+                                'lon': era5['longitude'].data})
+    except:
+        era5 = data.sel(valid_time=slice(str(begin_year) + '-01-01', str(end_year + 1) + '-12-31'), pressure_level=level,
+            latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])[var_name]
+        var = xr.Dataset({var_name:(['time', 'level', 'lat', 'lon'], era5.data)},
+                        coords={'time': pd.to_datetime(era5['valid_time'], format="%Y%m%d"),
+                                'level': era5['pressure_level'].data,
+                                'lat': era5['latitude'].data,
+                                'lon': era5['longitude'].data})
+    return var
+
 def era5_s(data_path, begin_year, end_year, var_name):
     '''
     读取ERA5数据
