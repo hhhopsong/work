@@ -2,7 +2,7 @@ import numpy as np
 import xarray as xr
 
 
-def transfrom(data, lon_name='lon', type='180->360'):
+def transform(data, lon_name='lon', type='180->360'):
     """
     将经纬度从180->360或360->180转换
     Parameters
