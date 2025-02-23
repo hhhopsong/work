@@ -128,7 +128,7 @@ class TemperatureBudget:
 
 
 if __name__ == '__main__':
-    r'''U = xr.open_dataset(r'E:\data\ERA5\ERA5_pressLev\single_var\U.nc')['u']
+    U = xr.open_dataset(r'E:\data\ERA5\ERA5_pressLev\single_var\U.nc')['u']
     V = xr.open_dataset(r'E:\data\ERA5\ERA5_pressLev\single_var\V.nc')['v']
     W = xr.open_dataset(r'E:\data\ERA5\ERA5_pressLev\single_var\W.nc')['w']
     T = xr.open_dataset(r'E:\data\ERA5\ERA5_pressLev\single_var\T.nc')['t']
@@ -139,9 +139,9 @@ if __name__ == '__main__':
         w = W.sel(time=slice(str(i - 1) + '-12', str(i + 1) + '-01'))
         t = T.sel(time=slice(str(i - 1) + '-12', str(i + 1) + '-01'))
         budget = TemperatureBudget(u, v, w, t)
-        budget.to_nc(fr'E:\data\ERA5\ERA5_pressLev\single_var\t_budget\t_budget_{i}.nc')'''
+        budget.to_nc(fr'E:\data\ERA5\ERA5_pressLev\single_var\t_budget\t_budget_{i}.nc')
 
-    # 指定目录路径
+    '''# 指定目录路径
     dir_path = r"E:\data\ERA5\ERA5_pressLev\single_var\t_budget"
     # 获取目录下所有.nc文件（按文件名排序确保时间顺序）
     all_files = sorted([os.path.join(dir_path, f)
@@ -164,4 +164,4 @@ if __name__ == '__main__':
     output_path = os.path.join(dir_path, "combined.nc")
     combined.to_netcdf(output_path)
 
-    print(f"文件已合并保存至：{output_path}")
+    print(f"文件已合并保存至：{output_path}")'''
