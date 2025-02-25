@@ -1,0 +1,140 @@
+#
+#      $Id: yMakefile,v 1.124 2010/02/07 00:05:20 haley Exp $
+#
+#########################################################################
+#                                                                       #
+#                          Copyright (C)  1997                          #
+#            University Corporation for Atmospheric Research            #
+#                          All Rights Reserved                          #
+#                                                                       #
+#########################################################################
+#
+#       File:           yMakefile
+#
+#       Author:         Mary Haley
+#                               National Center for Atmospheric Research
+#                               POB 3000, Boulder, Colorado
+#
+#       $Date: 2010/02/07 00:05:20 $
+#
+#       Description:    
+
+MYNAME          =       libnfp
+
+EXTRA_INCLUDES  = -I../../ncl
+EXTRA_CDEFINES  = $(UDUNITS_DEFS) $(V5D_DEFS) $(GRIDSPEC_DEFS) $(ESMF_DEFS) $(KML_DEFS) $(EEMD_DEFS)
+
+HDRS = wrapper.h nctime.h
+
+#ifdef BuildUdunits
+UDUNITS_DEFS = -DBuildUdunits
+UDUNITS_SRCS = udunitsW.c utCalendar2_cal.c udunitsW_calcalcs.c utCalendar2_cal_calcalcs.c calcalcs.c
+UDUNITS_OBJS = udunitsW.o utCalendar2_cal.o udunitsW_calcalcs.o utCalendar2_cal_calcalcs.o calcalcs.o
+#else
+#define UDUNITS_SRCS
+#define UDUNITS_OBJS
+#endif
+
+#ifdef BuildEEMD
+EEMD_DEFS = -DBuildEEMD
+EEMD_SRCS = eemd.c eemdW.c
+EEMD_OBJS = eemd.o eemdW.o
+#else
+#define EEMD_SRCS
+#define EEMD_OBJS
+#endif
+
+# ifdef BuildV5D
+V5D_DEFS = -DBuildV5D
+V5D_SRCS = ncl2v5dW.c
+V5D_OBJS = ncl2v5dW.o
+# else
+# define    V5D_SRCS
+# define    V5D_OBJS
+# endif
+
+#ifdef BuildESMF
+ESMF_DEFS = -DBuildESMF
+ESMF_SRCS = KML_UTILS.c Unstruct2KMLW.c SCRIP2KMLW.c SMMulW.c
+ESMF_OBJS = KML_UTILS.o Unstruct2KMLW.o SCRIP2KMLW.o SMMulW.o
+#else
+#define ESMF_SRCS
+#define ESMF_OBJS
+#endif
+
+#ifdef BuildGDAL
+KML_DEFS = -DBuildGDAL
+KML_SRCS = DirectVincenty.c directVincenty_W.c rgba2png.c rgba2png_W.c KML_Funcs.c \
+	   add_NCL_KML_Arrow_W.c add_NCL_KML_2DGrid_W.c add_NCL_KML_UnstructGrid_W.c \
+	   TransformCoordinate.c TransformCoordinate_W.c
+KML_OBJS = DirectVincenty.o directVincenty_W.o rgba2png.o rgba2png_W.o KML_Funcs.o \
+	   add_NCL_KML_Arrow_W.o add_NCL_KML_2DGrid_W.o add_NCL_KML_UnstructGrid_W.o \
+	   TransformCoordinate.o TransformCoordinate_W.o
+#else
+#define KML_SRCS
+#define KML_OBJS
+#endif
+
+
+CSRCS = areavolW.c betaincW.c bytesW.c calcorcW.c cancorW.c cdf_dpW.c chiinvW.c         \
+        conformW.c csagridW.c cssgridW.c ctwrapW.c cz2ccmW.c datesW.c                   \
+        drwvctc.c dsgridW.c dtrendW.c echoW.c eofW.c erfW.c extaperW.c ezfftW.c         \
+        finitediffW.c filterxW.c fitgridW.c fluxEddyW.c fourinfoW.c gausW.c             \
+        gtripleW.c hydroW.c hyi2hyoW.c indW.c int2pW.c invmatrixW.c                     \
+        julGregW.c linint2W.c linmsgW.c linroodW.c locminmaxW.c mapgciW.c               \
+        mixhumW.c natgridW.c ncolorW.c nglogoW.c ngmiscW.c nicevalsW.c                  \
+        omcalc_ccmW.c outputgif.c paleoW.c prcwatW.c preshybW.c pressigW.c probtestW.c  \
+        randomW.c rcmW.c regcoefW.c relhumW.c remapW.c rhombtriW.c                      \
+        shgridW.c simpsonW.c sindexW.c slpW.c skewtW.c smth9W.c sortW.c                 \
+        specxW.c sph2W.c sphintW.c sstoiW.c statW.c svdW.c taperW.c                     \
+        tdpackW.c tempnamW.c trvsphW.c varimaxW.c vibetaW.c waveletW.c                  \
+        wgneW.c wmapW.c writematrixW.c wrunaveW.c wrapper.c utilW.c wrfW.c              \
+        vinth2pW.c vinth2peW.c vintp2peW.c zonmpsiW.c z2geouvW.c stdatmusW.c ripW.c     \
+        lspolyW.c wgtvertbetaW.c dimavgwgtW.c studentW.c fft2dW.c                       \
+        sg_toolsW.c colconvW.c convert_datum.c cfftW.c wksmoothW.c dzheightW.c          \
+	covcormW.c kronprodW.c space_timeW.c spcorrW.c  bindataW.c tropwmoW.c pdfW.c    \
+	mocloopsW.c spanW.c vinth2pnodesW.c vinth2penodesW.c objanalW.c                 \
+	areaconremapW.c nctime.c cdtimeW.c dimnumrunW.c sparse_matrixW.c                \
+	gammaW.c gamfitW.c spiW.c oceanW.c dgeevxW.c areapolyW.c kolsm2W.c              \
+	kmeansW.c thornW.c wrf_vinterpW.c wrf_cloud_topW.c wrfwpsW.c speiW.c spei_func.c \
+	auxiliary.c lmoments.c pdfs.c  thornthwaite.c  wetbulbW.c mlegevW.c 		\
+	wrf_cloud_fracW.c kdeW.c
+
+COBJS = areavolW.o betaincW.o bytesW.o calcorcW.o cancorW.o cdf_dpW.o chiinvW.o         \
+        conformW.o csagridW.o cssgridW.o ctwrapW.o cz2ccmW.o datesW.o                   \
+        drwvctc.o dsgridW.o dtrendW.o echoW.o eofW.o erfW.o extaperW.o ezfftW.o         \
+        finitediffW.o filterxW.o fitgridW.o fluxEddyW.o fourinfoW.o gausW.o             \
+        gtripleW.o hydroW.o hyi2hyoW.o indW.o int2pW.o invmatrixW.o                     \
+        julGregW.o linint2W.o linmsgW.o linroodW.o locminmaxW.o mapgciW.o               \
+        mixhumW.o natgridW.o ncolorW.o nglogoW.o ngmiscW.o nicevalsW.o                  \
+        omcalc_ccmW.o outputgif.o paleoW.o prcwatW.o preshybW.o pressigW.o probtestW.o  \
+        randomW.o rcmW.o regcoefW.o relhumW.o remapW.o rhombtriW.o                      \
+        shgridW.o simpsonW.o sindexW.o slpW.o skewtW.o smth9W.o sortW.o                 \
+        specxW.o sph2W.o sphintW.o sstoiW.o statW.o svdW.o taperW.o                     \
+        tdpackW.o tempnamW.o trvsphW.o varimaxW.o vibetaW.o waveletW.o                  \
+        wgneW.o wmapW.o writematrixW.o wrunaveW.o wrapper.o utilW.o wrfW.o              \
+        vinth2pW.o vinth2peW.o vintp2peW.o zonmpsiW.o z2geouvW.o stdatmusW.o ripW.o     \
+        lspolyW.o wgtvertbetaW.o dimavgwgtW.o studentW.o fft2dW.o poissonW.o            \
+        sg_toolsW.o colconvW.o convert_datum.o cfftW.o wksmoothW.o dzheightW.o          \
+	covcormW.o kronprodW.o space_timeW.o spcorrW.o bindataW.o tropwmoW.o pdfW.o     \
+	mocloopsW.o spanW.o vinth2pnodesW.o vinth2penodesW.o objanalW.o                 \
+	areaconremapW.o	nctime.o cdtimeW.o dimnumrunW.o sparse_matrixW.o 		\
+	gammaW.o gamfitW.o spiW.o oceanW.o dgeevxW.o areapolyW.o kolsm2W.o		\
+	bfilterW.o weibullW.o trendmankenW.o determinantW.o fftshiftW.o thornW.o	\
+	kmeansW.o wrf_vinterpW.o wrf_cloud_topW.o wrfwpsW.o speiW.o spei_func.o		\
+	auxiliary.o lmoments.o pdfs.o  thornthwaite.o  wetbulbW.o mlegevW.o 		\
+	wrf_cloud_fracW.o kdeW.o
+
+OBJS = $(COBJS) $(UDUNITS_OBJS) $(V5D_OBJS) $(ESMF_OBJS) $(KML_OBJS) $(EEMD_OBJS)
+SRCS = $(CSRCS) $(UDUNITS_SRCS) $(V5D_SRCS) $(ESMF_SRCS) $(KML_SRCS) $(EEMD_SRCS)
+
+BuildSharedLibTarget(libNGnfp,$(OBJS),1,0,$(NCARGLIB) $(NCARGGKSLIB) $(NCARGCLIB) $(CTOFLIBS) -lm -lc)
+LibraryTarget($(MYNAME),$(OBJS))
+BuildIncludes($(HDRS),ncarg/nfp,../..)
+DependTarget($(SRCS))
+
+#if defined(Linux)
+wrfW.o: wrfW.c
+        $(CC) $(CCOPTIONS) $(ALLDEFINES) -g -c wrfW.c
+#endif
+
