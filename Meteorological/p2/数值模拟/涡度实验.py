@@ -72,7 +72,7 @@ info_u = xr.open_dataset(r"D:/PyFile/p2/data/U.nc")['u']
 info_v = xr.open_dataset(r"D:/PyFile/p2/data/V.nc")['v']
 info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_z['lat'], lon=info_z['lon'])['sst']
 
-## 东部型
+'''## 东部型
 K_series = K_type.sel(type=1)['K'].data
 K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
 K_series = (K_series - np.mean(K_series))/np.std(K_series)
@@ -91,16 +91,16 @@ K_series = K_type.sel(type=2)['K'].data
 K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
 K_series = (K_series - np.mean(K_series))/np.std(K_series)
 #### NAO
-zone_corr = [360-80, 360-15, 50, 0]
+zone_corr = [360-70, 360-35, 50, 30]
 corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
 time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
                 -info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
                *corr_NPW).mean(['lat', 'lon']).to_numpy()
 time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1), range(len(time_series)))  # 去除线性趋势
 time_series = (time_series - np.mean(time_series))/np.std(time_series)
-zone = [360-80, 360-15, 60, 0] #NAO'''
+zone = [360-80, 360-35, 55, 30] #NAO'''
 
-'''## 西部型
+## 西部型
 K_series = K_type.sel(type=3)['K'].data
 K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
 K_series = (K_series - np.mean(K_series))/np.std(K_series)
@@ -112,10 +112,10 @@ time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zo
                *corr_NPW).mean(['lat', 'lon']).to_numpy()
 time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1), range(len(time_series)))  # 去除线性趋势
 time_series = (time_series - np.mean(time_series))/np.std(time_series)
-zone = [360-70, 360-20, 55, 10] #'''
+zone = [360-70, 360-20, 50, 15] #'''
 
 #############
-K_series = time_series
+#K_series = time_series
 z1000 = np.nan_to_num(regress(K_series, info_z.sel(level=1000).data), nan=0)
 z850 = np.nan_to_num(regress(K_series, info_z.sel(level=850).data), nan=0)
 z500 = np.nan_to_num(regress(K_series, info_z.sel(level=500).data), nan=0)

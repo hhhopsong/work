@@ -468,7 +468,7 @@ def interp3d_lbm(data, coor_sys='sigma', lat_num=64, lon_num=128, level_num=20):
     :param lat_num: int, LBM模式纬向格点数
     :param lon_num: int, LBM模式经向格点数
     :param level_num: int, LBM模式垂直层数
-    :param data: xr.DataArray, 自定义强迫场数据, 数据顺序为(lev, lat, lon), lev为P坐标系, 注意数量级!
+    :param data: xr.DataArray, 自定义强迫场数据, 数据顺序为(lev, lat, lon), lev为P坐标系, 时间单位为日, 注意数量级!
     :return: np.array, 插值后的数据(温馨提示:最后导入lbm的nc文类型为 NETCDF3_CLASSIC)
     """
     ## time只有一维[np.array([0], dtype=int64)]

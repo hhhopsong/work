@@ -328,7 +328,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     _api.check_in_list(['both', 'forward', 'backward'], integration_direction=integration_direction)
     grains = 1
     grid = Grid(x, y)
-    mask = StreamMask(10)
+    mask = StreamMask(0.1)
     dmap = DomainMap(grid, mask)
 
     if zorder is None:

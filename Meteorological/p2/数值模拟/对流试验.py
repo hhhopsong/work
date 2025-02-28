@@ -25,6 +25,7 @@ from toolbar.LBM.force_file import horizontal_profile as hp
 from toolbar.LBM.force_file import vertical_profile as vp
 from toolbar.LBM.force_file import mk_grads, mk_wave, interp3d_lbm
 from toolbar.significance_test import corr_test
+from toolbar.lonlat_transform import transform as lonlat_trs
 
 
 # 多核计算部分函数
@@ -85,16 +86,30 @@ def regress(time_series, data):
     return regression_map
 
 if __name__ == '__main__':
-    info_t = xr.open_dataset(r"E:\data\self\q1_1961-2024.nc").sel(time=slice('1961-01-01', '2022-12-31'))
-    info_t = info_t.sel(time=info_t['time.month'].isin([7, 8])).groupby('time.year').mean('time')['q']
-    info_pre = xr.open_dataset(r"D:/PyFile/p2/data/pre.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['pre']
-    info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_t['lat'], lon=info_t['lon'])['sst']
+    #info_t = xr.open_dataset(r"E:\data\self\q1_1961-2024.nc").sel(time=slice('1961-01-01', '2022-12-31'))['q']
+    info_t = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\single_var\t_budget_1961_2022.nc").sel(time=slice('1961-01-01', '2022-12-31'))['Q']
+    info_t = info_t.sel(time=info_t['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+    info_pre = xr.open_dataset(r"D:/PyFile/p2/data/pre.nc").interp(lat=info_t['lat'], lon=info_t['lon'], kwargs={"fill_value": "extrapolate"})['pre']
+    info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_t['lat'], lon=info_t['lon'], kwargs={"fill_value": "extrapolate"})['sst']
     K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
 
-    K_series = K_type.sel(type=1)['K'].data #东部型
+    '''K_series = K_type.sel(type=1)['K'].data #东部型
     K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
-    zone_corr = [120, 360-80, 20, -10] # 拉尼娜
+    zone_corr = [-80, 15, 20, -10]
+    info_sst = lonlat_trs(info_sst, type='360->180')
+    info_t = lonlat_trs(info_t, type='360->180')
+    info_pre = lonlat_trs(info_pre, type='360->180')
+    corr_NPW = regress(K_series,  info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+                    - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
+                   * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
+                                           range(len(time_series)))  # 去除线性趋势
+    time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    zone = [-110, 10, 25, -5]  # 热带大西洋'''
+
+    '''zone_corr = [120, 360-80, 10, -10] # 拉尼娜
     corr_NPW = corr(K_series,
                     info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
     time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
@@ -104,12 +119,12 @@ if __name__ == '__main__':
     time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
                                            range(len(time_series)))  # 去除线性趋势
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [140, 360 - 80, 20, -20] #拉尼娜'''
+    zone = [80, 360 - 110, 10, -10] #拉尼娜'''
 
     '''K_series = K_type.sel(type=2)['K'].data #全局一致型
     K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
-    zone_corr = [170, 360-70, 10, -30] #  印度洋对流
+    zone_corr = [55, 83, 10, -10] #  印度洋对流
     corr_NPW = corr(K_series,
                     info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
     time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
@@ -119,14 +134,24 @@ if __name__ == '__main__':
     time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
                                            range(len(time_series)))  # 去除线性趋势
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [50, 360 - 80, 10, -10]  # 拉尼娜'''
-
-    '''## 西部型
+    zone = [55, 83, 10, -10]  # 印度洋对流!!!!!!!!!!!!!!!!!印度洋对流不要进行单层平均！使用逐点垂直结构!!!!!
+    zone_corr = [120, 360-80, 10, -10]  # 东强的拉尼娜
+    corr_NPW = corr(K_series,
+                    info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+                    - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
+                ['year']))
+                   * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
+                                           range(len(time_series)))  # 去除线性趋势
+    time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    zone = [120, 360-80, 10, -10]  # 对应对流'''
+    ## 西部型
     K_series = K_type.sel(type=3)['K'].data
     K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
     #### 厄尔尼诺
-    zone_corr = [180, 360 - 70, 10, -10]  # 厄尔尼诺
+    zone_corr = [80, 145, 10, -10]  # 海洋性大陆对流异常
     corr_NPW = corr(K_series,
                     info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
     time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
@@ -136,12 +161,14 @@ if __name__ == '__main__':
     time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
                                            range(len(time_series)))  # 去除线性趋势
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [55, 360 - 80, 13, -13]  # 厄尔尼诺'''
+    zone = [80, 145, 10, -10]  # 厄尔尼诺'''
 
 
     #################
-    K_series = time_series
-    ols = time_series  # 读取缓存
+    #K_series = time_series
+    ols = K_series  # 读取缓存
+    #corr_weight = regress(K_series, info_pre.data)
+    #corr_weight_1times = 1 / np.nanmean(np.abs(regress(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
     corr_weight = regress(K_series, info_pre.data)
     corr_weight_1times = 1 / np.nanmean(np.abs(regress(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
     corr_weight = corr_weight * corr_weight_1times
@@ -159,13 +186,13 @@ if __name__ == '__main__':
                              'lat': info_t['lat'],
                              'lon': info_t['lon']})
 
-    #各个格点在垂直层次上归一化
-    frc['t'] = np.abs(frc['t']) / np.abs(frc['t']).max(dim='lev')
+    #各个格点在垂直层次上进行局域平均
+    #frc['t'] = frc['t'] / frc['t'] * np.abs(frc['t'].sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3]))).mean(['lon', 'lat'])
 
     # 读取强迫场
     # 选择45-90N，35W-35E的区域
 
-    T = frc * corr_weight * units('K')
+    T = frc * corr_weight * 86400. * units('K/day')
     lon, lat = np.meshgrid(frc['lon'], frc['lat'])
     mask = (
             (np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
@@ -179,7 +206,8 @@ if __name__ == '__main__':
             )
 
     T_mask = T.where(mask != 0, 0)
-
+    if np.nanmin(T_mask['lon']) < 0:
+        T_mask = lonlat_trs(T_mask, type='180->360')
     frc_nc_sigma = interp3d_lbm(T_mask)
     frc_nc_p = interp3d_lbm(T_mask, 'p')
     # 绘图

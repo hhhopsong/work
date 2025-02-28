@@ -3,16 +3,24 @@ import numpy as np
 from scipy import signal, stats
 from toolbar.masked import masked
 from toolbar.significance_test import r_test
+import salem
 
 t2m = xr.open_dataset(r"D:\PyFile\p2\data\t2m_78.nc")
-weight = xr.open_dataset(r"D:\PyFile\p2\data\Tavg_weight.nc")
-weight = masked(weight, r"D:\PyFile\map\self\长江_TP\长江_tp.shp")
-weight = weight.where(weight['W'] > 0, np.nan)
-weight_anomaly = weight - weight.mean(['lat', 'lon'])
-t2m_interp = t2m.interp(lon=weight.lon, lat=weight.lat)
+# 区域1选择 (25, 100) (35, 100) (35, 120)构成的三角区域
+triangle_geojson = {
+    "type": "Polygon",
+    "coordinates": [[[100, 25], [100, 35], [120, 35], [100, 25]]]
+}
+lon_grid, lat_grid = np.meshgrid(t2m.lon, t2m.lat)
+mask = xr.DataArray(
+    t_path.contains_points(np.vstack([lon_grid.ravel(), lat_grid.ravel()]).T).reshape(lon_grid.shape),
+    dims=['lat', 'lon'],
+    coords={'lat': t2m.lat, 'lon': t2m.lon}
+)
+t2m_region1 = t2m.where(mask)
+
+
 # t2m去趋势
-t2m_detrend = t2m_interp - t2m_interp.mean('year')
-t2m_detrend = signal.detrend(t2m_detrend['t2m'], axis=0, type='linear')
 t2m_weight = np.array([(t2m_detrend * weight_anomaly['W'].sel(type=1).to_numpy()),
                        (t2m_detrend * weight_anomaly['W'].sel(type=2).to_numpy()),
                        (t2m_detrend * weight_anomaly['W'].sel(type=3).to_numpy())
