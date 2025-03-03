@@ -184,8 +184,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         是否重新插值网格
     *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
         矢量向前、向后或双向绘制。
-    *scale_unit* : {'relative', 'absolute'}, default: 'both'
-        矢量单位相对，或者绝对(单位一)。
     *mode* : {'loose', 'strict'}, default: 'loose'
         流线边界绘制模式.
         'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
@@ -283,6 +281,9 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     # 获取axes范围
     try:
         extent = axes.get_extent()
+        extent = np.array(extent)
+        extent[0] += center_lon
+        extent[1] += center_lon
     except AttributeError:
         extent = axes.get_xlim() + axes.get_ylim()
 
