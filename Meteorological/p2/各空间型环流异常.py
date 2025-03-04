@@ -15,24 +15,31 @@ from matplotlib.ticker import MultipleLocator
 from toolbar.curved_quivers.modplot import *
 from toolbar.significance_test import r_test
 
+nanmax = None
 def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
-    global lev_t
+    global lev_t, nanmax
     ax = fig.add_subplot(pic_loc, projection=ccrs.PlateCarree(central_longitude=180-70))
     ax.set_title(f'{str(picloc)[2]}) Type{str(picloc)[2]}', loc='left', fontsize=10)
+    ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
     contf = ax.contourf(t2m['lon'], t2m['lat'], corr_t2m[0], cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
                         levels=lev_t, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
     # 显著性打点
-    p_test = np.where(corr_t2m[1] >= r_test(62), 0, np.nan)
-    p = ax.quiver(t2m['lon'], t2m['lat'], p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=30, color='w')
+    p_test = np.where(np.abs(corr_t2m[1]) >= r_test(62), 0, np.nan)
+    p = ax.quiver(t2m['lon'], t2m['lat'], p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=60, color='k', scale=20, headlength=2, headaxislength=2)
     cont = ax.contour(lon, lat, corr_z[0], colors='red', levels=[2, 4, 6], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
     cont_ = ax.contour(lon, lat, corr_z[0], colors='blue', levels=[-6, -4, -2], linestyles='--', linewidths=0.4,
                        transform=ccrs.PlateCarree(central_longitude=0))
     cont.clabel(inline=1, fontsize=4)
     cont_.clabel(inline=1, fontsize=4)
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
-    Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.25, regrid=60, color='black',)
-    Cq.key(fig, U=.1, label='0.1 m/s', ud=0.4)
-    ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
+    if nanmax:
+        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.3,
+                         regrid=15, color='black', transform=ccrs.PlateCarree(central_longitude=0), nanmax=nanmax)
+    else:
+        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.3,
+                         regrid=15, color='black', transform=ccrs.PlateCarree(central_longitude=0))
+    Cq.key(fig, U=.3, label='0.3 m/s', color='k')
+    nanmax = Cq.nanmax
     ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
     ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
@@ -135,7 +142,8 @@ lev_t = np.array([-.05, -.04, -.03, -.02, -.01, -.005, .005, .01, .02, .03, .04,
 for i in K_type['type']:
     picloc = int(100 + len(K_type['type'])*10 + i)
     time_ser = K_type.sel(type=i)['K'].data
-    time_ser = time_ser - np.polyval(np.polyfit(range(len(time_ser)), time_ser, 1), range(len(time_ser)))
+    if i == 2:
+        time_ser = time_ser - np.polyval(np.polyfit(range(len(time_ser)), time_ser, 1), range(len(time_ser)))
     reg_K_u = regress(time_ser, uvz['u'].data)
     reg_K_v = regress(time_ser, uvz['v'].data)
     reg_K_z = regress(time_ser, uvz['z'].data)
@@ -143,7 +151,7 @@ for i in K_type['type']:
     contourfs = pic(fig, picloc, uvz['lat'], uvz['lon'], reg_K_u, reg_K_v, reg_K_z, reg_K_t2m)
 
 # 添加全局colorbar  # 为colorbar腾出空间
-cbar_ax = fig.add_axes([0.25, 0.38, 0.5, 0.02]) # [left, bottom, width, height]
+cbar_ax = fig.add_axes([0.25, 0.38, 0.5, 0.01]) # [left, bottom, width, height]
 cbar = fig.colorbar(contourfs, cax=cbar_ax, orientation='horizontal', drawedges=True)
 cbar.locator = ticker.FixedLocator(lev_t)
 cbar.set_ticklabels([str(i) for i in lev_t])
