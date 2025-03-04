@@ -291,37 +291,55 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         # 将网格插值为正方形等间隔网格
         U = RegularGridInterpolator((y, x), u, method='linear')
         V = RegularGridInterpolator((y, x), v, method='linear')
-        # 裁剪绘制区域的数据
-        x_extent = np.where((x >= extent[0]) & (x < extent[1]))[0]
-        y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
-        x = x[x_extent]
-        y = y[y_extent]
-        if np.abs(x[1] + 360 - x[-2]) < 20:
-            x = np.linspace(-180, 180, regrid)
+        ## 裁剪绘制区域的数据->得到正确的regird
+        if extent[1] > 180:
+            x_extent = np.where((x >= extent[0]) | (x < (extent[1] - 360)))[0]
+            y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
         else:
-            x = np.linspace(x[1], x[-2], regrid)
-        x = np.linspace(x[0], x[-1], regrid)
-        y = np.linspace(y[0], y[-1], regrid)
+            x_extent = np.where((x >= extent[0]) & (x < extent[1]))[0]
+            y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+        x_zone = x[x_extent]
+        y_zone = y[y_extent]
+        x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid)[0] - np.linspace(x_zone[0], x_zone[-1], regrid)[1])
+        y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid)[0] - np.linspace(y_zone[0], y_zone[-1], regrid)[1])
         center_lon -= 180
-        if np.abs(x[0] - x[1]) < np.abs(y[0] - y[1]):
-            x = np.arange(x[0], x[-1], np.abs(x[0] - x[1]))
-            y = np.arange(y[0], y[-1], np.abs(x[0] - x[1]))
+        if x_delta < y_delta:
+            x = np.arange(x[0], x[-1], x_delta)
+            y = np.arange(y[0], y[-1], x_delta)
             x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]]) # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
+            zone_scale = np.abs(x_zone[0] - x_zone[-1]) / np.abs(x[0] - x[-1]) # 区域裁剪对风矢的缩放比例
         else:
-            x = np.arange(x[0], x[-1], np.abs(y[0] - y[1]))
-            y = np.arange(y[0], y[-1], np.abs(y[0] - y[1]))
+            x = np.arange(x[0], x[-1], y_delta)
+            y = np.arange(y[0], y[-1], y_delta)
             x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])  # 将center_lon在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
+            zone_scale = np.abs(y_zone[0] - y_zone[-1]) / np.abs(y[0] - y[-1]) # 区域裁剪对风矢的缩放比例
+    else:
+        raise ValueError('regrid 必须为整数')
+
+    # 裁剪绘制区域的数据->得到正确的绘制地区
+    if extent[1] > 180:
+        x_extent = np.where((x >= extent[0]) | (x < (extent[1] - 360)))[0]
+        y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+    else:
+        x_extent = np.where((x >= extent[0]) & (x < extent[1]))[0]
+        y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+    x_zone = np.zeros((len(x)))
+    y_zone = np.zeros((len(y)))
+    x_zone[x_extent] = 1.
+    y_zone[y_extent] = 1.
+    u = u * x_zone * y_zone[:, np.newaxis]
+    v = v * x_zone * y_zone[:, np.newaxis]
 
     # 风速归一化
-    wind = np.sqrt(u ** 2 + v ** 2)     # scale缩放
+    wind = np.ma.sqrt(u ** 2 + v ** 2)     # scale缩放
     nanmax = np.nanmax(wind) if nanmax == None else nanmax
-    wind_shrink = 1 / nanmax / scale
+    wind_shrink = 1 / nanmax / scale * zone_scale
     u = u * wind_shrink
     v = v * wind_shrink
 
@@ -329,7 +347,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     _api.check_in_list(['both', 'forward', 'backward'], integration_direction=integration_direction)
     grains = 1
     grid = Grid(x, y)
-    mask = StreamMask(0.1)
+    mask = StreamMask(10)
     dmap = DomainMap(grid, mask)
 
     if zorder is None:
@@ -377,7 +395,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
 
     u = np.ma.masked_invalid(u)
     v = np.ma.masked_invalid(v)
-    magnitude = np.sqrt(u**2 + v**2)
+    magnitude = np.ma.sqrt(u**2 + v**2)
     #magnitude /= np.nanmax(magnitude)
 	
     resolution = 47666666e-8 # 分辨率(最小可分辨度为47666666e-8)
