@@ -258,25 +258,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     except:
         pass
 
-    if lon_trunc is None:
-        lon_trunc = 180
-        warnings.warn('截断经度未设置,可能会导致箭头异常!(Default:180)', UserWarning)
-
-    # 经纬度重排列为-180~0~180
-    if x[-1] > 180:
-        u = np.concatenate([u[:, np.argmax(x > 180):], u[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
-        v = np.concatenate([v[:, np.argmax(x > 180):], v[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
-        x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
-
-    # 环球插值
-    if x[0] + 360 != x[-1]:
-        u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
-        v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
-        x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
-    else:
-        u = np.concatenate([u[:, -2:-1], u, u[:, 1:2]], axis=1)
-        v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
-        x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
 
     # 获取axes范围
     try:
@@ -284,29 +265,55 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         extent = np.array(extent)
         extent[0] += center_lon
         extent[1] += center_lon
+        MAP = True
     except AttributeError:
         extent = axes.get_xlim() + axes.get_ylim()
+        MAP = False
+
+    if MAP:
+        # 经纬度重排列为-180~0~180
+        if x[-1] > 180:
+            u = np.concatenate([u[:, np.argmax(x > 180):], u[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
+            v = np.concatenate([v[:, np.argmax(x > 180):], v[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
+            x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
+
+        # 环球插值
+        if x[0] + 360 != x[-1]:
+            u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
+            v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
+            x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
+        else:
+            u = np.concatenate([u[:, -2:-1], u, u[:, 1:2]], axis=1)
+            v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
+            x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
 
     if regrid:
         # 将网格插值为正方形等间隔网格
         U = RegularGridInterpolator((y, x), u, method='linear')
         V = RegularGridInterpolator((y, x), v, method='linear')
         ## 裁剪绘制区域的数据->得到正确的regird
-        if extent[1] > 180:
-            x_extent = np.where((x >= extent[0]) | (x < (extent[1] - 360)))[0]
-            y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+        if MAP:
+            if extent[1] > 180:
+                x_extent = np.where((x >= extent[0]) | (x < (extent[1] - 360)))[0]
+                y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+            else:
+                x_extent = np.where((x >= extent[0]) & (x < extent[1]))[0]
+                y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+            x_zone = x[x_extent]
+            y_zone = y[y_extent]
+            x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid)[0] - np.linspace(x_zone[0], x_zone[-1], regrid)[1])
+            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid)[0] - np.linspace(y_zone[0], y_zone[-1], regrid)[1])
+            center_lon -= 180
         else:
-            x_extent = np.where((x >= extent[0]) & (x < extent[1]))[0]
-            y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
-        x_zone = x[x_extent]
-        y_zone = y[y_extent]
-        x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid)[0] - np.linspace(x_zone[0], x_zone[-1], regrid)[1])
-        y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid)[0] - np.linspace(y_zone[0], y_zone[-1], regrid)[1])
-        center_lon -= 180
+            x_zone = x
+            y_zone = y
+            x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid)[0] - np.linspace(x_zone[0], x_zone[-1], regrid)[1])
+            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid)[0] - np.linspace(y_zone[0], y_zone[-1], regrid)[1])
         if x_delta < y_delta:
             x = np.arange(x[0], x[-1], x_delta)
             y = np.arange(y[0], y[-1], x_delta)
-            x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]]) # 将lon_trunc在x居中
+            if MAP:
+                x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]]) # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
@@ -314,7 +321,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         else:
             x = np.arange(x[0], x[-1], y_delta)
             y = np.arange(y[0], y[-1], y_delta)
-            x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])  # 将center_lon在x居中
+            if MAP:
+                x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])  # 将center_lon在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
@@ -323,18 +331,30 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         raise ValueError('regrid 必须为整数')
 
     # 裁剪绘制区域的数据->得到正确的绘制地区
-    if extent[1] > 180:
-        x_extent = np.where((x >= extent[0]) | (x < (extent[1] - 360)))[0]
-        y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+    if MAP:
+        if extent[1] > 180:
+            x_extent = np.where((x >= extent[0]) | (x < (extent[1] - 360)))[0]
+            y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+        else:
+            x_extent = np.where((x >= extent[0]) & (x < extent[1]))[0]
+            y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
+        x_zone = np.zeros((len(x)))
+        y_zone = np.zeros((len(y)))
+        x_zone[x_extent] = 1.
+        y_zone[y_extent] = 1.
+        u = u * x_zone * y_zone[:, np.newaxis]
+        v = v * x_zone * y_zone[:, np.newaxis]
     else:
-        x_extent = np.where((x >= extent[0]) & (x < extent[1]))[0]
-        y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
-    x_zone = np.zeros((len(x)))
-    y_zone = np.zeros((len(y)))
-    x_zone[x_extent] = 1.
-    y_zone[y_extent] = 1.
-    u = u * x_zone * y_zone[:, np.newaxis]
-    v = v * x_zone * y_zone[:, np.newaxis]
+        # 非地图模式下，根据axes的xlim和ylim裁剪数据
+        x_extent = np.where((x >= extent[0]) & (x <= extent[1]))[0]
+        y_extent = np.where((y >= extent[2]) & (y <= extent[3]))[0]
+        if len(x_extent) > 0 and len(y_extent) > 0:
+            x_zone = np.zeros((len(x)))
+            y_zone = np.zeros((len(y)))
+            x_zone[x_extent] = 1.
+            y_zone[y_extent] = 1.
+            u = u * x_zone * y_zone[:, np.newaxis]
+            v = v * x_zone * y_zone[:, np.newaxis]
 
     # 风速归一化
     wind = np.ma.sqrt(u ** 2 + v ** 2)     # scale缩放
@@ -406,7 +426,11 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     
     if start_points is None:
         if regrid:
-            x_re = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])
+            if MAP:
+                x_re = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])
+            else:
+                # 非地图模式下，直接使用当前坐标范围
+                x_re = x
             X_re, Y_re = np.meshgrid(x_re, y)
             start_points = np.array([X_re.flatten(), Y_re.flatten()]).T
         else:
@@ -492,39 +516,34 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         zone_fix = np.array([360 / np.abs(extent[0] - extent[1]), 180 / np.abs(extent[2] - extent[3])]).min()  # 箭头偏移修正系数
         delta = delta / np.sqrt(delta[0] ** 2 + delta[1] ** 2) / zone_fix
         arrow_end =  arrow_start + delta
-        a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0]  - lon_trunc
-        a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0]  - lon_trunc
-        a_start = a_start + 360 if a_start < -180 else a_start
-        a_end = a_end + 360 if a_end < -180 else a_end
-
-        '''# 箭头长度 格点-画布转换
-        arrow_x = a_start[0] - a_end[0]
-        arrow_y = a_start[1] - a_end[1]
-        arrow_length = np.sqrt(arrow_x ** 2 + arrow_y ** 2)
-        arrow_x = arrow_x / arrow_length * arrowsize * 2
-        arrow_y = arrow_y / arrow_length * arrowsize * 2
-        a_start = np.array([a_end[0] + arrow_x, a_end[1] + arrow_y])'''
-
-        # 网格偏移避免异常箭头
-        if np.abs(a_start - a_end) < 90:
-            if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]):
-                arrow_start = [arrow_start[0] - a_start * 1.01, arrow_start[1] - a_start * delta[1] / delta[0] * 1.01]
-                arrow_end =  [arrow_end[0] - a_start * 1.01, arrow_end[1] - a_start * delta[1] / delta[0] * 1.01]
         arrow_head = [arrow_start[0], arrow_start[1]]
         arrow_tail = [arrow_end[0], arrow_end[1]]
+        if MAP:
+            a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0]  - lon_trunc
+            a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0]  - lon_trunc
+            a_start = a_start + 360 if a_start < -180 else a_start
+            a_end = a_end + 360 if a_end < -180 else a_end
 
-        # 防止出现纬度超过90度
-        if np.abs(arrow_head[1]) >= 90 or np.abs(arrow_tail[1]) >= 90:
-            error = np.argmax([np.abs(arrow_head[1]), np.abs(arrow_tail[1])])
-            error = [arrow_head[1], arrow_tail[1]][error]
-            if error > 0:
-                error -= (90 - 1e-5)
-                arrow_head = np.array([arrow_head[0], arrow_head[1] - error])
-                arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
-            else:
-                error -= (-90 + 1e-5)
-                arrow_head = np.array([arrow_head[0], arrow_head[1] - error])
-                arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
+            # 网格偏移避免异常箭头
+            if np.abs(a_start - a_end) < 90:
+                if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]):
+                    arrow_start = [arrow_start[0] - a_start * 1.01, arrow_start[1] - a_start * delta[1] / delta[0] * 1.01]
+                    arrow_end =  [arrow_end[0] - a_start * 1.01, arrow_end[1] - a_start * delta[1] / delta[0] * 1.01]
+            arrow_head = [arrow_start[0], arrow_start[1]]
+            arrow_tail = [arrow_end[0], arrow_end[1]]
+
+            # 防止出现纬度超过90度
+            if np.abs(arrow_head[1]) >= 90 or np.abs(arrow_tail[1]) >= 90:
+                error = np.argmax([np.abs(arrow_head[1]), np.abs(arrow_tail[1])])
+                error = [arrow_head[1], arrow_tail[1]][error]
+                if error > 0:
+                    error -= (90 - 1e-5)
+                    arrow_head = np.array([arrow_head[0], arrow_head[1] - error])
+                    arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
+                else:
+                    error -= (-90 + 1e-5)
+                    arrow_head = np.array([arrow_head[0], arrow_head[1] - error])
+                    arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
 
         if isinstance(linewidth, np.ndarray):
             line_widths = interpgrid(linewidth, tgx, tgy, masked=masked, mode=mode)[:-1]
@@ -564,7 +583,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     return stream_container, unit, nanmax
 
 	
-
 class StreamplotSet(object):
 
     def __init__(self, lines, arrows, **kwargs):
@@ -574,7 +592,6 @@ class StreamplotSet(object):
 
 # Coordinate definitions
 # ========================
-
 class DomainMap(object):
     """Map representing different coordinate systems.
 
@@ -636,7 +653,6 @@ class DomainMap(object):
     def undo_trajectory(self):
         self.mask._undo_trajectory()
         
-
 
 class Grid(object):
     """Grid of data."""
@@ -735,11 +751,8 @@ class StreamMask(object):
         #        raise InvalidIndexError
 
 
-
-
 # Integrator definitions
 #========================
-
 def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True, mode='loose'):
 
     # rescale velocity onto grid-coordinates for integrations.
@@ -1005,8 +1018,6 @@ def _gen_starting_points(x,y,grains):
     return seed_points.T
 
 
-
-
 def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5,
                  fontproperties={'size': 5}, lr=1., ud=1., width_shrink=1., height_shrink=1., arrowsize=1., edgecolor='k'):
     '''
@@ -1056,26 +1067,18 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
 
 if __name__ == '__main__':
     "test"
-    x = np.linspace(-180, 179.5, 361)
+    x = np.linspace(0, 359, 361)
     y = np.linspace(-90, 90, 180)
     Y, X = np.meshgrid(y, x)
     U = np.random.randn(361, 180).T
     # 生成一个X大小的随机矩阵
     V = np.random.randn(361, 180).T
     #####
-    corr_mam = xr.open_dataset(r"D:/PyFile/p2/data/Corr_MAM.nc")
-    corr_u = corr_mam['corr_u']
-    corr_v = corr_mam['corr_v']
-    U = corr_u.sel(type=1, level=500)
-    V = corr_v.sel(type=1, level=500)
-    x = U['lon']
-    y = U['lat']
-    #####
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
-    ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(central_longitude=112.5))
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=50, center_lon=112.5,scale=20, color='gray', linewidth=0.2, arrowsize=.25)
+    ax1 = fig.add_subplot(121)
+    ax1.set_xlim(0, 360)
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=30, color='k', linewidth=0.2, arrowsize=.25)
     a1.key(fig, shrink=0.15)
     #设置中心经度
-    ax1.add_feature(cfeature.COASTLINE)
     plt.savefig('D:/PyFile/pic/test.png', dpi=600, bbox_inches='tight')
     plt.show()
