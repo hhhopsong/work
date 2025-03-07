@@ -270,6 +270,18 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         extent = axes.get_xlim() + axes.get_ylim()
         MAP = False
 
+    # 检测坐标系是否为非线性（如对数坐标）
+    is_x_log = False
+    is_y_log = False
+    try:
+        # 检查坐标轴的scale属性
+        x_scale = axes.xaxis.get_scale()
+        y_scale = axes.yaxis.get_scale()
+        is_x_log = (x_scale == 'log')
+        is_y_log = (y_scale == 'log')
+    except AttributeError:
+        pass
+
     if MAP:
         # 经纬度重排列为-180~0~180
         if x[-1] > 180:
@@ -307,26 +319,63 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         else:
             x_zone = x
             y_zone = y
+
+        # 根据坐标轴类型创建适当的网格
+        if is_x_log:
+            # 对数坐标下使用对数等间距点
+            x_min, x_max = np.nanmin(x_zone), np.nanmax(x_zone)
+            if x_min <= 0:  # 对数坐标不能有负值或零
+                x_min = np.min(x_zone[x_zone > 0])
+            x = np.logspace(np.log10(x_min), np.log10(x_max), regrid)
+        else:
+            # 线性坐标下使用线性等间距点
             x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid)[0] - np.linspace(x_zone[0], x_zone[-1], regrid)[1])
-            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid)[0] - np.linspace(y_zone[0], y_zone[-1], regrid)[1])
-        if x_delta < y_delta:
             x = np.arange(x[0], x[-1], x_delta)
-            y = np.arange(y[0], y[-1], x_delta)
+
+        if is_y_log:
+            # 对数坐标下使用对数等间距点
+            y_min, y_max = np.nanmin(y_zone), np.nanmax(y_zone)
+            if y_min <= 0:  # 对数坐标不能有负值或零
+                y_min = np.min(y_zone[y_zone > 0])
+            y = np.logspace(np.log10(y_min), np.log10(y_max), regrid)
+        else:
+            # 线性坐标下使用线性等间距点
+            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid)[0] - np.linspace(y_zone[0], y_zone[-1], regrid)[1])
+            y = np.arange(y[0], y[-1], y_delta)
+
+        # 确保x和y的间距比例适当
+        if not is_x_log and not is_y_log:
+            # 只有在两个轴都是线性时才应用原来的逻辑
+            if x_delta < y_delta:
+                y = np.arange(y[0], y[-1], x_delta)
+            else:
+                x = np.arange(x[0], x[-1], y_delta)
+
+        # 重新插值
+        if is_x_log or is_y_log:
+            X, Y = np.meshgrid(x, y)
+            # 对数坐标下使用更安全的插值方法
+            try:
+                u = U((Y, X), method='linear', bounds_error=False, fill_value=None)
+                v = V((Y, X), method='linear', bounds_error=False, fill_value=None)
+            except:
+                # 如果上面的方法失败，回退到原始方法
+                u = U((Y, X))
+                v = V((Y, X))
+        elif x_delta < y_delta:
             if MAP:
                 x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]]) # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
-            zone_scale = np.abs(x_zone[0] - x_zone[-1]) / np.abs(x[0] - x[-1]) # 区域裁剪对风矢的缩放比例
+            if MAP: zone_scale = np.abs(x_zone[0] - x_zone[-1]) / np.abs(x[0] - x[-1]) # 区域裁剪对风矢的缩放比例
         else:
-            x = np.arange(x[0], x[-1], y_delta)
-            y = np.arange(y[0], y[-1], y_delta)
             if MAP:
                 x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])  # 将center_lon在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
-            zone_scale = np.abs(y_zone[0] - y_zone[-1]) / np.abs(y[0] - y[-1]) # 区域裁剪对风矢的缩放比例
+            if MAP: zone_scale = np.abs(y_zone[0] - y_zone[-1]) / np.abs(y[0] - y[-1]) # 区域裁剪对风矢的缩放比例
     else:
         raise ValueError('regrid 必须为整数')
 
@@ -359,13 +408,17 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     # 风速归一化
     wind = np.ma.sqrt(u ** 2 + v ** 2)     # scale缩放
     nanmax = np.nanmax(wind) if nanmax == None else nanmax
-    wind_shrink = 1 / nanmax / scale * zone_scale
+    if MAP: wind_shrink = 1 / nanmax / scale * zone_scale
+    else: wind_shrink = 1 / nanmax / scale
     u = u * wind_shrink
     v = v * wind_shrink
 
     if regrid >= 50: warnings.warn('流线绘制格点过多，可能导致计算速度过慢!', RuntimeWarning)
     _api.check_in_list(['both', 'forward', 'backward'], integration_direction=integration_direction)
     grains = 1
+    # 由于对数坐标，在此对对应对数坐标进行处理
+    if is_x_log: x = np.log10(x)
+    if is_y_log: y = np.log10(y)
     grid = Grid(x, y)
     mask = StreamMask(10)
     dmap = DomainMap(grid, mask)
@@ -420,7 +473,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
 	
     resolution = 47666666e-8 # 分辨率(最小可分辨度为47666666e-8)
     minlength = .9*resolution
-    integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction, mode=mode)
+    integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction, mode=mode, axes_scale=[is_x_log, is_y_log])
     trajectories = []
     edges = []
     
@@ -486,6 +539,10 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         tx, ty = dmap.grid2data(*np.array(t))
         tx += grid.x_origin
         ty += grid.y_origin
+
+        # 对对数坐标进行解码处理
+        if is_x_log: tx = 10 ** tx
+        if is_y_log: ty = 10 ** ty
 
         points = np.transpose([tx, ty]).reshape(-1, 1, 2)
         streamlines.extend(np.hstack([points[:-1], points[1:]]))
@@ -753,7 +810,8 @@ class StreamMask(object):
 
 # Integrator definitions
 #========================
-def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True, mode='loose'):
+def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True, mode='loose', axes_scale=[False, False]):
+    axes_scale = axes_scale
 
     # rescale velocity onto grid-coordinates for integrations.
     u, v = dmap.data2grid(u, v)
@@ -767,12 +825,12 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         speed = speed / 2.
 
     def forward_time(xi, yi):
-        ds_dt = interpgrid(speed, xi, yi, masked=masked, mode=mode)
+        ds_dt = interpgrid(speed, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale)
         if ds_dt == 0:
             raise TerminateTrajectory()
         dt_ds = 1. / ds_dt
-        ui = interpgrid(u, xi, yi, masked=masked, mode=mode)
-        vi = interpgrid(v, xi, yi, masked=masked, mode=mode)
+        ui = interpgrid(u, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale)
+        vi = interpgrid(v, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale)
         return ui * dt_ds, vi * dt_ds
 
     def backward_time(xi, yi):
@@ -796,7 +854,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         dmap.start_trajectory(x0, y0)
 
         if integration_direction in ['both', 'backward']:
-            stotal_, x_traj_, y_traj_, m_total_, hit_edge = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude)
+            stotal_, x_traj_, y_traj_, m_total_, hit_edge = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude, axes_scale=[False, False])
             stotal += stotal_
             x_traj += x_traj_[::-1]
             y_traj += y_traj_[::-1]
@@ -804,7 +862,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
 
         if integration_direction in ['both', 'forward']:
             dmap.reset_start_point(x0, y0)
-            stotal_, x_traj_, y_traj_, m_total_, hit_edge = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude)
+            stotal_, x_traj_, y_traj_, m_total_, hit_edge = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude, axes_scale=[False, False])
             stotal += stotal_
             x_traj += x_traj_[1:]
             y_traj += y_traj_[1:]
@@ -818,8 +876,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
 
     return integrate
 
-
-def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='loose'):
+def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='loose', axes_scale=[False, False]):
     """2nd-order Runge-Kutta algorithm with adaptive step size.
 
     This method is also referred to as the improved Euler's method, or Heun's
@@ -863,11 +920,12 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     yf_traj = []
     m_total = []
     hit_edge = False
+    axes_scale = axes_scale
     
     while dmap.grid.within_grid(xi, yi):
         xf_traj.append(xi)
         yf_traj.append(yi)
-        m_total.append(interpgrid(magnitude, xi, yi, masked=masked, mode=mode))
+        m_total.append(interpgrid(magnitude, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale))
         try:
             k1x, k1y = f(xi, yi)
             k2x, k2y = f(xi + ds * k1x,
@@ -942,7 +1000,7 @@ def _euler_step(xf_traj, yf_traj, dmap, f):
 # 实用功能
 # ========================
 #####################插值过于宽松，增加一般模式，引入nan值，不将nan值看作0#####################
-def interpgrid(a, xi, yi, masked=True, mode='loose'):
+def interpgrid(a, xi, yi, masked=True, mode='loose', axes_scale=[False, False]):
     """Fast 2D, linear interpolation on an integer grid/整数网格上的快速二维线性插值"""
 
     Ny, Nx = np.shape(a)
@@ -969,8 +1027,8 @@ def interpgrid(a, xi, yi, masked=True, mode='loose'):
     a01 = a[y, xn]
     a10 = a[yn, x]
     a11 = a[yn, xn]
-    xt = xi - x
-    yt = yi - y
+    xt = xi - x if not axes_scale[0] else 10 ** xi - 10 ** x
+    yt = yi - y if not axes_scale[1] else 10 ** yi - 10 ** y
     if mode == 'loose':
         a0 = a00 * (1 - xt) + a01 * xt
         a1 = a10 * (1 - xt) + a11 * xt
