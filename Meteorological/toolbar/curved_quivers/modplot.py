@@ -289,21 +289,27 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             v = np.concatenate([v[:, np.argmax(x > 180):], v[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
             x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
 
-        # 环球插值
-        if x[0] + 360 != x[-1]:
-            u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
-            v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
-            x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
-        else:
-            u = np.concatenate([u[:, -2:-1], u, u[:, 1:2]], axis=1)
-            v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
-            x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
+    # 环球插值 # 可能造成边界流线错误！！
+    if x[0] + 360 != x[-1]:
+        u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
+        v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
+        x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
+    else:
+        u = np.concatenate([u[:, -2:-1], u, u[:, 1:2]], axis=1)
+        v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
+        x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
 
     if regrid:
         # 将网格插值为正方形等间隔网格
         U = RegularGridInterpolator((y, x), u, method='linear')
         V = RegularGridInterpolator((y, x), v, method='linear')
         ## 裁剪绘制区域的数据->得到正确的regird
+        if len(regrid) == 2:
+            regrid_x = regrid[0]
+            regrid_y = regrid[1]
+        else:
+            regrid_x = regrid
+            regrid_y = regrid
         if MAP:
             if extent[1] > 180:
                 x_extent = np.where((x >= extent[0]) | (x < (extent[1] - 360)))[0]
@@ -313,8 +319,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
             x_zone = x[x_extent]
             y_zone = y[y_extent]
-            x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid)[0] - np.linspace(x_zone[0], x_zone[-1], regrid)[1])
-            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid)[0] - np.linspace(y_zone[0], y_zone[-1], regrid)[1])
+            x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid_x)[0] - np.linspace(x_zone[0], x_zone[-1], regrid_x)[1])
+            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid_y)[0] - np.linspace(y_zone[0], y_zone[-1], regrid_y)[1])
             center_lon -= 180
         else:
             x_zone = x
@@ -326,10 +332,10 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             x_min, x_max = np.nanmin(x_zone), np.nanmax(x_zone)
             if x_min <= 0:  # 对数坐标不能有负值或零
                 x_min = np.min(x_zone[x_zone > 0])
-            x = np.logspace(np.log10(x_min), np.log10(x_max), regrid)
+            x = np.logspace(np.log10(x_min), np.log10(x_max), regrid_x)
         else:
             # 线性坐标下使用线性等间距点
-            x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid)[0] - np.linspace(x_zone[0], x_zone[-1], regrid)[1])
+            x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid_x)[0] - np.linspace(x_zone[0], x_zone[-1], regrid_x)[1])
             x = np.arange(x[0], x[-1], x_delta)
 
         if is_y_log:
@@ -337,16 +343,19 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             y_min, y_max = np.nanmin(y_zone), np.nanmax(y_zone)
             if y_min <= 0:  # 对数坐标不能有负值或零
                 y_min = np.min(y_zone[y_zone > 0])
-            y = np.logspace(np.log10(y_min), np.log10(y_max), regrid)
+            y = np.logspace(np.log10(y_min), np.log10(y_max), regrid_y)
         else:
             # 线性坐标下使用线性等间距点
-            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid)[0] - np.linspace(y_zone[0], y_zone[-1], regrid)[1])
+            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid_y)[0] - np.linspace(y_zone[0], y_zone[-1], regrid_y)[1])
             y = np.arange(y[0], y[-1], y_delta)
 
         # 确保x和y的间距比例适当
         if not is_x_log and not is_y_log:
             # 只有在两个轴都是线性时才应用原来的逻辑
-            if x_delta < y_delta:
+            if len(regrid) == 2:
+                x = np.arange(x[0], x[-1], x_delta)
+                y = np.arange(y[0], y[-1], y_delta)
+            elif x_delta < y_delta:
                 y = np.arange(y[0], y[-1], x_delta)
             else:
                 x = np.arange(x[0], x[-1], y_delta)
@@ -413,7 +422,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     u = u * wind_shrink
     v = v * wind_shrink
 
-    if regrid >= 50: warnings.warn('流线绘制格点过多，可能导致计算速度过慢!', RuntimeWarning)
+    if regrid_x * regrid_y >= 2000: warnings.warn('流线绘制格点过多，可能导致计算速度过慢!', RuntimeWarning)
     _api.check_in_list(['both', 'forward', 'backward'], integration_direction=integration_direction)
     grains = 1
     # 由于对数坐标，在此对对应对数坐标进行处理
@@ -613,8 +622,34 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             arrow_kw['color'] = cmap(norm(color_values[n]))
         
         if not edge:
+            # 将数据坐标转换为显示坐标
+            display_coords_head = axes.transData.transform(np.array([arrow_head]))
+            display_coords_tail = axes.transData.transform(np.array([arrow_tail]))
+            
+            # 计算方向向量
+            direction = display_coords_head[0] - display_coords_tail[0]
+            if np.sqrt(np.sum(direction**2)) == 0:
+                continue  # 避免零长度向量
+                
+            # 标准化方向向量
+            direction = direction / np.sqrt(np.sum(direction**2))
+            
+            # 设置箭头长度为arrowsize的倍数（这里使用10作为基础倍数，可以根据需要调整）
+            arrow_length = 1 * arrowsize
+            
+            # 计算新的箭头尾部坐标（头部保持不变）
+            new_tail_display = display_coords_head[0] - direction * arrow_length
+            
+            # 将显示坐标转回数据坐标
+            new_coords_data = axes.transData.inverted().transform(
+                np.vstack([display_coords_head[0], new_tail_display]))
+            
+            arrow_head_visual = new_coords_data[0].tolist()
+            arrow_tail_visual = new_coords_data[1].tolist()
+            
+            # 使用视觉一致的坐标创建箭头
             p = patches.FancyArrowPatch(
-                arrow_head, arrow_tail, transform=transform, **arrow_kw)
+                arrow_head_visual, arrow_tail_visual, transform=transform, **arrow_kw)
         else:
             continue
         
