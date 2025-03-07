@@ -42,7 +42,7 @@ def corr(time_series, data):
 # 数据读取
 sst = ersst("E:/data/NOAA/ERSSTv5/sst.mnmean.nc", 1960, 2023)  # NetCDF-4文件路径不可含中文
 PC = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_AverFiltAll0.9%_0.3%_3.nc").sel(type=3)['K'].data # 读取时间序列
-PC = PC - np.polyval(np.polyfit(range(len(PC)), PC, 1), range(len(PC))) # 去除线性趋势
+#PC = PC - np.polyval(np.polyfit(range(len(PC)), PC, 1), range(len(PC))) # 去除线性趋势
 PC = (PC - np.mean(PC)) / np.var(PC)
 # 截取sst数据为5N-5S，40E-80W
 time_data = [1961, 2022]

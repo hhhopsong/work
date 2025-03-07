@@ -34,11 +34,11 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
     if nanmax:
         Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.3,
-                         regrid=15, color='black', transform=ccrs.PlateCarree(central_longitude=0), nanmax=nanmax)
+                         regrid=15, color='#454545', nanmax=nanmax)
     else:
         Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.3,
-                         regrid=15, color='black', transform=ccrs.PlateCarree(central_longitude=0))
-    Cq.key(fig, U=.3, label='0.3 m/s', color='k')
+                         regrid=15, color='#454545')
+    Cq.key(fig, U=.1, label='0.1 m/s', color='k')
     nanmax = Cq.nanmax
     ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
     ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
@@ -138,6 +138,7 @@ t2m = t2m.transpose('year', 'lat', 'lon')
 t2m_clim = t2m.mean('year')
 
 fig = plt.figure(figsize=(10, 10))
+plt.subplots_adjust(wspace=0.1)
 lev_t = np.array([-.05, -.04, -.03, -.02, -.01, -.005, .005, .01, .02, .03, .04, .05])
 for i in K_type['type']:
     picloc = int(100 + len(K_type['type'])*10 + i)
@@ -158,5 +159,5 @@ cbar.set_ticklabels([str(i) for i in lev_t])
 cbar.ax.tick_params(labelsize=8, length=0)
 
 
-plt.savefig(r"D:\PyFile\p2\pic\图4.png", dpi=600, bbox_inches='tight')
+plt.savefig(r"D:\PyFile\p2\pic\图4.pdf", dpi=600, bbox_inches='tight')
 plt.show()
