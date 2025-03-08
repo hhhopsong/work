@@ -364,13 +364,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         if is_x_log or is_y_log:
             X, Y = np.meshgrid(x, y)
             # 对数坐标下使用更安全的插值方法
-            try:
-                u = U((Y, X), method='linear', bounds_error=False, fill_value=None)
-                v = V((Y, X), method='linear', bounds_error=False, fill_value=None)
-            except:
-                # 如果上面的方法失败，回退到原始方法
-                u = U((Y, X))
-                v = V((Y, X))
+            u = U((Y, X))
+            v = V((Y, X))
         elif x_delta < y_delta:
             if MAP:
                 x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]]) # 将lon_trunc在x居中
