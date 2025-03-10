@@ -299,12 +299,13 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
         x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
 
+    REGRID_LEN = 1 if isinstance(regrid, int) else len(regrid)
     if regrid:
         # 将网格插值为正方形等间隔网格
         U = RegularGridInterpolator((y, x), u, method='linear')
         V = RegularGridInterpolator((y, x), v, method='linear')
         ## 裁剪绘制区域的数据->得到正确的regird
-        if len(regrid) == 2:
+        if REGRID_LEN == 2:
             regrid_x = regrid[0]
             regrid_y = regrid[1]
         else:
@@ -352,7 +353,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         # 确保x和y的间距比例适当
         if not is_x_log and not is_y_log:
             # 只有在两个轴都是线性时才应用原来的逻辑
-            if len(regrid) == 2:
+            if REGRID_LEN == 2:
                 x = np.arange(x[0], x[-1], x_delta)
                 y = np.arange(y[0], y[-1], y_delta)
             elif x_delta < y_delta:
