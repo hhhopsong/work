@@ -618,34 +618,38 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             arrow_kw['color'] = cmap(norm(color_values[n]))
         
         if not edge:
-            # 将数据坐标转换为显示坐标
-            display_coords_head = axes.transData.transform(np.array([arrow_head]))
-            display_coords_tail = axes.transData.transform(np.array([arrow_tail]))
-            
-            # 计算方向向量
-            direction = display_coords_head[0] - display_coords_tail[0]
-            if np.sqrt(np.sum(direction**2)) == 0:
-                continue  # 避免零长度向量
-                
-            # 标准化方向向量
-            direction = direction / np.sqrt(np.sum(direction**2))
-            
-            # 设置箭头长度为arrowsize的倍数（这里使用10作为基础倍数，可以根据需要调整）
-            arrow_length = 1 * arrowsize
-            
-            # 计算新的箭头尾部坐标（头部保持不变）
-            new_tail_display = display_coords_head[0] - direction * arrow_length
-            
-            # 将显示坐标转回数据坐标
-            new_coords_data = axes.transData.inverted().transform(
-                np.vstack([display_coords_head[0], new_tail_display]))
-            
-            arrow_head_visual = new_coords_data[0].tolist()
-            arrow_tail_visual = new_coords_data[1].tolist()
-            
-            # 使用视觉一致的坐标创建箭头
-            p = patches.FancyArrowPatch(
-                arrow_head_visual, arrow_tail_visual, transform=transform, **arrow_kw)
+            if MAP:
+                p = patches.FancyArrowPatch(
+                    arrow_head, arrow_tail, transform=transform, **arrow_kw)
+            else:
+                # 将数据坐标转换为显示坐标
+                display_coords_head = axes.transData.transform(np.array([arrow_head]))
+                display_coords_tail = axes.transData.transform(np.array([arrow_tail]))
+
+                # 计算方向向量
+                direction = display_coords_head[0] - display_coords_tail[0]
+                if np.sqrt(np.sum(direction**2)) == 0:
+                    continue  # 避免零长度向量
+
+                # 标准化方向向量
+                direction = direction / np.sqrt(np.sum(direction**2))
+
+                # 设置箭头长度为arrowsize的倍数（这里使用10作为基础倍数，可以根据需要调整）
+                arrow_length = 1 * arrowsize
+
+                # 计算新的箭头尾部坐标（头部保持不变）
+                new_tail_display = display_coords_head[0] - direction * arrow_length
+
+                # 将显示坐标转回数据坐标
+                new_coords_data = axes.transData.inverted().transform(
+                    np.vstack([display_coords_head[0], new_tail_display]))
+
+                arrow_head_visual = new_coords_data[0].tolist()
+                arrow_tail_visual = new_coords_data[1].tolist()
+
+                # 使用视觉一致的坐标创建箭头
+                p = patches.FancyArrowPatch(
+                    arrow_head_visual, arrow_tail_visual, transform=transform, **arrow_kw)
         else:
             continue
         
