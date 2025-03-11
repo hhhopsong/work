@@ -320,8 +320,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 y_extent = np.where((y >= extent[2]) & (y < extent[3]))[0]
             x_zone = x[x_extent]
             y_zone = y[y_extent]
-            x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid_x)[0] - np.linspace(x_zone[0], x_zone[-1], regrid_x)[1])
-            y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid_y)[0] - np.linspace(y_zone[0], y_zone[-1], regrid_y)[1])
             center_lon -= 180
         else:
             x_zone = x
@@ -337,7 +335,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         else:
             # 线性坐标下使用线性等间距点
             x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid_x)[0] - np.linspace(x_zone[0], x_zone[-1], regrid_x)[1])
-            x = np.arange(x[0], x[-1], x_delta)
+            x = np.arange(x[0], x[-1] + .1, x_delta)
 
         if is_y_log:
             # 对数坐标下使用对数等间距点
@@ -348,18 +346,18 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         else:
             # 线性坐标下使用线性等间距点
             y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid_y)[0] - np.linspace(y_zone[0], y_zone[-1], regrid_y)[1])
-            y = np.arange(y[0], y[-1], y_delta)
+            y = np.arange(y[0], y[-1] + .1, y_delta)
 
         # 确保x和y的间距比例适当
         if not is_x_log and not is_y_log:
             # 只有在两个轴都是线性时才应用原来的逻辑
             if REGRID_LEN == 2:
-                x = np.arange(x[0], x[-1], x_delta)
-                y = np.arange(y[0], y[-1], y_delta)
+                x = np.arange(x[0], x[-1] + .1, x_delta)
+                y = np.arange(y[0], y[-1] + .1, y_delta)
             elif x_delta < y_delta:
-                y = np.arange(y[0], y[-1], x_delta)
+                y = np.arange(y[0], y[-1] + .1, x_delta)
             else:
-                x = np.arange(x[0], x[-1], y_delta)
+                x = np.arange(x[0], x[-1] + .1, y_delta)
 
         # 重新插值
         if is_x_log or is_y_log:
