@@ -91,14 +91,14 @@ K_series = K_type.sel(type=2)['K'].data
 K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
 K_series = (K_series - np.mean(K_series))/np.std(K_series)
 #### NAO
-zone_corr = [360-70, 360-35, 50, 30]
+zone_corr = [360-70, 360-30, 55, 30]
 corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
 time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
                 -info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
                *corr_NPW).mean(['lat', 'lon']).to_numpy()
 time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1), range(len(time_series)))  # 去除线性趋势
 time_series = (time_series - np.mean(time_series))/np.std(time_series)
-zone = [360-80, 360-35, 55, 30] #NAO'''
+zone = [360-70, 360-30, 55, 30] #NAO'''
 
 ## 西部型
 K_series = K_type.sel(type=3)['K'].data
@@ -156,6 +156,7 @@ for i in [1000, 850, 500, 200, 150, 100]:
 
 vor = xr.Dataset({'v':(['lev', 'lat', 'lon'], np.where(np.isnan(vor), 0, vor))},
                     coords={'lev': [1000, 850, 500, 200, 150, 100], 'lat': info_z['lat'], 'lon': info_z['lon']})
+
 
 lon, lat = np.meshgrid(frc['lon'], frc['lat'])
 ########################################

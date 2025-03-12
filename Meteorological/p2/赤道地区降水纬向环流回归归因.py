@@ -16,6 +16,7 @@ from toolbar.data_read import *
 from toolbar.lonlat_transform import *
 
 
+
 def regress(time_series, data):
     # 将 data 重塑为二维：时间轴为第一个维度
     reshaped_data = data.reshape(len(time_series), -1)
@@ -58,11 +59,38 @@ Terrain = transform(Terrain, lon_name='lon', type='180->360')
 Terrain_ver = np.array(Terrain)
 Terrain_ver = 1013 * (1 - 6.5/288000 * Terrain_ver)**5.255
 lon_Terrain = Terrain.lon
-for i in range(len(K_type['type'])):
+
+## 全区一致型
+K_series = K_type.sel(type=2)['K'].data
+K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
+K_series = (K_series - np.mean(K_series))/np.std(K_series)
+#### 印度洋降水
+zone = [53, 83, 10, -10]
+Pre_ = xr.open_dataset(r"D:/PyFile/p2/data/pre.nc")['pre']
+corr_NPW = regress(K_series, Pre_.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)[0]
+time_series = ((Pre_.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3]))
+                - Pre_.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).mean(['year']))
+               *corr_NPW).mean(['lat', 'lon']).to_numpy()
+time_series1 = (time_series - np.mean(time_series))/np.std(time_series)
+
+## 西部型
+K_series = K_type.sel(type=3)['K'].data
+K_series = (K_series - np.mean(K_series))/np.std(K_series)
+zone = [-45, 10, 15, 0] # 大西洋干旱
+Pre_ = transform(Pre_, type='360->180')
+corr_LN = regress(K_series, Pre_.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)[0]
+time_series = ((Pre_.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3]))- Pre_.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).mean(['year']))*corr_LN).mean(['lat', 'lon']).to_numpy()
+time_series2 = (time_series - np.mean(time_series))/np.std(time_series)
+Pre_ = transform(Pre_, type='180->360')
+
+K1, K2 = time_series1, time_series2
+K_ = xr.Dataset({'K': (['type', 'time'], np.array([K1, K2]))},
+               coords={'type': [1, 2], 'time': Pre['year'].data})
+
+
+for i in range(len(K_['type'])):
     fig = plt.figure(figsize=(16, 9))
-    K = K_type['K'].sel(type=i+1).data
-    if i == 1: K = K - np.polyval(np.polyfit(range(len(K)), K, 1), range(len(K)))  # 去除全域一致型的趋势
-    K = (K - np.mean(K)) / np.var(K)
+    K = K_['K'].sel(type=i+1).data
     Z_reg, Z_cor = regress(K, Z.data)
     Z_nc = xr.Dataset({'reg': (['level', 'lat', 'lon'], Z_reg),
                         'corr': (['level', 'lat', 'lon'], Z_cor)},
@@ -128,5 +156,5 @@ for i in range(len(K_type['type'])):
     f_ax.set_yticks([1000, 850, 700, 600, 500, 400, 300, 200, 100])
     f_ax.set_yticklabels(['1000','850', '700', '600', '500', '400', '300', '200', '100'])
 
-    plt.savefig(fr'D:/PyFile/p2/pic/赤道纬向环流{i}.pdf', dpi=300, bbox_inches='tight')
+    plt.savefig(fr'D:/PyFile/p2/pic/赤道纬向环流归因{i}.pdf', dpi=300, bbox_inches='tight')
     plt.show()
