@@ -100,9 +100,9 @@ if __name__ == '__main__':
     info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_t['lat'], lon=info_t['lon'], kwargs={"fill_value": "extrapolate"})['sst']
     K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
 
-    '''K_series = K_type.sel(type=1)['K'].data #东部型
+    K_series = K_type.sel(type=1)['K'].data #东部型
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
-    zone_corr = [-70, 10, 15, 0]
+    '''zone_corr = [-70, 10, 15, 0]
     info_sst = lonlat_trs(info_sst, type='360->180')
     info_t = lonlat_trs(info_t, type='360->180')
     info_pre = lonlat_trs(info_pre, type='360->180')
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
                                            range(len(time_series)))  # 去除线性趋势
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [-70, 10, 15, 0]  # 热带大西洋
+    zone = [-70, 10, 15, 0]  # 热带大西洋'''
 
     zone_corr = [70, 360-140, 10, -10] # 拉尼娜
     corr_NPW = corr(K_series,
@@ -152,13 +152,13 @@ if __name__ == '__main__':
     time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
                                            range(len(time_series)))  # 去除线性趋势
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [360-120, 360-80, 20, 0]  # 对应对流'''
+    zone = [360-200, 360-80, 20, -15]  # 对应对流'''
 
-    ## 西部型
+    '''## 西部型
     K_series = K_type.sel(type=3)['K'].data
     K_series = (K_series - np.mean(K_series)) / np.std(K_series)
 
-    '''#### 大西洋干旱
+    #### 大西洋干旱
     info_sst = lonlat_trs(info_sst, type='360->180')
     info_t = lonlat_trs(info_t, type='360->180')
     info_pre = lonlat_trs(info_pre, type='360->180')
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
                                            range(len(time_series)))  # 去除线性趋势
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [-50, 10, 15, -10]  # 厄尔尼诺'''
+    zone = [-50, 10, 15, -10]  # 厄尔尼诺
 
     #### 厄尔尼诺
     zone_corr = [80, 360-110, 10, -10]  # 海洋性大陆对流异常

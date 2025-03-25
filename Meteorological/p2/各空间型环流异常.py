@@ -26,8 +26,8 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     # 显著性打点
     p_test = np.where(np.abs(corr_t2m[1]) >= r_test(62), 0, np.nan)
     p = ax.quiver(t2m['lon'], t2m['lat'], p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=60, color='k', scale=20, headlength=2, headaxislength=2)
-    cont = ax.contour(lon, lat, corr_z[0], colors='red', levels=[2, 4, 6], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
-    cont_ = ax.contour(lon, lat, corr_z[0], colors='blue', levels=[-6, -4, -2], linestyles='--', linewidths=0.4,
+    cont = ax.contour(lon, lat, corr_z[0], colors='red', levels=[20, 40, 60], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
+    cont_ = ax.contour(lon, lat, corr_z[0], colors='blue', levels=[-60, -40, -20], linestyles='--', linewidths=0.4,
                        transform=ccrs.PlateCarree(central_longitude=0))
     cont.clabel(inline=1, fontsize=4)
     cont_.clabel(inline=1, fontsize=4)
@@ -38,7 +38,7 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     else:
         Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.3,
                          regrid=15, color='#454545')
-    Cq.key(fig, U=.1, label='0.1 m/s', color='k')
+    Cq.key(fig, U=1, label='1 m/s', color='k')
     nanmax = Cq.nanmax
     ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
     ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
@@ -139,12 +139,13 @@ t2m_clim = t2m.mean('year')
 
 fig = plt.figure(figsize=(10, 10))
 plt.subplots_adjust(wspace=0.1)
-lev_t = np.array([-.05, -.04, -.03, -.02, -.01, -.005, .005, .01, .02, .03, .04, .05])
+lev_t = np.array([-.5, -.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4, .5])
 for i in K_type['type']:
     picloc = int(100 + len(K_type['type'])*10 + i)
     time_ser = K_type.sel(type=i)['K'].data
     if i == 2:
         time_ser = time_ser - np.polyval(np.polyfit(range(len(time_ser)), time_ser, 1), range(len(time_ser)))
+    time_ser = (time_ser - time_ser.mean()) / time_ser.std()
     reg_K_u = regress(time_ser, uvz['u'].data)
     reg_K_v = regress(time_ser, uvz['v'].data)
     reg_K_z = regress(time_ser, uvz['z'].data)
@@ -159,5 +160,5 @@ cbar.set_ticklabels([str(i) for i in lev_t])
 cbar.ax.tick_params(labelsize=8, length=0)
 
 
-plt.savefig(r"D:\PyFile\p2\pic\图4.pdf", dpi=600, bbox_inches='tight')
+plt.savefig(r"D:\PyFile\p2\pic\图4.png", dpi=600, bbox_inches='tight')
 plt.show()

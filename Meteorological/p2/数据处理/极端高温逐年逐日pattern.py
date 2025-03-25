@@ -144,10 +144,10 @@ for i in range(K_s):
         Time_type[index, i] += 1
 Time_type = xr.Dataset({'K': (['year', 'type'], Time_type)},
                        coords={'year': [i for i in range(1961, 2023)], 'type': [i for i in range(1, K_s + 1)]})
-try:
+'''try:
     Time_type.to_netcdf(fr'D:\PyFile\p2\data\Time_type_AverFiltAll{T_th}%_{S_th}%_{K_s}.nc')
 except:
-    pass
+    pass'''
 import seaborn as sns
 from scipy import stats
 

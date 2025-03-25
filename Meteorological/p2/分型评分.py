@@ -97,30 +97,35 @@ def plot_test(data, max_clusters=10):
         explained_variance_ratio.append(kmeans.inertia_)  # 解释方差占比
         silhouette_scores.append(metrics.silhouette_score(flattened_data, labels))
 
+    explained_variance_ratio = np.array(explained_variance_ratio)
+    explained_variance_ratio /= zone_stations
+
     # 绘制双折线图，设置双y轴
     fig, ax1 = plt.subplots(figsize=(8, 4))
 
-    ax1.plot(cluster_range, silhouette_scores, marker='^', color='r', label='S', zorder=4)
+    ax1.plot(cluster_range, silhouette_scores, color='r', label='S', zorder=4)
     ax1.set_xlabel('Number of Clusters', fontsize=16)
     ax1.set_ylabel('S', color='r', fontsize=16)
     ax1.tick_params(axis='y', colors='r', labelsize=12)
     ax1.set_ylim(bottom=min(silhouette_scores) - 0.1 * abs(min(silhouette_scores)),
                  top=max(silhouette_scores) + 0.1 * abs(max(silhouette_scores)))
     ax1.set_xlim(left=min(cluster_range)-0.2, right=max(cluster_range)+0.2)
+    ax1.scatter(3, silhouette_scores[1], color='red', marker='^')
     ax2 = ax1.twinx()
-    ax2.plot(cluster_range, explained_variance_ratio, marker='o', color='b', label='SSE', zorder=3)
-    ax2.set_ylabel('SSE', color='b', fontsize=16)
+    ax2.plot(cluster_range, explained_variance_ratio, color='b', label='SSE', zorder=3)
+    ax2.set_ylabel('MSE', color='b', fontsize=16)
     ax2.spines['left'].set_color('red')
     ax2.spines['right'].set_color('blue')
     ax2.tick_params(axis='y', colors='b', labelsize=12)
-    ax2.set_ylim(bottom=min(explained_variance_ratio) - 0.1 * abs(min(explained_variance_ratio)),
-                 top=max(explained_variance_ratio) + 0.1 * abs(max(explained_variance_ratio)))
+    ax2.set_ylim(bottom=min(explained_variance_ratio) - 0.025 * abs(min(explained_variance_ratio)),
+                 top=max(explained_variance_ratio) + 0.025 * abs(max(explained_variance_ratio)))
+    ax2.scatter(3, explained_variance_ratio[1], color='blue', marker='o')
 
     # 添加图例
     lines_1, labels_1 = ax1.get_legend_handles_labels()
     lines_2, labels_2 = ax2.get_legend_handles_labels()
     ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right', edgecolor='none')
-    ax1.set_title('a) SSE & Silhouette Coefficient', fontsize=18, loc='left')
+    ax1.set_title('MSE & Silhouette Coefficient', fontsize=18, loc='left')
 
     plt.xticks(np.arange(2, max_clusters + 1, 1))  # 整数x轴刻度
     fig.tight_layout()
@@ -141,13 +146,32 @@ time = [[] for i in range(K_s)]
 abc_index = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
 lev = np.array([[800, 900, 1000, 1100, 1130, 1150],
                 [400, 500, 600, 700, 800, 900],
-                [150, 175, 200, 225, 250, 275]])
+                [170, 190, 210, 230, 250, 270]])
 Tavg_weight = np.zeros((K_s, 163, 283))
+KM_all = np.zeros((K_s, 163, 283))
+for cluster in range(K_s):
+    KM = []
+    for i in K[cluster]['indices']:
+        KM.append(EHD20.iloc[i].to_numpy())
+        time[cluster].append(str(int(EHD20_time[i - 1])))
+        print(EHD20_time[i - 1])
+    Tavg_weight[cluster] = np.array(KM).mean(axis=0).reshape(163, 283)
+    KM = np.array(KM).sum(axis=0)
+    KM_all[cluster] = KM.reshape(163, 283)
+
+#将KM_all按照维度0的平均值进行排序
+sort_index = np.argsort([np.nanmax(KM_all[i]) for i in range(K_s)])[::-1]  # 降序排列
+KM_all = KM_all[sort_index]  # 重新排列聚类顺序
+Tavg_weight = Tavg_weight[sort_index]  # 同步排列权重矩阵
+time = [time[i] for i in sort_index] # 同步调整时间顺序
+
 for cluster in range(K_s):
     extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
     ax = fig.add_subplot(2, K_s, cluster + 1, projection=ccrs.PlateCarree())
     ax.set_title(f"{abc_index[cluster]})Type {cluster + 1}", loc='left', fontsize=12, weight='bold')
-    ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
+    ax.add_geometries(Reader(r'D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp').geometries(), ccrs.PlateCarree(),
+                      facecolor='none', edgecolor='black', linewidth=.5)
+    ax.add_geometries(Reader(r'D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(
         r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
@@ -182,20 +206,13 @@ for cluster in range(K_s):
     ax.tick_params(which='major', length=3.5, width=1, color='black')  # 最大刻度长度，宽度设置，
     ax.tick_params(which='minor', length=2, width=.9, color='black')  # 最小刻度长度，宽度设置
     ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
-    KM = []
-    for i in K[cluster]['indices']:
-        KM.append(EHD20.iloc[i].to_numpy())
-        time[cluster].append(str(int(EHD20_time[i-1])))
-        print(EHD20_time[i-1])
-    Tavg_weight[cluster] = np.array(KM).mean(axis=0).reshape(163, 283)
-    KM = np.array(KM).sum(axis=0)
     custom_colors = ["#FDDDB1", "#FDB57E", "#F26E4C", "#CA1E14", "#7F0000"]
     custom_cmap = colors.ListedColormap(custom_colors)
     norm = mcolors.BoundaryNorm(lev[cluster], custom_cmap.N)
-    con = ax.contourf(CN051_2['lon'], CN051_2['lat'], KM.reshape(163, 283),
+    con = ax.contourf(CN051_2['lon'], CN051_2['lat'], KM_all[cluster],
                       cmap=custom_cmap, transform=ccrs.PlateCarree(),
                       levels=lev[cluster], extend='max', norm=norm)
-    ax.contour(CN051_2['lon'], CN051_2['lat'], KM.reshape(163, 283),
+    ax.contour(CN051_2['lon'], CN051_2['lat'], KM_all[cluster],
                 colors='w', linewidths=0.1, transform=ccrs.PlateCarree(), linestyles='solid',
                 levels=lev[cluster][1:-1])
     # 色标
@@ -221,15 +238,16 @@ for i in range(K_s):
         Time_type[index, i] += 1
 Time_type = xr.Dataset({'K': (['year', 'type'], Time_type)},
                        coords={'year': [i for i in range(1961, 2023)], 'type': [i for i in range(1, K_s + 1)]})
-try:
+'''try:
     Time_type.to_netcdf(fr'D:\PyFile\p2\data\Time_type_AverFiltAll{T_th}%_{S_th}%_{K_s}.nc')
 except:
-    pass
+    pass'''
 
 import seaborn as sns
 from scipy import stats
 
 # 加载数据集
+data = xr.open_dataset(fr'D:\PyFile\p2\data\Time_type_AverFiltAll{T_th}%_{S_th}%_{K_s}.nc')
 data = Time_type
 
 # 将数据集转换为 Pandas DataFrame 以便更容易操作

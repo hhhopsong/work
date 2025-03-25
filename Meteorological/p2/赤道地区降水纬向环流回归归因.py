@@ -43,16 +43,16 @@ def regress(time_series, data):
 
 
 K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
-Z = xr.open_dataset(r"D:/PyFile/p2/data/Z.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(5, -5), lon=slice(0, 360)) / 9.8
-U = xr.open_dataset(r"D:/PyFile/p2/data/U.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(5, -5), lon=slice(0, 360))
-V = xr.open_dataset(r"D:/PyFile/p2/data/V.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(5, -5), lon=slice(0, 360))
-T = xr.open_dataset(r"D:/PyFile/p2/data/T.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(5, -5), lon=slice(0, 360))
-Q = xr.open_dataset(r"D:/PyFile/p2/data/Q.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(5, -5), lon=slice(0, 360))
-W = xr.open_dataset(r"D:/PyFile/p2/data/W.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(5, -5), lon=slice(0, 360))
+Z = xr.open_dataset(r"D:/PyFile/p2/data/Z.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(10, -10), lon=slice(0, 360)) / 9.8
+U = xr.open_dataset(r"D:/PyFile/p2/data/U.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(10, -10), lon=slice(0, 360))
+V = xr.open_dataset(r"D:/PyFile/p2/data/V.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(10, -10), lon=slice(0, 360))
+T = xr.open_dataset(r"D:/PyFile/p2/data/T.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(10, -10), lon=slice(0, 360))
+Q = xr.open_dataset(r"D:/PyFile/p2/data/Q.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(10, -10), lon=slice(0, 360))
+W = xr.open_dataset(r"D:/PyFile/p2/data/W.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000], lat=slice(10, -10), lon=slice(0, 360))
 #W = vertical_velocity(W['w'] * units('Pa/s') , W['level'] * units.hPa, T['t'] * units.degC)
-Pre = xr.open_dataset(r"D:/PyFile/p2/data/pre.nc").sel(lat=slice(5, -5), lon=slice(0, 360))
-Sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").sel(lat=slice(5, -5), lon=slice(0, 360))
-Terrain = xr.open_dataset(r"E:\data\NOAA\ETOPO\ETOPO_2022_v1_30s_N90W180_bed.nc").sel(lat=slice(-5, 5), lon=slice(-180, 180))['z'].astype(np.float64).mean(dim='lat', skipna=True)
+Pre = xr.open_dataset(r"D:/PyFile/p2/data/pre.nc").sel(lat=slice(10, -10), lon=slice(0, 360))
+Sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").sel(lat=slice(10, -10), lon=slice(0, 360))
+Terrain = xr.open_dataset(r"E:\data\NOAA\ETOPO\ETOPO_2022_v1_30s_N90W180_bed.nc").sel(lat=slice(-10, 10), lon=slice(-180, 180))['z'].astype(np.float64).mean(dim='lat', skipna=True)
 Z = transform(Z['z'], lon_name='lon', type='180->360')
 U = transform(U['u'], lon_name='lon', type='180->360')
 V = transform(V['v'], lon_name='lon', type='180->360')
@@ -155,6 +155,10 @@ for i in range(len(K_['type'])):
     f_ax.fill_between(Sst_nc['lon'], 1000, 975, where=Sst_nc['reg'].mean('lat', skipna=True) <= -.3, facecolor='#92d9e9', zorder=9) # 冷海温异常
     f_ax.fill_between(Sst_nc['lon'], 1000, 975, where=Sst_nc['reg'].mean('lat', skipna=True) <= -.4, facecolor='#7ac7e1', zorder=9) # 冷海温异常
     f_ax.fill_between(Sst_nc['lon'], 1000, 975, where=Sst_nc['reg'].mean('lat', skipna=True) <= -.5, facecolor='#5db6d7', zorder=9) # 冷海温异常
+
+    f_ax.fill_between(Pre_nc['lon'], 125, 100, where=Pre_nc['reg'].mean('lat', skipna=True) >= 0, facecolor='green', zorder=9) # 闄嶆按寮傚父
+    f_ax.fill_between(Pre_nc['lon'], 125, 100, where=Pre_nc['reg'].mean('lat', skipna=True) <= 0, facecolor='#cca300', zorder=9) # 闄嶆按寮傚父
+
     vec = Curlyquiver(f_ax, U_nc['lon'], U_nc['level'], U_nc['reg'].mean('lat'), W_nc['reg'].mean('lat'), arrowsize=1.5, scale=10, linewidth=1, regrid=[30, 18], color='k', zorder=8.5)
     lev_z = np.array([-.5, -.4, -.3, -.2, -.1, -.02, .02, .1, .2, .3, .4, .5]) * 10e-9
     q_div = f_ax.contourf(Q_div_nc['lon'], Q_div_nc['level'], Q_div_nc['reg'].mean('lat', skipna=True), levels=lev_z,

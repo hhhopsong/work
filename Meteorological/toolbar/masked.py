@@ -2,7 +2,7 @@ import geopandas as gpd
 import salem
 
 
-# 裁切中国范围数据，其余数据Nan化
+# 裁切范围数据，其余数据Nan化
 def masked(data, shp, crs='wgs84'):
     """
     掩膜函数
