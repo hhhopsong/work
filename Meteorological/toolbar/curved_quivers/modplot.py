@@ -227,9 +227,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         u = u[::-1]
         v = v[::-1]
 
-    if thinning[1] not in ['random', 'max', 'min']:
-        raise ValueError('thinning 的第二个参数必须为 random, max 或 min')
-
     # 数据类型转化
     try:
         if isinstance(x, xr.DataArray):
@@ -532,10 +529,9 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             else:
                 draw_probability = thinning[0] * wind_shrink / wind_0
                 draw_probability = np.where(draw_probability >= 1, 1, np.nan)
-            magnitude = np.where(draw_probability == 1, magnitude, 0)
-            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
-                                       integration_direction=integration_direction, mode=mode,
-                                       axes_scale=[is_x_log, is_y_log])
+            start_points = start_points.reshape([*u.shape, -1]) * draw_probability[..., np.newaxis]
+            start_points = start_points.reshape(-1, 2)
+            start_points = start_points[~np.isnan(start_points).any(axis=1)]
         elif thinning[1] == 'min':
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
@@ -547,10 +543,9 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             else:
                 draw_probability = thinning[0] * wind_shrink / wind_0
                 draw_probability = np.where(draw_probability <= 1, 1, np.nan)
-            magnitude = np.where(draw_probability == 1, magnitude, 0)
-            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
-                                       integration_direction=integration_direction, mode=mode,
-                                       axes_scale=[is_x_log, is_y_log])
+            start_points = start_points.reshape([*u.shape, -1]) * draw_probability[..., np.newaxis]
+            start_points = start_points.reshape(-1, 2)
+            start_points = start_points[~np.isnan(start_points).any(axis=1)]
         elif thinning[1] == 'max_full':
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
@@ -596,7 +591,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 stable_zone = np.where(draw_probability <= 1, 1, 0)
                 draw_probability = np.where(draw_probability > 1, draw_probability, np.nan)
 
-
             def search_single(arr):
                 ######提取出孤立风速点
                 arr_padded = np.pad(arr, pad_width=1, mode='constant', constant_values=np.nan)
@@ -610,7 +604,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 # 结合原始数组值为1的条件
                 mask_single = (arr == 1) & neighbors_nan
                 return np.where(mask_single, 1, 0)
-
 
             start_points = start_points.reshape([*u.shape, -1])
             # 格点变化区域
