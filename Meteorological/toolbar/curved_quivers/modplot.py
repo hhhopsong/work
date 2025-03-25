@@ -227,11 +227,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         u = u[::-1]
         v = v[::-1]
 
-    if thinning[0] < 0 or thinning[0] > 1:
-        if thinning[0][-1] == "%":
-            raise ValueError('thinning 的第一个参数必须为 0到1间的值 或 0%到100%的字符串')
-        if thinning[1] not in ['random', 'max', 'min']:
-            raise ValueError('thinning 的第二个参数必须为 random, max 或 min')
+    if thinning[1] not in ['random', 'max', 'min']:
+        raise ValueError('thinning 的第二个参数必须为 random, max 或 min')
 
     # 数据类型转化
     try:
