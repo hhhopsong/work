@@ -266,6 +266,11 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     except:
         pass
 
+    #检验center_lon范围
+    if center_lon < -180 or center_lon > 360:
+        raise ValueError('center_lon 的范围必须在-180~360之间。')
+    center_lon = center_lon + 360 if center_lon < 0 else center_lon
+
 
     # 获取axes范围
     try:
