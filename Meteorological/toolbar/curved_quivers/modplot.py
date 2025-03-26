@@ -127,7 +127,7 @@ class Curlyquiver:
                         self.mode, self.NanMax, self.center_lon, self.thinning)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
-            width_shrink=1., height_shrink=1., edgecolor='k', arrowsize=None, color=None):
+            width_shrink=1., height_shrink=1., edgecolor='k', arrowsize=None, linewidth=None,color=None):
         '''
         曲线矢量图例
         :param fig: 画布总底图
@@ -146,9 +146,10 @@ class Curlyquiver:
         :return: None
         '''
         arrowsize = arrowsize if arrowsize is not None else self.arrowsize
+        linewidth = linewidth if linewidth is not None else self.linewidth
         color = color if color is not None else self.color
         velovect_key(fig, self.axes, self.quiver, shrink, U, angle, label, color=color, arrowstyle=self.arrowstyle,
-                     linewidth=self.linewidth, fontproperties=fontproperties, lr=lr, ud=ud, width_shrink=width_shrink,
+                     linewidth=linewidth, fontproperties=fontproperties, lr=lr, ud=ud, width_shrink=width_shrink,
                      height_shrink=height_shrink, arrowsize=arrowsize, edgecolor=edgecolor)
 
 
@@ -1301,14 +1302,14 @@ if __name__ == '__main__':
     x = np.linspace(0, 359, 361)
     y = np.linspace(-90, 90, 180)
     Y, X = np.meshgrid(y, x)
-    U = np.random.randn(361, 180).T
-    # 生成一个X大小的随机矩阵
-    V = np.random.randn(361, 180).T
+    # 生成一个X*Y对应大小的线性增大矩阵
+    U = np.linspace(0, 1, X.shape[0])[np.newaxis, :] * np.ones(X.shape).T
+    V = np.linspace(0, 1, X.shape[1])[:, np.newaxis] * np.ones(X.shape).T
     #####
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121)
     ax1.set_xlim(0, 360)
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=30, color='k', linewidth=0.2, arrowsize=.25)
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=30, color='k', linewidth=0.2, arrowsize=.25, thinning=['50%', 'min'])
     a1.key(fig, shrink=0.15)
     #设置中心经度
     plt.savefig('D:/PyFile/pic/test.png', dpi=600, bbox_inches='tight')
