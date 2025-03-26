@@ -17,33 +17,33 @@ import geopandas as gpd
 import salem
 from toolbar.data_read import *
 
-def corr(time_series, data):
-    # 计算相关系数
+def regress(time_series, data):
     # 将 data 重塑为二维：时间轴为第一个维度
     reshaped_data = data.reshape(len(time_series), -1)
 
-    # 减去均值以标准化
+    # 减去均值以中心化（标准化自变量和因变量）
     time_series_mean = time_series - np.mean(time_series)
     data_mean = reshaped_data - np.mean(reshaped_data, axis=0)
 
-    # 计算分子（协方差）
+    # 计算分子（协方差的分子）
     numerator = np.sum(data_mean * time_series_mean[:, np.newaxis], axis=0)
 
-    # 计算分母（标准差乘积）
-    denominator = np.sqrt(np.sum(data_mean ** 2, axis=0)) * np.sqrt(np.sum(time_series_mean ** 2))
+    # 计算分母（自变量的平方和）
+    denominator = np.sum(time_series_mean ** 2)
 
-    # 相关系数
-    correlation = numerator / denominator
-
+    # 计算回归系数
+    regression_coef = numerator / denominator
+    correlation = numerator / (np.sqrt(np.sum(data_mean ** 2, axis=0)) * np.sqrt(np.sum(time_series_mean ** 2)))
     # 重塑为 (lat, lon)
+    regression_map = regression_coef.reshape(data.shape[1:])
     correlation_map = correlation.reshape(data.shape[1:])
-    return correlation_map
+    return regression_map, correlation_map
 
 # 数据读取
 sst = ersst("E:/data/NOAA/ERSSTv5/sst.mnmean.nc", 1960, 2023)  # NetCDF-4文件路径不可含中文
-PC = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_AverFiltAll0.9%_0.3%_3.nc").sel(type=3)['K'].data # 读取时间序列
-#PC = PC - np.polyval(np.polyfit(range(len(PC)), PC, 1), range(len(PC))) # 去除线性趋势
-PC = (PC - np.mean(PC)) / np.var(PC)
+PC = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_AverFiltAll0.9%_0.3%_3.nc").sel(type=3)['K'] # 读取时间序列
+if PC.type == 2: PC = PC - np.polyval(np.polyfit(range(len(PC)), PC, 1), range(len(PC))) # 去除线性趋势
+PC = ((PC - np.mean(PC)) / np.std(PC)).data
 # 截取sst数据为5N-5S，40E-80W
 time_data = [1961, 2022]
 sst = sst.sel(lat=slice(5, -5), lon=slice(0, 360))['sst']
@@ -61,7 +61,9 @@ sst_lastyear_anom = sst_lastyear_lonavg
 sst_nextyear_anom = sst_nextyear_lonavg
 # 计算sst距平与EOF的超前滞后相关系数，滞后范围为5
 num_lead_lag_corr = 18
+lead_lag_reg = np.zeros((num_lead_lag_corr, len(lon_sst)))
 lead_lag_corr = np.zeros((num_lead_lag_corr, len(lon_sst)))
+lead_lag_reg.fill(np.nan)
 lead_lag_corr.fill(np.nan)
 sst_leadlag = np.zeros(((time_data[1] - time_data[0] + 1) * 18, len(lon_sst)))
 for i in range(time_data[1] - time_data[0] + 1):
@@ -69,7 +71,7 @@ for i in range(time_data[1] - time_data[0] + 1):
 for i in range(num_lead_lag_corr):
     '''for j in range(len(lon_sst)):
         lead_lag_corr[i, j] = np.corrcoef(sst_leadlag[i::num_lead_lag_corr, j], PC)[0, 1]'''
-    lead_lag_corr[i, :] = corr(PC, sst_leadlag[i::num_lead_lag_corr, :])
+    lead_lag_reg[i, :], lead_lag_corr[i, :] = regress(PC, sst_leadlag[i::num_lead_lag_corr, :])
 # 进行显著性检验
 p_lead_lag_corr = corr_test(PC, lead_lag_corr, alpha=0.1)
 
@@ -87,12 +89,12 @@ yticks2 = ['Oct[-1]', 'Nov[-1]', 'Dec[-1]', 'Jan', 'Feb', 'Mar', 'Apr', 'May', '
 proj = ccrs.PlateCarree(central_longitude=180)
 fig = plt.figure(figsize=(16, 8))
 # ##ax1 Corr. PC1 & JA SST,2mT
-level1 = [-0.5, -0.4, -0.3, -0.2, -0.1, 0.1, 0.2, 0.3, 0.4, 0.5]
+level1 = np.array([-0.4, -0.3, -0.2, -0.1, -0.05, 0.05, 0.1, 0.2, 0.3, 0.4])
 ax1 = fig.add_subplot(111)
 print('开始绘制图1')
-ax1.set_title('(a)Lead-lag corr. EHDs & SST', fontsize=22, loc='left')
-corr, lon = add_cyclic_point(lead_lag_corr, coord=lon_sst)
-a1 = ax1.contourf(lon, time, corr, cmap=cmaps.cmp_b2r[:30]
+ax1.set_title('(a)Lead-lag reg. EHDs & SST', fontsize=22, loc='left')
+reg, lon = add_cyclic_point(lead_lag_reg, coord=lon_sst)
+a1 = ax1.contourf(lon, time, reg, cmap=cmaps.cmp_b2r[:30]
                                         +cmaps.CBR_wet[0]+cmaps.CBR_wet[0]+cmaps.CBR_wet[0]+cmaps.CBR_wet[0]+cmaps.CBR_wet[0]+cmaps.CBR_wet[0]
                                         +cmaps.cmp_b2r[30:], levels=level1, extend='both')
 # 通过打点显示出通过显著性检验的区域
@@ -133,7 +135,8 @@ font2 = {'family': 'Arial', 'weight': 'bold', 'size': 28}
 position = fig.add_axes([0.296, 0.01, 0.44, 0.02])
 cb1 = plt.colorbar(a1, cax=position, orientation='horizontal')#orientation为水平或垂直
 cb1.ax.tick_params(length=1, labelsize=20, color='lightgray')#length为刻度线的长度
-cb1.locator = ticker.FixedLocator([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]) # colorbar上的刻度值个数
+cb1.locator = ticker.FixedLocator(level1) # colorbar上的刻度值个数
+cb1.set_ticklabels([str(i) for i in level1])
 
 
 plt.savefig(r'D:\PyFile\p2\pic\热带海温异常.png', dpi=600, bbox_inches='tight')
