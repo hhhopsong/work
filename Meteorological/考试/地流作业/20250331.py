@@ -31,7 +31,7 @@ def animate(frame):
     surf = ax.plot_surface(X, Y, n, edgecolor='royalblue', lw=0.5, rstride=8, cstride=8,alpha=0.4)
 
     ax.contourf(X, Y, n, zdir='z', offset=-6, cmap='coolwarm')
-    ax.quiver(X[::4, ::4], Y[::4, ::4], np.full_like(n, -6)[::4, ::4], u[::4, ::4], v[::4, ::4], np.full_like(n, 0)[::4, ::4], length=0.8, normalize=True, color='k')
+    ax.quiver(X[::4, ::4], Y[::4, ::4], np.full_like(n, -6)[::4, ::4], u[::4, ::4], v[::4, ::4], np.full_like(n, 0)[::4, ::4], length=0.8, color='k')
     ax.set_xlim(-15, 15)
     ax.set_ylim(-15, 15)
     ax.set_zlim(-6, 2)
