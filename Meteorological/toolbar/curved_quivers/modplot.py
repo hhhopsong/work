@@ -535,9 +535,10 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             else:
                 draw_probability = thinning[0] * wind_shrink / wind_0
                 draw_probability = np.where(draw_probability >= 1, 1, np.nan)
-            start_points = start_points.reshape([*u.shape, -1]) * draw_probability[..., np.newaxis]
-            start_points = start_points.reshape(-1, 2)
-            start_points = start_points[~np.isnan(start_points).any(axis=1)]
+            magnitude = np.where(draw_probability == 1, magnitude, 0)
+            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
+                                       integration_direction=integration_direction, mode=mode,
+                                       axes_scale=[is_x_log, is_y_log])
         elif thinning[1] == 'min':
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
@@ -549,9 +550,10 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             else:
                 draw_probability = thinning[0] * wind_shrink / wind_0
                 draw_probability = np.where(draw_probability <= 1, 1, np.nan)
-            start_points = start_points.reshape([*u.shape, -1]) * draw_probability[..., np.newaxis]
-            start_points = start_points.reshape(-1, 2)
-            start_points = start_points[~np.isnan(start_points).any(axis=1)]
+            magnitude = np.where(draw_probability == 1, magnitude, 0)
+            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
+                                       integration_direction=integration_direction, mode=mode,
+                                       axes_scale=[is_x_log, is_y_log])
         elif thinning[1] == 'max_full':
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):

@@ -58,7 +58,7 @@ def draw_frc():
         collection.set_edgecolor('#ef3b2b')  # -----打点颜色设置'''
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
-                        levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[20:-20], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+                        levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.3, scale=4, regrid=13, linewidth=.25,
                         color="#454545", center_lon=180-70, thinning=[.4, 'max'])
     wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.3, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
@@ -93,7 +93,7 @@ def draw_frc():
         collection.set_edgecolor('#ef3b2b')  # -----打点颜色设置'''
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax2.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
-                        levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[20:-20], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+                        levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.3, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                            color="#454545", center_lon=180 - 70, thinning=[.2, 'max'])
     wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.3, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
@@ -129,7 +129,7 @@ def draw_frc():
         collection.set_edgecolor('#ef3b2b')  # -----打点颜色设置'''
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax4.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
-                        levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[20:-20], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+                        levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.3, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                            color="#454545", center_lon=180 - 70, thinning=[.1, 'max'])

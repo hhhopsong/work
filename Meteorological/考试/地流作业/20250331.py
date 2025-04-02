@@ -1,29 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib import cm
 
-nx, ny = 200, 200  # 网格大小
-x = np.linspace(-10, 10, nx)
-y = np.linspace(-10, 10, ny)
+x = np.arange(-10, 10.25, .25)
+y = np.arange(-10, 10.25, .25)
 X, Y = np.meshgrid(x, y)
 
-Re = 1.
+Re = .3
 n0 = 1.
-k = 2
+k = -2
 l = 2
-sigma = 2
+sigma = -2
+f = 7.2921 * 10**-5
 θ = k * X + l * Y
+phi =  2
 
 fig = plt.figure(figsize=(12, 8))
 ax = fig.add_subplot(111, projection='3d')
-
-ax.set_xlim(-10, 10)
-ax.set_ylim(-10, 10)
-ax.set_zlim(-3, 3)
-ax.set_xticks([])
-ax.set_yticks([])
-ax.set_zticks([])
-ax.view_init(elev=30, azim=225)
 
 
 def animate(frame):
@@ -31,17 +25,18 @@ def animate(frame):
     t = frame / 20.0  # 时间参数
 
     n = Re * n0 * np.cos(θ - sigma * t)
+    u = - (9.8 * np.abs(n0)) / (f**2 - sigma**2) * (k * sigma * np.cos(θ - sigma * t + phi) - l * f * np.sin(θ - sigma * t + phi))
+    v = - (9.8 * np.abs(n0)) / (f**2 - sigma**2) * (l * sigma * np.cos(θ - sigma * t + phi) + k * f * np.sin(θ - sigma * t + phi))
 
-    surf = ax.plot_surface(X, Y, n, cmap='Blues', linewidth=0, antialiased=True)
+    surf = ax.plot_surface(X, Y, n, edgecolor='royalblue', lw=0.5, rstride=8, cstride=8,alpha=0.4)
 
-    ax.set_xlim(-10, 10)
-    ax.set_ylim(-10, 10)
-    ax.set_zlim(-3, 3)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
+    ax.contourf(X, Y, n, zdir='z', offset=-6, cmap='coolwarm')
+    ax.quiver(X[::4, ::4], Y[::4, ::4], np.full_like(n, -6)[::4, ::4], u[::4, ::4], v[::4, ::4], np.full_like(n, 0)[::4, ::4], length=0.8, normalize=True, color='k')
+    ax.set_xlim(-15, 15)
+    ax.set_ylim(-15, 15)
+    ax.set_zlim(-6, 2)
     ax.view_init(elev=30, azim=225)
     return surf
 
-ani = animation.FuncAnimation(fig, animate, frames=200, interval=300, blit=False)
+ani = animation.FuncAnimation(fig, animate, frames=200, interval=30, blit=False)
 ani.save('wave.gif', writer='pillow', fps=30)
