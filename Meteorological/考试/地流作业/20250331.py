@@ -9,7 +9,7 @@ X, Y = np.meshgrid(x, y)
 
 Re = .3
 n0 = 1.
-k = -.5
+k = .5
 l = .5
 f = 7.2921 * 10**-5
 sigma = f * 1.25
