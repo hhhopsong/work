@@ -18,11 +18,12 @@ phi = 0
 L = 2
 N = 0.15
 Cx = f * 2
-C0 = f * 4
+C0 = f * 2
 H0 = 0.01
 
-fig = plt.figure(figsize=(12, 8))
+fig = plt.figure(figsize=(8, 8))
 ax = fig.add_subplot(111, projection='3d')
+fig.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
 
 def animate(frame):
@@ -30,18 +31,18 @@ def animate(frame):
     t = frame * 10e2  # 时间参数
 
     # # g
-    # n = Re * n0 * np.cos(θ - sigma * t)
-    # u = - (9.8 * np.abs(n0)) / (f**2 - sigma**2) * (k * sigma * np.cos(θ - sigma * t + phi) - l * f * np.sin(θ - sigma * t + phi))
-    # v = - (9.8 * np.abs(n0)) / (f**2 - sigma**2) * (l * sigma * np.cos(θ - sigma * t + phi) + k * f * np.sin(θ - sigma * t + phi))
+    n = Re * n0 * np.cos(θ - sigma * t)
+    u = - (9.8 * np.abs(n0)) / (f**2 - sigma**2) * (k * sigma * np.cos(θ - sigma * t + phi) - l * f * np.sin(θ - sigma * t + phi))
+    v = - (9.8 * np.abs(n0)) / (f**2 - sigma**2) * (l * sigma * np.cos(θ - sigma * t + phi) + k * f * np.sin(θ - sigma * t + phi))
 
-    n = n0 * (np.cos(N * np.pi * Y / L) - L * f / N / np.pi / Cx * np.sin(N * np.pi * Y / L)) * np.cos(k * X - sigma * t + phi)
-    u = n0 / H0 * (C0**2 / Cx * np.cos(N * np.pi / L * Y) - L * f / N / np.pi * np.sin(N * np.pi / L * Y)) * np.cos(k * X - sigma * t + phi)
-    v = -n0 * L / H0 / sigma / N / np.pi * (f**2 + C0**2 * N**2 * np.pi**2 / L**2) * np.sin(N * np.pi / L * Y) * np.sin(k * X - sigma * t + phi)
+    # n = n0 * (np.cos(N * np.pi * Y / L) - L * f / N / np.pi / Cx * np.sin(N * np.pi * Y / L)) * np.cos(k * X - sigma * t + phi)
+    # u = n0 / H0 * (C0**2 / Cx * np.cos(N * np.pi / L * Y) - L * f / N / np.pi * np.sin(N * np.pi / L * Y)) * np.cos(k * X - sigma * t + phi)
+    # v = -n0 * L / H0 / sigma / N / np.pi * (f**2 + C0**2 * N**2 * np.pi**2 / L**2) * np.sin(N * np.pi / L * Y) * np.sin(k * X - sigma * t + phi)
 
     surf = ax.plot_surface(X, Y, n, cmap='coolwarm', lw=0.5, rstride=8, cstride=8,alpha=0.4)
 
     ax.contourf(X, Y, n, zdir='z', offset=-6, cmap='coolwarm')
-    ax.quiver(X[::4, ::4], Y[::4, ::4], np.full_like(n, -6)[::4, ::4], u[::4, ::4], v[::4, ::4], np.full_like(n, 0)[::4, ::4], length=0.4, color='k')
+    ax.quiver(X[::4, ::4], Y[::4, ::4], np.full_like(n, -6)[::4, ::4], u[::4, ::4], v[::4, ::4], np.full_like(n, 0)[::4, ::4], length=35e-6*0.6, linewidth=0.3, color='k')
     ax.set_xlim(-15, 15)
     ax.set_ylim(-15, 15)
     ax.set_zlim(-6, 2)
