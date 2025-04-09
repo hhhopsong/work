@@ -112,7 +112,7 @@ def plot_test(data, max_clusters=10):
     ax1.set_xlim(left=min(cluster_range)-0.2, right=max(cluster_range)+0.2)
     ax1.scatter(3, silhouette_scores[1], color='red', marker='^')
     ax2 = ax1.twinx()
-    ax2.plot(cluster_range, explained_variance_ratio, color='b', label='SSE', zorder=3)
+    ax2.plot(cluster_range, explained_variance_ratio, color='b', label='MSE', zorder=3)
     ax2.set_ylabel('MSE', color='b', fontsize=16)
     ax2.spines['left'].set_color('red')
     ax2.spines['right'].set_color('blue')
@@ -268,7 +268,7 @@ ax1 = fig.add_subplot(2, 1, 2)
 
 # 绘制柱状图（单色表示每年的总天数）
 bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='')
-ax1.set_title('d)Percentage of types', loc='left', fontsize=12, weight='bold', pad=20)  # 设置标题
+ax1.set_title('d)Days of types', loc='left', fontsize=12, weight='bold', pad=20)  # 设置标题
 ax1.set_xlim(1960, 2023)
 ax1.set_xlabel('Year', fontsize=10, labelpad=15)  # 设置 x 轴标签
 ax1.set_ylim(0, 63)
