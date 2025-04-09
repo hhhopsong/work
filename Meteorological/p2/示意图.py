@@ -37,7 +37,7 @@ yminor = np.arange(-90, 81, 3)
 ax1 = fig.add_subplot(3, 1, 1, projection=ccrs.PlateCarree(central_longitude=90))
 ax1.set_extent([-70, 360 - 130, -20, 80], crs=ccrs.PlateCarree(central_longitude=0))  # 设置经纬度范围
 ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-ax1.set_title('a)Type1', fontsize=14, loc='left')
+ax1.set_title('a)Type1', fontsize=12, loc='left')
 ax1.set_aspect('auto')
 ax1.add_geometries(Reader(r'D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp').geometries(),
                    ccrs.PlateCarree(central_longitude=0), facecolor='none', edgecolor='black', linewidth=.5)
@@ -70,7 +70,7 @@ latlon_fmt(ax2, xticks1, yticks1, FixedLocator(xmajor), FixedLocator(xminor), Fi
 
 ax3 = fig.add_subplot(3, 1, 3, projection=ccrs.PlateCarree(central_longitude=90))
 ax3.set_extent([-70, 360 - 130, -20, 80], crs=ccrs.PlateCarree(central_longitude=0))  # 设置经纬度范围
-ax3.set_title('c)Type3', fontsize=10, loc='left')
+ax3.set_title('c)Type3', fontsize=12, loc='left')
 ax3.set_aspect('auto')
 ax3.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
 ax3.add_geometries(Reader(r'D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp').geometries(),
