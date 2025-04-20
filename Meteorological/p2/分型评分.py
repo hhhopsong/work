@@ -12,6 +12,7 @@ from toolbar.filter import MovingAverageFilter
 from toolbar.masked import masked  # 气象工具函数
 from toolbar.K_Mean import K_Mean
 from toolbar.average_filter import nanmean_filter
+import scipy
 
 # 数据读取
 data_year = ['1961', '2022']
@@ -325,13 +326,13 @@ ax_reg.set_ylim(0, 63)
 
 ax_reg = ax.twinx()
 # 获取 type=1 的数据并转换为 Pandas DataFrame
-type_2_data = data.sel(type=2)['K'].to_dataframe().reset_index()
+type_2_data = data.sel(type=2, year=slice(1961, 2021))['K'].to_dataframe().reset_index()
 # 确保 x 和 y 数据长度匹配
 x = type_2_data['year']
 y = type_2_data['K']
 # 确保 y 没有 NaN 值
 y = y.fillna(0)
-ax_reg = sns.regplot(data=type_2_data, x=x, y=y, ax=ax_reg, scatter=False, color='r')  # 长江流域极端高温格点逐年占比
+ax_reg = sns.regplot(data=type_2_data, x=x, y=y, ax=ax_reg, scatter=False, ci=0, line_kws={"linestyle": "--", "color": "r"})  # 长江流域极端高温格点逐年占比
 ax_reg.yaxis.set_visible(False)  # ax2隐藏y轴标签
 ax_reg.set_ylim(0, 63)
 

@@ -102,35 +102,31 @@ if __name__ == '__main__':
 
     # K_series = K_type.sel(type=1)['K'].data #东部型
     # K_series = (K_series - np.mean(K_series)) / np.std(K_series)
-
-    # zone_corr = [-70, 10, 15, 0]
-    # info_sst = lonlat_trs(info_sst, type='360->180')
-    # info_t = lonlat_trs(info_t, type='360->180')
-    # info_pre = lonlat_trs(info_pre, type='360->180')
-    # corr_NPW = regress(K_series,  info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
-    # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
-    #                 - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
-    #                * corr_NPW).mean(['lat', 'lon']).to_numpy()
-    # time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
-    #                                        range(len(time_series)))  # 去除线性趋势
-    # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    # zone = [-70, 10, 15, 0]  # 热带大西洋
-
-    # zone_corr = [70, 360-140, 10, -10] # 拉尼娜
+    #
+    # # # 大西洋降水
+    # # zone_corr = [-110, 10, 30, 0]
+    # # info_sst = lonlat_trs(info_sst, type='360->180')
+    # # info_t = lonlat_trs(info_t, type='360->180')
+    # # info_pre = lonlat_trs(info_pre, type='360->180')
+    # # corr_NPW = regress(K_series, info_pre.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    # # corr_NPW = np.where(corr_NPW > 0, corr_NPW, 0)
+    # # time_series = ((info_pre.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])) - info_pre.sel(
+    # #     lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year'])) * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    # # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    # # zone = [-115, 10, 35, -5]
+    #
+    # zone_corr = [160, 360-85, 5, -5] # 拉尼娜
     # corr_NPW = corr(K_series,
     #                 info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
     # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
     #                 - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
-    #             ['year']))
-    #                * corr_NPW).mean(['lat', 'lon']).to_numpy()
-    # time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
-    #                                        range(len(time_series)))  # 去除线性趋势
+    #             ['year']))* corr_NPW).mean(['lat', 'lon']).to_numpy()
     # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    # zone = [70, 360-140, 10, -10] #拉尼娜
+    # zone = [130, 360-135, 15, -13] # 拉尼娜
 
-    # K_series = K_type.sel(type=2)['K'].data #全局一致型
-    # K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
-    # K_series = (K_series - np.mean(K_series)) / np.std(K_series)
+    K_series = K_type.sel(type=2)['K'].data #全局一致型
+    K_series = K_series[:-1]
+    K_series = (K_series - np.mean(K_series)) / np.std(K_series)
 
     # zone_corr = [53, 83, 10, -10] #  印度洋对流
     # corr_NPW = corr(K_series,
@@ -144,21 +140,20 @@ if __name__ == '__main__':
     # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
     # zone = [53, 83, 10, -10]  # 印度洋对流
 
-    # zone_corr = [120, 360-80, 10, -10]  # 东强的拉尼娜
-    # corr_NPW = corr(K_series,
-    #                 info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
-    # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
-    #                 - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
-    #             ['year']))
-    #                * corr_NPW).mean(['lat', 'lon']).to_numpy()
-    # time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
-    #                                        range(len(time_series)))  # 去除线性趋势
-    # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    # zone = [360-200, 360-80, 20, -15]  # 对应对流
+    zone_corr = [140, 360-80, 10, -10]  # 东强的拉尼娜
+    info_sst = info_sst.sel(year=slice(1961, 2021))
+    info_pre = info_pre.sel(year=slice(1961, 2021))
+    info_t = info_t.sel(year=slice(1961, 2021))
+    corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+                    - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
+                   * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    zone = [100, 360-140, 10, -10]  # 对应对流
 
-    ## 西部型
-    K_series = K_type.sel(type=3)['K'].data
-    K_series = (K_series - np.mean(K_series)) / np.std(K_series)
+    # ## 西部型
+    # K_series = K_type.sel(type=3)['K'].data
+    # K_series = (K_series - np.mean(K_series)) / np.std(K_series)
 
     # #### 大西洋干旱
     # info_sst = lonlat_trs(info_sst, type='360->180')
@@ -176,27 +171,27 @@ if __name__ == '__main__':
     # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
     # zone = [-50, 10, 15, -10]  # 厄尔尼诺
 
-    #### 厄尔尼诺
-    zone_corr = [80, 360-110, 10, -10]  # 海洋性大陆对流异常
-    corr_NPW = corr(K_series,
-                    info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
-    time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
-                    - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
-                ['year']))
-                   * corr_NPW).mean(['lat', 'lon']).to_numpy()
-    time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
-                                           range(len(time_series)))  # 去除线性趋势
-    time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [80, 360-110, 10, -10]  # 厄尔尼诺
+    # #### 厄尔尼诺
+    # zone_corr = [80, 360-110, 10, -10]  # 海洋性大陆对流异常
+    # corr_NPW = corr(K_series,
+    #                 info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+    #                 - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
+    #             ['year']))
+    #                * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    # time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
+    #                                        range(len(time_series)))  # 去除线性趋势
+    # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    # zone = [80, 360-110, 10, -10]  # 厄尔尼诺
 
 
     #################
     #K_series = time_series
-    ols = K_series  # 读取缓存
+    ols = time_series  # 读取缓存
     #corr_weight = regress(K_series, info_pre.data)
     #corr_weight_1times = 1 / np.nanmean(np.abs(regress(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
-    corr_weight = regress(K_series, info_pre.data)
-    corr_weight_1times = 1 / np.std(regress(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data))
+    corr_weight = regress(time_series, info_pre.data)
+    corr_weight_1times = 1 / np.std(regress(time_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data))
     corr_weight = corr_weight * corr_weight_1times
 
     t1000 = np.nan_to_num(regress(ols, info_t.sel(level=1000).data), nan=0)
@@ -239,6 +234,7 @@ if __name__ == '__main__':
     T_mask = T.where(mask != 0, 0)
     if np.nanmin(T_mask['lon']) < 0:
         T_mask = lonlat_trs(T_mask, type='180->360')
+    T_mask = T_mask.fillna(0)
     frc_nc_sigma = interp3d_lbm(T_mask)
     frc_nc_p = interp3d_lbm(T_mask, 'p')
     # 绘图

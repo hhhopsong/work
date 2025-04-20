@@ -41,11 +41,11 @@ def regress(time_series, data):
 
 # 数据读取
 sst = ersst("E:/data/NOAA/ERSSTv5/sst.mnmean.nc", 1960, 2023)  # NetCDF-4文件路径不可含中文
-PC = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_AverFiltAll0.9%_0.3%_3.nc").sel(type=3)['K'] # 读取时间序列
-if PC.type == 2: PC = PC - np.polyval(np.polyfit(range(len(PC)), PC, 1), range(len(PC))) # 去除线性趋势
-PC = ((PC - np.mean(PC)) / np.std(PC)).data
+PC = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_AverFiltAll0.9%_0.3%_3.nc").sel(type=2)['K'] # 读取时间序列
 # 截取sst数据为5N-5S，40E-80W
-time_data = [1961, 2022]
+time_data = [1961, 2022] if PC.type != 2 else [1961, 2021]
+if PC.type == 2: PC = PC[:-1]
+PC = ((PC - np.mean(PC)) / np.std(PC)).data
 sst = sst.sel(lat=slice(5, -5), lon=slice(0, 360))['sst']
 lon_sst = sst['lon']
 sst_term = sst.sel(time=slice(f'{time_data[0]}-01-01', f'{time_data[1]}-12-31'))

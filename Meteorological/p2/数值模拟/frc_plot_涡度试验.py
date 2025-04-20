@@ -31,7 +31,7 @@ def draw_frc():
     lev_Z = np.array([-10, -5, 5, 10]) * 2
     extent1 = [-180, 180, -30, 80]
     fig = plt.figure(figsize=(10, 5))
-    ax1 = fig.add_subplot(411, projection=ccrs.PlateCarree(central_longitude=110))
+    ax1 = fig.add_subplot(411, projection=ccrs.PlateCarree(central_longitude=100))
     ax1.set_title('a)Exp 200hPa UVZ', fontsize=6, loc='left')
     ax1.coastlines(linewidths=0.3)
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -40,7 +40,7 @@ def draw_frc():
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
     lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     var_contr = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'], frc_fill_white, linewidths=0.5,
-                        levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[20:-20], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+                        levels=lev_range, cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -52,13 +52,13 @@ def draw_frc():
     t200_high = ax1.contour( lon_fill_white, lat, z_fill_white, levels=lev_Z[lev_Z > 0], cmap=cmaps.BlueDarkRed18[-1],
                         transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.2)'''
     wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.2, scale=10, regrid=15, linewidth=0.2,
-                        color='dimgray', center_lon=180-70)
+                        color='dimgray', center_lon=100)
     wind200.key(fig, U=3, label='3 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
     # 图2
     lev = 500
     lev_Z = np.array([-10, -5, 5, 10]) * 2
     extent1 = extent1
-    ax2 = fig.add_subplot(412, projection=ccrs.PlateCarree(central_longitude=110))
+    ax2 = fig.add_subplot(412, projection=ccrs.PlateCarree(central_longitude=100))
     ax2.set_title('b)Exp 500hPa UVZ', fontsize=6, loc='left')
     ax2.coastlines(linewidths=0.3)
     ax2.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -66,7 +66,7 @@ def draw_frc():
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
     lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     var_contr = ax2.contourf(lon_fill_white, frc_nc_p[var]['lat'], frc_fill_white, linewidths=0.5,
-                        levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[20:-20], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+                        levels=lev_range, cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -78,14 +78,14 @@ def draw_frc():
     t500_high = ax2.contour( lon_fill_white, lat, z_fill_white, levels=lev_Z[lev_Z > 0], cmap=cmaps.BlueDarkRed18[-1],
                         transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.2)'''
     wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.2, scale=10, regrid=15, linewidth=0.2,
-                        color='dimgray', center_lon=180-70, nanmax=wind200.nanmax)
+                        color='dimgray', center_lon=100, nanmax=wind200.nanmax)
     wind500.key(fig, U=3, label='3 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
 
     # 图1
     lev = 850
     lev_Z = np.array([-10, -5, 5, 10]) * 0.2
     extent1 = extent1
-    ax4 = fig.add_subplot(413, projection=ccrs.PlateCarree(central_longitude=110))
+    ax4 = fig.add_subplot(413, projection=ccrs.PlateCarree(central_longitude=100))
     ax4.set_title('c)Exp 850hPa UVZ', fontsize=6, loc='left')
     ax4.coastlines(linewidths=0.3)
     ax4.set_extent(extent1, crs=ccrs.PlateCarree())
@@ -93,7 +93,7 @@ def draw_frc():
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
     lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     var_contr = ax4.contourf(lon_fill_white, frc_nc_p[var]['lat'], frc_fill_white,  linewidths=0.5,
-                        levels=lev_range, cmap=cmaps.BlueWhiteOrangeRed[20:-20], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+                        levels=lev_range, cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -106,7 +106,7 @@ def draw_frc():
                         transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.2)'''
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.2, scale=10, regrid=15, linewidth=0.2,
-                        color='dimgray', center_lon=180-70, nanmax=wind200.nanmax)
+                        color='dimgray', center_lon=100, nanmax=wind200.nanmax)
     wind850.key(fig, U=1, label='3 m/s', ud=7.8, edgecolor='none', arrowsize=.5, color='k')
     DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
     provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)

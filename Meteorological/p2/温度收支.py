@@ -49,8 +49,7 @@ def regress(time_series, data):
 
 
 time = [1961, 2022]
-t_budget = xr.open_dataset(r'E:\data\ERA5\ERA5_pressLev\single_var\t_budget_1961_2022.nc').sel(
-    time=slice(str(time[0]) + '-01', str(time[1]) + '-12'))
+t_budget = xr.open_dataset(r'E:\data\ERA5\ERA5_pressLev\single_var\t_budget_1961_2022.nc').sel(time=slice(str(time[0]) + '-01', str(time[1]) + '-12'))
 dTdt_78 = t_budget['dTdt'].sel(time=t_budget['time.month'].isin([6, 7])).groupby('time.year').mean('time')
 adv_T_78 = t_budget['adv_T'].sel(time=t_budget['time.month'].isin([7, 8])).groupby('time.year').mean('time')
 ver_78 = t_budget['ver'].sel(time=t_budget['time.month'].isin([7, 8])).groupby('time.year').mean('time')
@@ -80,7 +79,7 @@ reg_map, corr_map = np.zeros(
     (3, 4, len(t_budget['Q'].level), len(t_budget['Q'].lat), len(t_budget['Q'].lon))), np.zeros(
     (3, 4, len(t_budget['Q'].level), len(t_budget['Q'].lat), len(t_budget['Q'].lon)))
 
-p_lev = 900
+p_lev = 950 #950
 
 for i in tq.trange(len(K_type['type'])):
     K_series = K_type.sel(type=i + 1)['K'].data
@@ -241,7 +240,7 @@ plt.savefig(f'D:/PyFile/p2/pic/温度收支type.png', dpi=600, bbox_inches='tigh
 plt.show()
 
 # 辐射收支
-surface_radio = xr.open_dataset(r"D:/PyFile/p2/data/Air_Radio.nc")  # 为地面供能为正，放能为负
+surface_radio = xr.open_dataset(r"D:/PyFile/p2/data/Surface_Radio.nc")  # 为地面供能为正，放能为负
 radio = surface_radio
 reg_radio, corr_radio = (
     np.zeros((3, 4, len(radio.lat), len(radio.lon))),
@@ -256,10 +255,12 @@ for i in tq.trange(len(K_type['type'])):
         reg_radio[i, 2], corr_radio[i, 2] = regress(K_series, radio['sshf'].data / 86400)
         reg_radio[i, 3], corr_radio[i, 3] = regress(K_series, radio['slhf'].data / 86400)
     else:
-        reg_radio[i, 0], corr_radio[i, 0] = regress(K_series[:-1], radio['ssr'].sel(year=slice(1961, 2021)).data / 86400)
-        reg_radio[i, 1], corr_radio[i, 1] = regress(K_series[:-1], radio['str'].sel(year=slice(1961, 2021)).data / 86400)
-        reg_radio[i, 2], corr_radio[i, 2] = regress(K_series[:-1], radio['sshf'].sel(year=slice(1961, 2021)).data / 86400)
-        reg_radio[i, 3], corr_radio[i, 3] = regress(K_series[:-1], radio['slhf'].sel(year=slice(1961, 2021)).data / 86400)
+        K_series = K_series[:-1]
+        K_series = (K_series - np.mean(K_series)) / np.std(K_series)
+        reg_radio[i, 0], corr_radio[i, 0] = regress(K_series, radio['ssr'].sel(year=slice(1961, 2021)).data / 86400)
+        reg_radio[i, 1], corr_radio[i, 1] = regress(K_series, radio['str'].sel(year=slice(1961, 2021)).data / 86400)
+        reg_radio[i, 2], corr_radio[i, 2] = regress(K_series, radio['sshf'].sel(year=slice(1961, 2021)).data / 86400)
+        reg_radio[i, 3], corr_radio[i, 3] = regress(K_series, radio['slhf'].sel(year=slice(1961, 2021)).data / 86400)
 
 reg_radio = xr.Dataset({'ssr': (['type', 'lat', 'lon'], reg_radio[:, 0]),
                       'str': (['type', 'lat', 'lon'], reg_radio[:, 1]),
@@ -273,6 +274,41 @@ corr_radio = xr.Dataset({'ssr': (['type', 'lat', 'lon'], corr_radio[:, 0]),
                       coords={'type': K_type['type'], 'lat': radio.lat, 'lon': radio.lon})
 
 
+# 加热率计算
+time = [1961, 2022]
+heating = xr.open_dataset(r'E:\data\JRA55\JRA55_monthly_heating_1961_2023.nc').sel(time=slice(str(time[0]) + '-01', str(time[1]) + '-12'))
+heating = heating.sel(time=heating['time.month'].isin([7, 8])).groupby('time.year').mean('time').transpose('year', 'plev', 'lat', 'lon')
+
+reg_map_heating, corr_map_heating = np.zeros(
+    (3, 5, len(heating.plev), len(heating.lat), len(heating.lon))), np.zeros(
+    (3, 5, len(heating.plev), len(heating.lat), len(heating.lon)))
+
+for i in tq.trange(len(K_type['type'])):
+    K_series = K_type.sel(type=i + 1)['K'].data
+    if i != 1:
+        K_series = (K_series - np.mean(K_series)) / np.std(K_series)
+        reg_map_heating[i, 0], corr_map_heating[i, 0] = regress(K_series, heating['var242'].data)
+        reg_map_heating[i, 1], corr_map_heating[i, 1] = regress(K_series, heating['var241'].data)
+        reg_map_heating[i, 2], corr_map_heating[i, 2] = regress(K_series, heating['var251'].data)
+        reg_map_heating[i, 3], corr_map_heating[i, 3] = regress(K_series, heating['var250'].data)
+        reg_map_heating[i, 4], corr_map_heating[i, 4] = regress(K_series, heating['var246'].data)
+    else:
+        K_series = K_series[:-1]
+        K_series = (K_series - np.mean(K_series)) / np.std(K_series)
+        reg_map_heating[i, 0], corr_map_heating[i, 0] = regress(K_series, heating['var242'].sel(year=slice(1961, 2021)).data)
+        reg_map_heating[i, 1], corr_map_heating[i, 1] = regress(K_series, heating['var241'].sel(year=slice(1961, 2021)).data)
+        reg_map_heating[i, 2], corr_map_heating[i, 2] = regress(K_series, heating['var251'].sel(year=slice(1961, 2021)).data)
+        reg_map_heating[i, 3], corr_map_heating[i, 3] = regress(K_series, heating['var250'].sel(year=slice(1961, 2021)).data)
+        reg_map_heating[i, 4], corr_map_heating[i, 4] = regress(K_series, heating['var246'].sel(year=slice(1961, 2021)).data)
+reg_map_heating = xr.Dataset({'cnvhr': (['type', 'level', 'lat', 'lon'], reg_map_heating[:, 0]),
+                      'lrghr': (['type', 'level', 'lat', 'lon'], reg_map_heating[:, 1]),
+                      'lwhr': (['type', 'level', 'lat', 'lon'], reg_map_heating[:, 2]),
+                      'swhr': (['type', 'level', 'lat', 'lon'], reg_map_heating[:, 3]),
+                      'vdfhr': (['type', 'level', 'lat', 'lon'], reg_map_heating[:, 4])},
+                     coords={'type': K_type['type'], 'level': heating.plev.data, 'lat': heating.lat, 'lon': heating.lon})
+
+reg_heating_bar = reg_map_heating.sel(level=950*100)
+
 # 创建柱状图
 fig = plt.figure(figsize=(12, 3))
 
@@ -280,20 +316,26 @@ for KType in range(1, 4):
     if KType == 3:
         reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
         reg_radio_ = masked(reg_radio, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
+        reg_heating_bar_ = masked(reg_heating_bar, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
     elif KType == 1:
         reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
         reg_radio_ = masked(reg_radio, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
+        reg_heating_bar_ = masked(reg_heating_bar, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
     elif KType == 2:
         reg_map_ = masked(reg_map, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
         reg_radio_ = masked(reg_radio, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
-    reg = masked(reg_map, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").sel(type=KType, level=p_lev)
-    reg_radio_ = masked(reg_radio_, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").sel(type=KType)
+        reg_heating_bar_ = masked(reg_heating_bar, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
+    reg_radio_ = reg_radio_.sel(type=KType)
     reg_ = reg_map_.sel(type=KType, level=p_lev)
+    reg_heating_bar_ = reg_heating_bar_.sel(type=KType)
 
     adv_X_dTdt = np.nanmean(reg_['adv_T']) * 86400 * 31
     ver_X_dTdt = np.nanmean(reg_['ver']) * 86400 * 31
     Q_X_dTdt = np.nanmean(reg_['Q']) * 86400 * 31
     Radio = np.nanmean(reg_radio_['ssr']) + np.nanmean(reg_radio_['str']) + np.nanmean(reg_radio_['sshf']) + np.nanmean(reg_radio_['slhf'])
+    heating_bar = (np.nanmean(reg_heating_bar_['cnvhr']) + np.nanmean(reg_heating_bar_['lrghr'])
+                   + np.nanmean(reg_heating_bar_['lwhr']) + np.nanmean(reg_heating_bar_['swhr'])
+                   + np.nanmean(reg_heating_bar_['vdfhr'])) * 31
 
     # 准备绘图数据
     variables = ['Adv', 'Ver', 'Q', 'Surf. E.']
@@ -303,7 +345,7 @@ for KType in range(1, 4):
 
     # 添加标题和网格
     ax = fig.add_subplot(1, 3, KType)
-    ax.set_title(f'{chr(ord("a") + KType - 1)})Temp. pert budget of type{KType}', fontsize=12,loc='left')
+    ax.set_title(f'{chr(ord("a") + KType - 1)})Temp. pert budget&Surf. energy of type{KType}', fontsize=12,loc='left')
     ax.grid(True, linestyle='--', zorder=0, axis='y')
 
     bars = ax.bar(range(4), values, width=0.3, color=colors, edgecolor='black', zorder=2)
@@ -318,6 +360,7 @@ for KType in range(1, 4):
     # 设置y轴范围
     ymax = 3
     ax.set_ylim(-ymax, ymax)
+    ax.set_xlim(-.5, 3.5)
 
     #仅当 KType == 1 时添加y刻度标签
     if KType == 1:
@@ -330,6 +373,7 @@ for KType in range(1, 4):
 
     # 添加零线
     ax.axhline(0, color='black', lw=1)
+    ax.axvline(2.5, color='black', lw=1)
 
     # 边框显示为黑色
     ax.spines['top'].set_color('black')

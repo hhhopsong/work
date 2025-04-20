@@ -27,7 +27,7 @@ def draw_frc():
     z = lbm['z'][19:25].mean('time')
     lon = lbm['lon']
     lat = lbm['lat']
-    extent1 = [30, 140, -20, 45]
+    extent1 = [30, 140, -20, 65]
     c_lon_1 = 85
     # 绘图
     # 图1

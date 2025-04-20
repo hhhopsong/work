@@ -143,13 +143,21 @@ lev_t = np.array([-.5, -.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4, .5])
 for i in K_type['type']:
     picloc = int(100 + len(K_type['type'])*10 + i)
     time_ser = K_type.sel(type=i)['K'].data
-    if i == 2:
-        time_ser = time_ser - np.polyval(np.polyfit(range(len(time_ser)), time_ser, 1), range(len(time_ser)))
-    time_ser = (time_ser - time_ser.mean()) / time_ser.std()
-    reg_K_u = regress(time_ser, uvz['u'].data)
-    reg_K_v = regress(time_ser, uvz['v'].data)
-    reg_K_z = regress(time_ser, uvz['z'].data)
-    reg_K_t2m = regress(time_ser, t2m['t2m'].data)
+    # if i == 2:
+    #     time_ser = time_ser - np.polyval(np.polyfit(range(len(time_ser)), time_ser, 1), range(len(time_ser)))
+    if i!=2:
+        time_ser = (time_ser - time_ser.mean()) / time_ser.std()
+        reg_K_u = regress(time_ser, uvz['u'].data)
+        reg_K_v = regress(time_ser, uvz['v'].data)
+        reg_K_z = regress(time_ser, uvz['z'].data)
+        reg_K_t2m = regress(time_ser, t2m['t2m'].data)
+    else:
+        time_ser = time_ser[:-1]
+        time_ser = (time_ser - time_ser.mean()) / time_ser.std()
+        reg_K_u = regress(time_ser, uvz['u'].sel(year=slice(1961, 2021)).data)
+        reg_K_v = regress(time_ser, uvz['v'].sel(year=slice(1961, 2021)).data)
+        reg_K_z = regress(time_ser, uvz['z'].sel(year=slice(1961, 2021)).data)
+        reg_K_t2m = regress(time_ser, t2m['t2m'].sel(year=slice(1961, 2021)).data)
     contourfs = pic(fig, picloc, uvz['lat'], uvz['lon'], reg_K_u, reg_K_v, reg_K_z, reg_K_t2m)
 
 # 添加全局colorbar  # 为colorbar腾出空间

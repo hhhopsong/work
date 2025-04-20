@@ -7,7 +7,7 @@ import matplotlib.ticker as ticker
 import cartopy.crs as ccrs
 import scipy.ndimage as ndimage
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-from cartopy.util import add_cyclic
+from cartopy.util import add_cyclic_point
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 import geopandas as gpd
@@ -20,6 +20,10 @@ def draw_frc():
     fig = plt.figure(figsize=(12, 6))
 
     frc_nc_p = xr.open_dataset(r'D:\PyFile\p2\lbm\type1_apre_frc_p.nc') * 86400
+    lon_itp = np.arange(0, 360, 0.25)
+    lat_itp = np.arange(-90, 90.25, 0.25)
+    frc_nc_p = frc_nc_p.interp(lon=lon_itp, lat=lat_itp, kwargs={"fill_value": "extrapolate"})
+
     lbm = xr.open_dataset(r'D:\PyFile\p2\lbm\type1_apre.nc')
     u = lbm['u'][19:25].mean('time')
     v = lbm['v'][19:25].mean('time')
@@ -27,8 +31,8 @@ def draw_frc():
     z = lbm['z'][19:25].mean('time')
     lon = lbm['lon']
     lat = lbm['lat']
-    extent1 = [-70, 150, -20, 80]
-    c_lon_1 = 40
+    extent1 = [0, 360, -20, 80]
+    c_lon_1 = 60
     # 绘图
     # 图1
     lev = 200
@@ -40,7 +44,7 @@ def draw_frc():
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     var = 't'
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
     lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
 
     # 响应
@@ -68,8 +72,8 @@ def draw_frc():
     ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax2.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    # lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -95,8 +99,8 @@ def draw_frc():
     ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax4.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    # lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -171,6 +175,7 @@ def draw_frc():
 
 
     frc_nc_p = xr.open_dataset(r'D:\PyFile\p2\lbm\type1_ppre_frc_p.nc') * 86400
+    frc_nc_p = frc_nc_p.interp(lon=lon_itp, lat=lat_itp, kwargs={"fill_value": "extrapolate"})
     lbm = xr.open_dataset(r'D:\PyFile\p2\lbm\type1_ppre.nc')
     u = lbm['u'][19:25].mean('time')
     v = lbm['v'][19:25].mean('time')
@@ -178,8 +183,8 @@ def draw_frc():
     z = lbm['z'][19:25].mean('time')
     lon = lbm['lon']
     lat = lbm['lat']
-    extent1 = [65, 360-135, -20, 45]
-    c_lon_1 = 180
+    extent1 = [0, 360, -20, 80]
+    c_lon_1 = 60
     # 绘图
     # 图1
     lev = 200
@@ -191,8 +196,8 @@ def draw_frc():
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     var = 't'
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    # lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
 
     # 响应
     T, lon_T = t.sel(lev=lev), lon
@@ -219,8 +224,8 @@ def draw_frc():
     ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax2.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    # lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -246,8 +251,8 @@ def draw_frc():
     ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax4.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    # lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -321,6 +326,7 @@ def draw_frc():
     ax4.tick_params(axis='both', labelsize=6, colors='black')
 
     frc_nc_p = xr.open_dataset(r'D:\PyFile\p2\lbm\type1_frc_p.nc') * 86400
+    frc_nc_p = frc_nc_p.interp(lon=lon_itp, lat=lat_itp, kwargs={"fill_value": "extrapolate"})
     lbm = xr.open_dataset(r'D:\PyFile\p2\lbm\type1_all.nc')
     u = lbm['u'][19:25].mean('time')
     v = lbm['v'][19:25].mean('time')
@@ -328,8 +334,8 @@ def draw_frc():
     z = lbm['z'][19:25].mean('time')
     lon = lbm['lon']
     lat = lbm['lat']
-    extent1 = [-70, 360 - 130, -20, 80]
-    c_lon_1 = 90
+    extent1 = [0, 360, -20, 80]
+    c_lon_1 = 60
     # 绘图
     # 图1
     lev = 200
@@ -341,9 +347,8 @@ def draw_frc():
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     var = 't'
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)),
-                            np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    # lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
 
     # 响应
     T, lon_T = t.sel(lev=lev), lon
@@ -375,9 +380,8 @@ def draw_frc():
     ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax2.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)),
-                            np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    # lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -409,9 +413,8 @@ def draw_frc():
     ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax4.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
-    frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
-    lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)),
-                            np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white, lon_fill_white = add_cyclic_point(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
+    # lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
