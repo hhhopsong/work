@@ -348,7 +348,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         else:
             # 线性坐标下使用线性等间距点
             x_delta = np.abs(np.linspace(x_zone[0], x_zone[-1], regrid_x)[0] - np.linspace(x_zone[0], x_zone[-1], regrid_x)[1])
-            x = np.arange(x[0], x[-1] + .1, x_delta)
+            x = np.arange(x[0], x[-1] + x_delta/2, x_delta)
 
         if is_y_log:
             # 对数坐标下使用对数等间距点
@@ -359,18 +359,18 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         else:
             # 线性坐标下使用线性等间距点
             y_delta = np.abs(np.linspace(y_zone[0], y_zone[-1], regrid_y)[0] - np.linspace(y_zone[0], y_zone[-1], regrid_y)[1])
-            y = np.arange(y[0], y[-1] + .1, y_delta)
+            y = np.arange(y[0], y[-1] + y_delta/2, y_delta)
 
         # 确保x和y的间距比例适当
         if not is_x_log and not is_y_log:
             # 只有在两个轴都是线性时才应用原来的逻辑
             if REGRID_LEN == 2:
-                x = np.arange(x[0], x[-1] + .1, x_delta)
-                y = np.arange(y[0], y[-1] + .1, y_delta)
+                x = np.arange(x[0], x[-1] + x_delta/2, x_delta)
+                y = np.arange(y[0], y[-1] + y_delta/2, y_delta)
             elif x_delta < y_delta:
-                y = np.arange(y[0], y[-1] + .1, x_delta)
+                y = np.arange(y[0], y[-1] + x_delta/2, x_delta)
             else:
-                x = np.arange(x[0], x[-1] + .1, y_delta)
+                x = np.arange(x[0], x[-1] + y_delta/2, y_delta)
 
         # 重新插值
         if is_x_log or is_y_log:
@@ -380,14 +380,33 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             v = V((Y, X))
         elif x_delta < y_delta:
             if MAP:
-                x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]]) # 将lon_trunc在x居中
+                x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]]) # 将lon_trunc在x居中
+                # 将格点中心经度与center_lon对齐
+                x_grid_cent = x[len(x) // 2] if len(x) % 2 == 0 else (x[len(x) // 2 + 1] + x[len(x) // 2]) / 2
+                grid_2_draw = center_lon - x_grid_cent
+                x = x + grid_2_draw
+                # 处理超出-180~180范围的经度
+                x = np.where(x > 180, x - 360, x)
+                x = np.where(x < -180, x + 360, x)
+                x.sort()
+                x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])  # 将lon_trunc在x居中
+
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
             if MAP: zone_scale = np.abs(x_zone[0] - x_zone[-1]) / np.abs(x[0] - x[-1]) # 区域裁剪对风矢的缩放比例
         else:
             if MAP:
-                x = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])  # 将center_lon在x居中
+                x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])  # 将center_lon在x居中
+                # 将格点中心经度与center_lon对齐
+                x_grid_cent = x[len(x) // 2] if len(x) % 2 == 0 else (x[len(x) // 2 + 1] + x[len(x) // 2]) / 2
+                grid_2_draw = center_lon - x_grid_cent
+                x = x + grid_2_draw
+                # 处理超出-180~180范围的经度
+                x = np.where(x > 180, x - 360, x)
+                x = np.where(x < -180, x + 360, x)
+                x.sort()
+                x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])  # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
@@ -496,7 +515,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     if start_points is None:
         if regrid:
             if MAP:
-                x_re = np.concatenate([x[np.argmax(x > center_lon):], x[:np.argmax(x > center_lon)]])
+                x_re = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])
             else:
                 # 非地图模式下，直接使用当前坐标范围
                 x_re = x
@@ -1306,17 +1325,17 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
 
 if __name__ == '__main__':
     "test"
-    x = np.linspace(0, 359, 361)
+    x = np.linspace(-180, 180, 361)
     y = np.linspace(-90, 90, 180)
     Y, X = np.meshgrid(y, x)
-    # 生成一个X*Y对应大小的线性增大矩阵
-    U = np.linspace(0, 1, X.shape[0])[np.newaxis, :] * np.ones(X.shape).T
-    V = np.linspace(0, 1, X.shape[1])[:, np.newaxis] * np.ones(X.shape).T
+
+    U = np.linspace(-1, 1, X.shape[0])[np.newaxis, :] * np.ones(X.shape).T
+    V = np.linspace(1, -1, X.shape[1])[:, np.newaxis] * np.ones(X.shape).T
     #####
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
-    ax1 = fig.add_subplot(121)
-    ax1.set_xlim(0, 360)
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=30, color='k', linewidth=0.2, arrowsize=.25, thinning=['50%', 'min'])
+    ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100))
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=30, color='k', linewidth=0.2, arrowsize=.25, thinning=['50%', 'min'], center_lon=100)
+    ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both')
     a1.key(fig, shrink=0.15)
     #设置中心经度
     plt.savefig('D:/PyFile/pic/test.png', dpi=600, bbox_inches='tight')
