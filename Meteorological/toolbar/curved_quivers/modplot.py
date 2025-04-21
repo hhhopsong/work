@@ -383,7 +383,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]]) # 将lon_trunc在x居中
                 # 将格点中心经度与center_lon对齐
                 x_grid_cent = x[len(x) // 2] if len(x) % 2 == 0 else (x[len(x) // 2 + 1] + x[len(x) // 2]) / 2
-                grid_2_draw = center_lon - x_grid_cent
+                grid_2_draw = center_lon + 180 - x_grid_cent
                 x = x + grid_2_draw
                 # 处理超出-180~180范围的经度
                 x = np.where(x > 180, x - 360, x)
@@ -400,12 +400,13 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])  # 将center_lon在x居中
                 # 将格点中心经度与center_lon对齐
                 x_grid_cent = x[len(x) // 2] if len(x) % 2 == 0 else (x[len(x) // 2 + 1] + x[len(x) // 2]) / 2
-                grid_2_draw = center_lon - x_grid_cent
+                grid_2_draw = center_lon + 180 - x_grid_cent
                 x = x + grid_2_draw
                 # 处理超出-180~180范围的经度
                 x = np.where(x > 180, x - 360, x)
                 x = np.where(x < -180, x + 360, x)
                 x.sort()
+                # 在x左侧tainj
                 x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])  # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
@@ -515,7 +516,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     if start_points is None:
         if regrid:
             if MAP:
-                x_re = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])
+                # x_re = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])
+                x_re = x
             else:
                 # 非地图模式下，直接使用当前坐标范围
                 x_re = x
@@ -665,8 +667,11 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     for xs, ys in sp2:
         if not (grid.x_origin <= xs <= grid.x_origin + grid.width
                 and grid.y_origin <= ys <= grid.y_origin + grid.height):
-            raise ValueError("起绘点 ({}, {}) 超出数据"
-                             "边界".format(xs, ys))
+            if (np.abs(xs - grid.x_origin) < 1e-8 or np.abs(xs - grid.x_origin - grid.width) < 1e-8
+                    or np.abs(ys - grid.y_origin) < 1e-8 or np.abs(ys - grid.y_origin - grid.height) < 1e-8):
+                warnings.warn(f"起绘点 ({xs}, {ys}) 位于数据边界上，可能会导致路径积分失败。", UserWarning)
+            else:
+                raise ValueError("起绘点 ({}, {}) 超出数据边界".format(xs, ys))
 
     # Convert start_points from data to array coords
     # Shift the seed points from the bottom left of the data so that
