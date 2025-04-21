@@ -315,8 +315,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     REGRID_LEN = 1 if isinstance(regrid, int) else len(regrid)
     if regrid:
         # 将网格插值为正方形等间隔网格
-        U = RegularGridInterpolator((y, x), u, method='linear')
-        V = RegularGridInterpolator((y, x), v, method='linear')
+        U = RegularGridInterpolator((y, x), u, method='linear', bounds_error=False)
+        V = RegularGridInterpolator((y, x), v, method='linear', bounds_error=False)
         ## 裁剪绘制区域的数据->得到正确的regird
         if REGRID_LEN == 2:
             regrid_x = regrid[0]
@@ -373,6 +373,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 x = np.arange(x[0], x[-1] + y_delta/2, y_delta)
 
         # 重新插值
+        x = x[1:-1]
         if is_x_log or is_y_log:
             X, Y = np.meshgrid(x, y)
             # 对数坐标下使用更安全的插值方法
