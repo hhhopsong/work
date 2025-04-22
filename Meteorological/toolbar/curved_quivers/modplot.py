@@ -303,13 +303,16 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
 
     # 环球插值 # 可能造成边界流线错误！！
-    if x[0] + 360 != x[-1]:
+    if x[0] + 360 != x[-1] and (x[0] + 360 - x[-1]) > 1e-10:
+        if x[0] + 360 < x[-1]: warnings.warn('x轴数据范围出现重合，可能会导致流线偏移!', UserWarning)
         u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
         v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
+        x_0 = x
         x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
     else:
         u = np.concatenate([u[:, -2:-1], u, u[:, 1:2]], axis=1)
         v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
+        x_0 = x
         x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
 
     REGRID_LEN = 1 if isinstance(regrid, int) else len(regrid)
@@ -318,6 +321,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         U = RegularGridInterpolator((y, x), u, method='linear', bounds_error=False)
         V = RegularGridInterpolator((y, x), v, method='linear', bounds_error=False)
         ## 裁剪绘制区域的数据->得到正确的regird
+        x = x_0
         if REGRID_LEN == 2:
             regrid_x = regrid[0]
             regrid_y = regrid[1]
@@ -373,15 +377,15 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 x = np.arange(x[0], x[-1] + y_delta/2, y_delta)
 
         # 重新插值
-        x = x[0:-1]
         if is_x_log or is_y_log:
             X, Y = np.meshgrid(x, y)
             # 对数坐标下使用更安全的插值方法
             u = U((Y, X))
             v = V((Y, X))
-        elif x_delta < y_delta:
+        elif REGRID_LEN == 2:
             if MAP:
-                x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]]) # 将lon_trunc在x居中
+                x = np.arange(center_lon-180 + x_delta/2, center_lon+180, x_delta) # 将lon_trunc在x居中
+                y = np.arange(y[0], y[-1] + y_delta / 2, y_delta)
                 # 将格点中心经度与center_lon对齐
                 x_grid_cent = x[len(x) // 2] if len(x) % 2 == 0 else (x[len(x) // 2 + 1] + x[len(x) // 2]) / 2
                 grid_2_draw = center_lon + 180 - x_grid_cent
@@ -395,26 +399,43 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
-            if MAP: zone_scale = np.abs(x_zone[0] - x_zone[-1]) / np.abs(x[0] - x[-1]) # 区域裁剪对风矢的缩放比例
-        else:
+
+        elif x_delta < y_delta:
             if MAP:
-                x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])  # 将center_lon在x居中
+                x = np.arange(center_lon-180 + x_delta/2, center_lon+180, x_delta) # 将lon_trunc在x居中
+                y = np.arange(y[0], y[-1] + x_delta / 2, x_delta)
                 # 将格点中心经度与center_lon对齐
                 x_grid_cent = x[len(x) // 2] if len(x) % 2 == 0 else (x[len(x) // 2 + 1] + x[len(x) // 2]) / 2
-                grid_2_draw = center_lon + 180 - x_grid_cent
+                grid_2_draw = center_lon - x_grid_cent
                 x = x + grid_2_draw
                 # 处理超出-180~180范围的经度
                 x = np.where(x > 180, x - 360, x)
                 x = np.where(x < -180, x + 360, x)
                 x.sort()
-                # 在x左侧tainj
+                x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])  # 将lon_trunc在x居中
+            X, Y = np.meshgrid(x, y)
+            u = U((Y, X))
+            v = V((Y, X))
+            if MAP: zone_scale = np.abs(x_zone[0] - x_zone[-1]) / np.abs(x[0] - x[-1]) # 区域裁剪对风矢的缩放比例
+        else:
+            if MAP:
+                x = np.arange(center_lon-180 + y_delta/2, center_lon+180, y_delta)  # 将center_lon在x居中
+                y = np.arange(y[0], y[-1] + y_delta / 2, y_delta)
+                # 将格点中心经度与center_lon对齐
+                x_grid_cent = x[len(x) // 2] if len(x) % 2 == 0 else (x[len(x) // 2 + 1] + x[len(x) // 2]) / 2
+                grid_2_draw = center_lon - x_grid_cent
+                x = x + grid_2_draw
+                # 处理超出-180~180范围的经度
+                x = np.where(x > 180, x - 360, x)
+                x = np.where(x < -180, x + 360, x)
+                x.sort()
                 x = np.concatenate([x[np.argmax(x >= center_lon):], x[:np.argmax(x >= center_lon)]])  # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
             if MAP: zone_scale = np.abs(y_zone[0] - y_zone[-1]) / np.abs(y[0] - y[-1]) # 区域裁剪对风矢的缩放比例
     else:
-        raise ValueError('regrid 必须为整数')
+        raise ValueError('regrid 必须为非零整数')
 
     # 裁剪绘制区域的数据->得到正确的绘制地区
     if MAP:
