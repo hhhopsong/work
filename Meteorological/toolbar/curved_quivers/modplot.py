@@ -373,7 +373,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 x = np.arange(x[0], x[-1] + y_delta/2, y_delta)
 
         # 重新插值
-        x = x[1:-1]
+        x = x[0:-1]
         if is_x_log or is_y_log:
             X, Y = np.meshgrid(x, y)
             # 对数坐标下使用更安全的插值方法
