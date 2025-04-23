@@ -300,7 +300,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         extent = axes.get_extent()
         extent = np.array(extent)
         extent[0] = extent[0] + center_lon
-        extent[1] = extent[2] + center_lon
+        extent[1] = extent[1] + center_lon
         MAP = True
     except AttributeError:
         extent = axes.get_xlim() + axes.get_ylim()
@@ -359,10 +359,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             if x_min <= 0:  # 对数坐标不能有负值或零
                 x_min = np.min(x[x > 0])
             x = np.logspace(np.log10(x_min), np.log10(x_max), regrid_x)
-        else:
-            # 线性坐标下使用线性等间距点
-            x_delta = np.abs(np.linspace(x[0], x[-1], regrid_x)[0] - np.linspace(x[0], x[-1], regrid_x)[1])
-            x = np.arange(x[0], x[-1] + x_delta/2, x_delta)
+
 
         if is_y_log:
             # 对数坐标下使用对数等间距点
@@ -370,14 +367,13 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             if y_min <= 0:  # 对数坐标不能有负值或零
                 y_min = np.min(y[y > 0])
             y = np.logspace(np.log10(y_min), np.log10(y_max), regrid_y)
-        else:
-            # 线性坐标下使用线性等间距点
-            y_delta = np.abs(np.linspace(y[0], y[-1], regrid_y)[0] - np.linspace(y[0], y[-1], regrid_y)[1])
-            y = np.arange(y[0], y[-1] + y_delta/2, y_delta)
+
 
         # 确保x和y的间距比例适当
         if not is_x_log and not is_y_log:
             # 只有在两个轴都是线性时才应用原来的逻辑
+            x_delta = np.linspace(x[0], x[-1], regrid_x, retstep=True)[1]
+            y_delta = np.linspace(y[0], y[-1], regrid_y, retstep=True)[1]
             if REGRID_LEN == 2:
                 x = np.arange(x[0], x[-1] + x_delta/2, x_delta)
                 y = np.arange(y[0], y[-1] + y_delta/2, y_delta)
@@ -403,6 +399,32 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 # 处理超出-180~180范围的经度
                 x = np.where(x > 180, x - 360, x)
                 x = np.where(x < -180, x + 360, x)
+                # 为x y增加地图边界数据
+                if x[0] - x[-1] <= 20:
+                    x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
+                    if (-180 not in x) and (180 not in x):
+                        x = np.concatenate([x_180, x, x__180])
+                    elif (-180 in x) and (180 not in x):
+                        x = np.concatenate([x_180, x])
+                    elif (180 in x) and (-180 not in x):
+                        x = np.concatenate([x, x__180])
+                else:
+                    x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
+                    x = np.concatenate([x_left_boudary, x, x_right_boudary])
+                    if (extent[0] not in x) and (extent[1] not in x):
+                        x = np.concatenate([x_left_boudary, x, x_right_boudary])
+                    elif (extent[0] in x) and (extent[1] not in x):
+                        x = np.concatenate([x, x_right_boudary])
+                    elif (extent[1] in x) and (extent[0] not in x):
+                        x = np.concatenate([x_left_boudary, x])
+                y_90, y__90 = np.full_like([y[1]], 90), np.full_like([y[1]], -90)
+                if (-90 not in y) and (90 not in y):
+                    y = np.concatenate([y__90, y, y_90])
+                elif (-90 in y) and (90 not in y):
+                    y = np.concatenate([y_90, y])
+                elif (90 in y) and (-90 not in y):
+                    y = np.concatenate([y, y__90])
+                y = np.concatenate([y_-90, y, y_90])
                 x.sort()
                 x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
 
@@ -421,6 +443,31 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 # 处理超出-180~180范围的经度
                 x = np.where(x > 180, x - 360, x)
                 x = np.where(x < -180, x + 360, x)
+                # 为x y增加地图边界数据
+                if x[0] - x[-1] <= 20:
+                    x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
+                    if (-180 not in x) and (180 not in x):
+                        x = np.concatenate([x_180, x, x__180])
+                    elif (-180 in x) and (180 not in x):
+                        x = np.concatenate([x_180, x])
+                    elif (180 in x) and (-180 not in x):
+                        x = np.concatenate([x, x__180])
+                else:
+                    x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
+                    x = np.concatenate([x_left_boudary, x, x_right_boudary])
+                    if (extent[0] not in x) and (extent[1] not in x):
+                        x = np.concatenate([x_left_boudary, x, x_right_boudary])
+                    elif (extent[0] in x) and (extent[1] not in x):
+                        x = np.concatenate([x, x_right_boudary])
+                    elif (extent[1] in x) and (extent[0] not in x):
+                        x = np.concatenate([x_left_boudary, x])
+                y_90, y__90 = np.full_like([y[1]], 90), np.full_like([y[1]], -90)
+                if (-90 not in y) and (90 not in y):
+                    y = np.concatenate([y__90, y, y_90])
+                elif (-90 in y) and (90 not in y):
+                    y = np.concatenate([y_90, y])
+                elif (90 in y) and (-90 not in y):
+                    y = np.concatenate([y, y__90])
                 x.sort()
                 x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
@@ -438,6 +485,31 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 # 处理超出-180~180范围的经度
                 x = np.where(x > 180, x - 360, x)
                 x = np.where(x < -180, x + 360, x)
+                # 为x y增加地图边界数据
+                if x[0] - x[-1] <= 20:
+                    x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
+                    if (-180 not in x) and (180 not in x):
+                        x = np.concatenate([x_180, x, x__180])
+                    elif (-180 in x) and (180 not in x):
+                        x = np.concatenate([x_180, x])
+                    elif (180 in x) and (-180 not in x):
+                        x = np.concatenate([x, x__180])
+                else:
+                    x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
+                    x = np.concatenate([x_left_boudary, x, x_right_boudary])
+                    if (extent[0] not in x) and (extent[1] not in x):
+                        x = np.concatenate([x_left_boudary, x, x_right_boudary])
+                    elif (extent[0] in x) and (extent[1] not in x):
+                        x = np.concatenate([x, x_right_boudary])
+                    elif (extent[1] in x) and (extent[0] not in x):
+                        x = np.concatenate([x_left_boudary, x])
+                y_90, y__90 = np.full_like([y[1]], 90), np.full_like([y[1]], -90)
+                if (-90 not in y) and (90 not in y):
+                    y = np.concatenate([y__90, y, y_90])
+                elif (-90 in y) and (90 not in y):
+                    y = np.concatenate([y_90, y])
+                elif (90 in y) and (-90 not in y):
+                    y = np.concatenate([y, y__90])
                 x.sort()
                 x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
@@ -519,12 +591,47 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     trajectories = []
     edges = []
 
-    # 生成绘制网格
-    x_draw = 0
+    ## 生成绘制网格
+    if is_x_log:
+        # 对数坐标下使用对数等间距点
+        x_min, x_max = np.nanmin(x), np.nanmax(x)
+        if x_min <= 0:  # 对数坐标不能有负值或零
+            x_min = np.min(x[x > 0])
+        x_draw = np.logspace(np.log10(x_min), np.log10(x_max), regrid_x)
+
+    if is_y_log:
+        # 对数坐标下使用对数等间距点
+        y_min, y_max = np.nanmin(y), np.nanmax(y)
+        if y_min <= 0:  # 对数坐标不能有负值或零
+            y_min = np.min(y[y > 0])
+        y_draw = np.logspace(np.log10(y_min), np.log10(y_max), regrid_y)
+
+    if not is_x_log and not is_y_log:
+        # 只有在两个轴都是线性时才应用原来的逻辑
+        if MAP:
+            x_draw_delta = np.linspace(extent[0], extent[1], regrid_x, retstep=True)[1]
+            y_draw_delta = np.linspace(extent[2], extent[3], regrid_y, retstep=True)[1]
+            if REGRID_LEN == 2:
+                x_draw = np.arange(extent[0] + x_draw_delta / 2, extent[1], x_draw_delta)
+                y_draw = np.arange(extent[2] + y_draw_delta / 2, extent[3], y_draw_delta)
+            elif x_draw_delta < y_draw_delta:
+                x_draw = np.arange(extent[0] + x_draw_delta / 2, extent[1], x_draw_delta)
+                y_draw = np.arange(extent[2] + x_draw_delta / 2, extent[3], x_draw_delta)
+            else:
+                x_draw = np.arange(extent[0] + y_draw_delta / 2, extent[1], y_draw_delta)
+                y_draw = np.arange(extent[2] + y_draw_delta / 2, extent[3], y_draw_delta)
+        else:
+            x_draw = x
+            y_draw = y
+
+    # 处理超出-180~180范围的经度
+    if MAP:
+        x_draw = np.where(x_draw > 180, x_draw - 360, x_draw)
+        x_draw = np.where(x_draw < -180, x_draw + 360, x_draw)
 
     if start_points is None:
         if regrid:
-            X_re, Y_re = np.meshgrid(x, y)
+            X_re, Y_re = np.meshgrid(x_draw, y_draw)
             start_points = np.array([X_re.flatten(), Y_re.flatten()]).T
         else:
             start_points=_gen_starting_points(x,y,grains)
