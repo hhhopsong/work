@@ -26,7 +26,7 @@ import cartopy.feature as cfeature
 import tqdm as tq
 import warnings
 
-def transform(data, lon_name='lon', type='180->360'):
+def lontransform(data, lon_name='lon', type='180->360'):
     """
     将经纬度从180->360或360->180转换
     Parameters
@@ -349,8 +349,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         u = xr.DataArray(u, coords={'lat': y, 'lon': x}, dims=['lat', 'lon'])
         v = xr.DataArray(v, coords={'lat': y, 'lon': x}, dims=['lat', 'lon'])
         if x[-1] > 180:
-            u = transform(u, lon_name='lon', type='360->180')
-            v = transform(v, lon_name='lon', type='360->180')
+            u = lontransform(u, lon_name='lon', type='360->180')
+            v = lontransform(v, lon_name='lon', type='360->180')
         x = u.lon
         y = u.lat
         u = u.data
