@@ -556,7 +556,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
                 if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0, eval(thinning[0][:-1]) / 100)
+                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
                     draw_probability = thinning_min_wind / wind_0
                     draw_probability = np.where(draw_probability >= 1, 1, draw_probability)
                 else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
@@ -573,7 +573,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
                 if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0, eval(thinning[0][:-1]) / 100)
+                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
                     draw_probability = thinning_min_wind / wind_0
                     draw_probability = np.where(draw_probability >= 1, 1, np.nan)
                 else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
@@ -588,7 +588,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
                 if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0, eval(thinning[0][:-1]) / 100)
+                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
                     draw_probability = thinning_min_wind / wind_0
                     draw_probability = np.where(draw_probability <= 1, 1, np.nan)
                 else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
@@ -603,7 +603,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
                 if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0, eval(thinning[0][:-1]) / 100)
+                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
                     draw_probability = thinning_min_wind / wind_0
                     draw_probability = np.where(draw_probability < 1, 1, np.nan)
                 else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
@@ -619,7 +619,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
                 if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0, eval(thinning[0][:-1]) / 100)
+                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
                     draw_probability = thinning_min_wind / wind_0
                     draw_probability = np.where(draw_probability > 1, 1, np.nan)
                 else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
@@ -635,7 +635,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
                 if thinning[0][-1] == "%":
-                    draw_probability = wind_0 / np.nanquantile(wind_0, eval(thinning[0][:-1]) / 100)
+                    draw_probability = wind_0 / np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
                     stable_zone = np.where(draw_probability <= 1, 1, np.nan)
                     draw_probability = np.where(draw_probability > 1, draw_probability, np.nan)
                 else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
