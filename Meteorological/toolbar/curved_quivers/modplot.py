@@ -355,32 +355,42 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         y = u.lat
         u = u.data
         v = v.data
+        # 环球插值
+        if (-90 < y[0]) or (90 > y[-1]):
+            warnings.warn('高纬地区数据缺测，已进行数学延拓', UserWarning)
+            bound_err = False
+        else:
+            bound_err = True
+        if x[0] + 360 == x[-1] or np.abs(x[0] - x[-1] < 1e-4):
+            # 同时存在-180和180则除去180
+            u = u[:, :-1]
+            v = v[:, :-1]
+            x = x[:-1]
+            u = np.concatenate([u, u, u], axis=1)
+            v = np.concatenate([v, v, v], axis=1)
+            x = np.concatenate([x - 360, x, x + 360])
+            u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=bound_err)
+            v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=bound_err)
+        else:
+            u = np.concatenate([u, u, u], axis=1)
+            v = np.concatenate([v, v, v], axis=1)
+            x = np.concatenate([x - 360, x, x + 360])
+            u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=bound_err)
+            v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=bound_err)
 
-    # 环球插值
-    if x[0] + 360 == x[-1] or np.abs(x[0] - x[-1] < 1e-4):
-        # 同时存在-180和180则除去180
-        u = u[:, :-1]
-        v = v[:, :-1]
-        x = x[:-1]
-        u = np.concatenate([u, u, u], axis=1)
-        v = np.concatenate([v, v, v], axis=1)
-        x = np.concatenate([x - 360, x, x + 360])
-        u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=True)
-        v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=True)
+        x_1degree = np.arange(-181, 181.5, 1)
+        y_1degree = np.arange(-90, 90.5, 1)
+        cent_int = center_lon//1
+        cent_flt = center_lon%1
+        X_1degree_cent, Y_1degree = np.meshgrid(x_1degree + cent_int + cent_flt, y_1degree)
+        u_1degree = u_global_interp((Y_1degree, X_1degree_cent))
+        v_1degree = v_global_interp((Y_1degree, X_1degree_cent))
     else:
-        u = np.concatenate([u, u, u], axis=1)
-        v = np.concatenate([v, v, v], axis=1)
-        x = np.concatenate([x - 360, x, x + 360])
-        u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=True)
-        v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=True)
-
-    x_1degree = np.arange(-181, 181.5, 1)
-    y_1degree = np.arange(-90, 90.5, 1)
-    cent_int = center_lon//1
-    cent_flt = center_lon%1
-    X_1degree_cent, Y_1degree = np.meshgrid(x_1degree + cent_int + cent_flt, y_1degree)
-    u_1degree = u_global_interp((Y_1degree, X_1degree_cent))
-    v_1degree = v_global_interp((Y_1degree, X_1degree_cent))
+        x_1degree = x
+        y_1degree = y
+        cent_flt = center_lon%1
+        u_1degree = u
+        v_1degree = v
 
     REGRID_LEN = 1 if isinstance(regrid, int) else len(regrid)
     if regrid:
