@@ -357,8 +357,9 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         v = v.data
         # 环球插值
         if (-90 < y[0]) or (90 > y[-1]):
-            warnings.warn('高纬地区数据缺测，已进行数学延拓', UserWarning)
+            warnings.warn('高纬地区数据缺测，已进行延拓(fill np.nan)', UserWarning)
             bound_err = False
+            fill = np.nan
         else:
             bound_err = True
         if x[0] + 360 == x[-1] or np.abs(x[0] - x[-1] < 1e-4):
@@ -369,14 +370,14 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             u = np.concatenate([u, u, u], axis=1)
             v = np.concatenate([v, v, v], axis=1)
             x = np.concatenate([x - 360, x, x + 360])
-            u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=bound_err)
-            v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=bound_err)
+            u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=bound_err, fill_value=fill)
+            v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=bound_err, fill_value=fill)
         else:
             u = np.concatenate([u, u, u], axis=1)
             v = np.concatenate([v, v, v], axis=1)
             x = np.concatenate([x - 360, x, x + 360])
-            u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=bound_err)
-            v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=bound_err)
+            u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=bound_err, fill_value=fill)
+            v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=bound_err, fill_value=fill)
 
         x_1degree = np.arange(-181, 181.5, 1)
         y_1degree = np.arange(-90, 90.5, 1)
