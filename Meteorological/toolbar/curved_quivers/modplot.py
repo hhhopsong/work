@@ -9,6 +9,7 @@ from matplotlib.streamplot import TerminateTrajectory
 
 import xarray as xr
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import map_coordinates
 import numpy as np
 import cartopy.crs as ccrs
 from cartopy.util import add_cyclic_point
@@ -323,26 +324,38 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         if x[-1] > 180:
             u = np.concatenate([u[:, np.argmax(x > 180):], u[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
             v = np.concatenate([v[:, np.argmax(x > 180):], v[:, np.argmax(x >= 0):np.argmax(x > 180)]], axis=1)
-            x = np.concatenate([x[x > 180] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
+            x = np.concatenate([x[np.argmax(x > 180):] - 360, x[np.argmax(x >= 0):np.argmax(x > 180)]])
 
-    # 环球插值 # 可能造成边界流线错误！！
-    if x[0] + 360 != x[-1] and (x[0] + 360 - x[-1]) > 1e-10:
-        if x[0] + 360 < x[-1]: warnings.warn('x轴数据范围出现重合，可能会导致流线偏移!', UserWarning)
-        u = np.concatenate([u[:, -1:], u, u[:, :1]], axis=1)
-        v = np.concatenate([v[:, -1:], v, v[:, :1]], axis=1)
-        x_0 = x
-        x = np.concatenate([[x[-1] - 360], x, [x[0] + 360]])
+    # 环球插值
+    if x[0] + 360 == x[-1] or np.abs(x[0] - x[-1] < 1e-4):
+        # 同时存在-180和180则除去180
+        u = u[:-1]
+        v = v[:-1]
+        x = x[:-1]
+        u = np.concatenate([u, u, u], axis=1)
+        v = np.concatenate([v, v, v], axis=1)
+        x = np.concatenate([x - 360, x, x + 360])
+        u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=True)
+        v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=True)
     else:
-        u = np.concatenate([u[:, -2:-1], u, u[:, 1:2]], axis=1)
-        v = np.concatenate([v[:, -2:-1], v, v[:, 1:2]], axis=1)
-        x_0 = x
-        x = np.concatenate([[x[-2] - 360], x, [x[1] + 360]])
+        u = np.concatenate([u, u, u], axis=1)
+        v = np.concatenate([v, v, v], axis=1)
+        x = np.concatenate([x - 360, x, x + 360])
+        u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=True)
+        v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=True)
+
+    x_1degree = np.arange(-180, 180.5, 1)
+    y_1degree = np.arange(-90, 90.5, 1)
+    X_1degree_cent, Y_1degree = np.meshgrid(x_1degree + center_lon, y_1degree)
+    u_1degree = u_global_interp((Y_1degree, X_1degree_cent))
+    v_1degree = v_global_interp((Y_1degree, X_1degree_cent))
+    delta_cent = center_lon % 1
 
     REGRID_LEN = 1 if isinstance(regrid, int) else len(regrid)
     if regrid:
         # 将网格插值为正方形等间隔网格
-        U = RegularGridInterpolator((y, x), u, method='linear', bounds_error=False)
-        V = RegularGridInterpolator((y, x), v, method='linear', bounds_error=False)
+        U = RegularGridInterpolator((y_1degree, x_1degree + delta_cent), u_1degree, method='linear', bounds_error=True)
+        V = RegularGridInterpolator((y_1degree, x_1degree + delta_cent), v_1degree, method='linear', bounds_error=True)
         ## 裁剪绘制区域的数据->得到正确的regird
         if REGRID_LEN == 2:
             regrid_x = regrid[0]
@@ -389,129 +402,129 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             u = U((Y, X))
             v = V((Y, X))
         elif REGRID_LEN == 2:
-            if MAP:
-                x = np.arange(center_lon-180 + x_delta/2, center_lon+180, x_delta) # 将lon_trunc在x居中
-                y = np.arange(y[0], y[-1] + y_delta / 2, y_delta)
-                # 将格点中心经度与center_lon对齐
-                x_grid_cent = x[len(x) // 2] if len(x) % 2 == 1 else (x[len(x) // 2 - 1] + x[len(x) // 2]) / 2
-                grid_2_draw = center_lon - x_grid_cent
-                x = x + grid_2_draw
-                # 处理超出-180~180范围的经度
-                x = np.where(x > 180, x - 360, x)
-                x = np.where(x < -180, x + 360, x)
-                # 为x y增加地图边界数据
-                if x[0] - x[-1] <= 20:
-                    x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
-                    if (-180 not in x) and (180 not in x):
-                        x = np.concatenate([x_180, x, x__180])
-                    elif (-180 in x) and (180 not in x):
-                        x = np.concatenate([x_180, x])
-                    elif (180 in x) and (-180 not in x):
-                        x = np.concatenate([x, x__180])
-                else:
-                    x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
-                    x = np.concatenate([x_left_boudary, x, x_right_boudary])
-                    if (extent[0] not in x) and (extent[1] not in x):
-                        x = np.concatenate([x_left_boudary, x, x_right_boudary])
-                    elif (extent[0] in x) and (extent[1] not in x):
-                        x = np.concatenate([x, x_right_boudary])
-                    elif (extent[1] in x) and (extent[0] not in x):
-                        x = np.concatenate([x_left_boudary, x])
-                y_90, y__90 = np.full_like([y[1]], 90), np.full_like([y[1]], -90)
-                if (-90 not in y) and (90 not in y):
-                    y = np.concatenate([y__90, y, y_90])
-                elif (-90 in y) and (90 not in y):
-                    y = np.concatenate([y_90, y])
-                elif (90 in y) and (-90 not in y):
-                    y = np.concatenate([y, y__90])
-                y = np.concatenate([y_-90, y, y_90])
-                x.sort()
-                x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
-
+            # if MAP:
+            #     x = np.arange(center_lon-180 + x_delta/2, center_lon+180, x_delta) # 将lon_trunc在x居中
+            #     y = np.arange(y[0], y[-1] + y_delta / 2, y_delta)
+            #     # 将格点中心经度与center_lon对齐
+            #     x_grid_cent = x[len(x) // 2] if len(x) % 2 == 1 else (x[len(x) // 2 - 1] + x[len(x) // 2]) / 2
+            #     grid_2_draw = center_lon - x_grid_cent
+            #     x = x + grid_2_draw
+            #     # 处理超出-180~180范围的经度
+            #     x = np.where(x > 180, x - 360, x)
+            #     x = np.where(x < -180, x + 360, x)
+            #     # 为x y增加地图边界数据
+            #     if np.abs(x[0] - x[-1]) <= 20:
+            #         x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
+            #         if (-180 not in x) and (180 not in x):
+            #             x = np.concatenate([x_180, x, x__180])
+            #         elif (-180 in x) and (180 not in x):
+            #             x = np.concatenate([x_180, x])
+            #         elif (180 in x) and (-180 not in x):
+            #             x = np.concatenate([x, x__180])
+            #     else:
+            #         x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
+            #         if (extent[0] not in x) and (extent[1] not in x):
+            #             x = np.concatenate([x_left_boudary, x, x_right_boudary])
+            #         elif (extent[0] in x) and (extent[1] not in x):
+            #             x = np.concatenate([x, x_right_boudary])
+            #         elif (extent[1] in x) and (extent[0] not in x):
+            #             x = np.concatenate([x_left_boudary, x])
+            #     y_upper_boudary, y_bottom_boudary = np.full_like([y[1]], 2*y[-1] - y[-2]), np.full_like([y[1]], 2*y[0] - y[1])
+            #     y_90, y__90 = np.full_like([y[1]], y_upper_boudary), np.full_like([y[1]], y_bottom_boudary)
+            #     if (y_bottom_boudary not in y) and (y_upper_boudary not in y):
+            #         y = np.concatenate([y__90, y, y_90])
+            #     elif (y_bottom_boudary in y) and (y_upper_boudary not in y):
+            #         y = np.concatenate([y, y_90])
+            #     elif (_upper_boudary in y) and (y_bottom_boudary not in y):
+            #         y = np.concatenate([y__90, y])
+            #     x.sort()
+            #     y.sort()
+            #     x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
-
         elif x_delta < y_delta:
-            if MAP:
-                x = np.arange(center_lon-180 + x_delta/2, center_lon+180, x_delta) # 将lon_trunc在x居中
-                y = np.arange(y[0], y[-1] + x_delta / 2, x_delta)
-                # 将格点中心经度与center_lon对齐
-                x_grid_cent = x[len(x) // 2] if len(x) % 2 == 1 else (x[len(x) // 2 - 1] + x[len(x) // 2]) / 2
-                grid_2_draw = center_lon - x_grid_cent
-                x = x + grid_2_draw
-                # 处理超出-180~180范围的经度
-                x = np.where(x > 180, x - 360, x)
-                x = np.where(x < -180, x + 360, x)
-                # 为x y增加地图边界数据
-                if x[0] - x[-1] <= 20:
-                    x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
-                    if (-180 not in x) and (180 not in x):
-                        x = np.concatenate([x_180, x, x__180])
-                    elif (-180 in x) and (180 not in x):
-                        x = np.concatenate([x_180, x])
-                    elif (180 in x) and (-180 not in x):
-                        x = np.concatenate([x, x__180])
-                else:
-                    x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
-                    x = np.concatenate([x_left_boudary, x, x_right_boudary])
-                    if (extent[0] not in x) and (extent[1] not in x):
-                        x = np.concatenate([x_left_boudary, x, x_right_boudary])
-                    elif (extent[0] in x) and (extent[1] not in x):
-                        x = np.concatenate([x, x_right_boudary])
-                    elif (extent[1] in x) and (extent[0] not in x):
-                        x = np.concatenate([x_left_boudary, x])
-                y_90, y__90 = np.full_like([y[1]], 90), np.full_like([y[1]], -90)
-                if (-90 not in y) and (90 not in y):
-                    y = np.concatenate([y__90, y, y_90])
-                elif (-90 in y) and (90 not in y):
-                    y = np.concatenate([y_90, y])
-                elif (90 in y) and (-90 not in y):
-                    y = np.concatenate([y, y__90])
-                x.sort()
-                x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
+            # if MAP:
+            #     x = np.arange(center_lon-180 + x_delta/2, center_lon+180, x_delta) # 将lon_trunc在x居中
+            #     y = np.arange(y[0], y[-1] + x_delta / 2, x_delta)
+            #     # 将格点中心经度与center_lon对齐
+            #     x_grid_cent = x[len(x) // 2] if len(x) % 2 == 1 else (x[len(x) // 2 - 1] + x[len(x) // 2]) / 2
+            #     grid_2_draw = center_lon - x_grid_cent
+            #     x = x + grid_2_draw
+            #     # 处理超出-180~180范围的经度
+            #     x = np.where(x > 180, x - 360, x)
+            #     x = np.where(x < -180, x + 360, x)
+            #     # 为x y增加地图边界数据
+            #     if np.abs(x[0] - x[-1]) <= 20:
+            #         x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
+            #         if (-180 not in x) and (180 not in x):
+            #             x = np.concatenate([x_180, x, x__180])
+            #         elif (-180 in x) and (180 not in x):
+            #             x = np.concatenate([x_180, x])
+            #         elif (180 in x) and (-180 not in x):
+            #             x = np.concatenate([x, x__180])
+            #     else:
+            #         x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
+            #         if (extent[0] not in x) and (extent[1] not in x):
+            #             x = np.concatenate([x_left_boudary, x, x_right_boudary])
+            #         elif (extent[0] in x) and (extent[1] not in x):
+            #             x = np.concatenate([x, x_right_boudary])
+            #         elif (extent[1] in x) and (extent[0] not in x):
+            #             x = np.concatenate([x_left_boudary, x])
+            #     y_upper_boudary, y_bottom_boudary = np.full_like([y[1]], 2*y[-1] - y[-2]), np.full_like([y[1]], 2*y[0] - y[1])
+            #     y_90, y__90 = np.full_like([y[1]], y_upper_boudary), np.full_like([y[1]], y_bottom_boudary)
+            #     if (y_bottom_boudary not in y) and (y_upper_boudary not in y):
+            #         y = np.concatenate([y__90, y, y_90])
+            #     elif (y_bottom_boudary in y) and (y_upper_boudary not in y):
+            #         y = np.concatenate([y, y_90])
+            #     elif (_upper_boudary in y) and (y_bottom_boudary not in y):
+            #         y = np.concatenate([y__90, y])
+            #     x.sort()
+            #     y.sort()
+            #     x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
             if MAP: zone_scale = np.abs(extent[0] - extent[1]) / np.abs(x[0] - x[-1]) # 区域裁剪对风矢的缩放比例
         else:
-            if MAP:
-                x = np.arange(center_lon-180 + y_delta/2, center_lon+180, y_delta)  # 将center_lon在x居中
-                y = np.arange(y[0], y[-1] + y_delta / 2, y_delta)
-                # 将格点中心经度与center_lon对齐
-                x_grid_cent = x[len(x) // 2] if len(x) % 2 == 1 else (x[len(x) // 2 - 1] + x[len(x) // 2]) / 2
-                grid_2_draw = center_lon - x_grid_cent
-                x = x + grid_2_draw
-                # 处理超出-180~180范围的经度
-                x = np.where(x > 180, x - 360, x)
-                x = np.where(x < -180, x + 360, x)
-                # 为x y增加地图边界数据
-                if x[0] - x[-1] <= 20:
-                    x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
-                    if (-180 not in x) and (180 not in x):
-                        x = np.concatenate([x_180, x, x__180])
-                    elif (-180 in x) and (180 not in x):
-                        x = np.concatenate([x_180, x])
-                    elif (180 in x) and (-180 not in x):
-                        x = np.concatenate([x, x__180])
-                else:
-                    x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
-                    x = np.concatenate([x_left_boudary, x, x_right_boudary])
-                    if (extent[0] not in x) and (extent[1] not in x):
-                        x = np.concatenate([x_left_boudary, x, x_right_boudary])
-                    elif (extent[0] in x) and (extent[1] not in x):
-                        x = np.concatenate([x, x_right_boudary])
-                    elif (extent[1] in x) and (extent[0] not in x):
-                        x = np.concatenate([x_left_boudary, x])
-                y_90, y__90 = np.full_like([y[1]], 90), np.full_like([y[1]], -90)
-                if (-90 not in y) and (90 not in y):
-                    y = np.concatenate([y__90, y, y_90])
-                elif (-90 in y) and (90 not in y):
-                    y = np.concatenate([y_90, y])
-                elif (90 in y) and (-90 not in y):
-                    y = np.concatenate([y, y__90])
-                x.sort()
-                x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
+            # if MAP:
+            #     x = np.arange(center_lon-180 + y_delta/2, center_lon+180, y_delta)  # 将center_lon在x居中
+            #     y = np.arange(y[0], y[-1] + y_delta / 2, y_delta)
+            #     # 将格点中心经度与center_lon对齐
+            #     x_grid_cent = x[len(x) // 2] if len(x) % 2 == 1 else (x[len(x) // 2 - 1] + x[len(x) // 2]) / 2
+            #     grid_2_draw = center_lon - x_grid_cent
+            #     x = x + grid_2_draw
+            #     # 处理超出-180~180范围的经度
+            #     x = np.where(x > 180, x - 360, x)
+            #     x = np.where(x < -180, x + 360, x)
+            #     # 为x y增加地图边界数据
+            #     if np.abs(x[0] - x[-1]) <= 20:
+            #         x_180, x__180 = np.full_like([x[1]], -180), np.full_like([x[1]], 180)
+            #         if (-180 not in x) and (180 not in x):
+            #             x = np.concatenate([x_180, x, x__180])
+            #         elif (-180 in x) and (180 not in x):
+            #             x = np.concatenate([x_180, x])
+            #         elif (180 in x) and (-180 not in x):
+            #             x = np.concatenate([x, x__180])
+            #     else:
+            #         x_left_boudary, x_right_boudary= np.full_like([x[1]], extent[0]), np.full_like([x[1]], extent[1])
+            #         if (extent[0] not in x) and (extent[1] not in x):
+            #             x = np.concatenate([x_left_boudary, x, x_right_boudary])
+            #         elif (extent[0] in x) and (extent[1] not in x):
+            #             x = np.concatenate([x, x_right_boudary])
+            #         elif (extent[1] in x) and (extent[0] not in x):
+            #             x = np.concatenate([x_left_boudary, x])
+            #     y_upper_boudary, y_bottom_boudary = np.full_like([y[1]], 2*y[-1] - y[-2]), np.full_like([y[1]], 2*y[0] - y[1])
+            #     y_90, y__90 = np.full_like([y[1]], y_upper_boudary), np.full_like([y[1]], y_bottom_boudary)
+            #     if (y_bottom_boudary not in y) and (y_upper_boudary not in y):
+            #         y = np.concatenate([y__90, y, y_90])
+            #     elif (y_bottom_boudary in y) and (y_upper_boudary not in y):
+            #         y = np.concatenate([y, y_90])
+            #     elif (_upper_boudary in y) and (y_bottom_boudary not in y):
+            #         y = np.concatenate([y__90, y])
+            #     x.sort()
+            #     y.sort()
+            #     x = np.concatenate([x[np.argmax(x >= center_lon - 180):], x[:np.argmax(x >= center_lon - 180)]])  # 将lon_trunc在x居中
             X, Y = np.meshgrid(x, y)
             u = U((Y, X))
             v = V((Y, X))
@@ -1451,7 +1464,8 @@ if __name__ == '__main__':
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100))
     ax1.set_extent([-180, 180, -80, 80], crs=ccrs.PlateCarree())
     a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, thinning=['50%', 'min'], center_lon=100)
-    ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both')
+    ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
+    ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     # ax1.quiver(x, y, U, V, transform=ccrs.PlateCarree(0), regrid_shape=20, scale=25)
     a1.key(fig, shrink=0.15)
     plt.savefig('test.png', dpi=600, bbox_inches='tight')
