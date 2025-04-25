@@ -526,13 +526,13 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             x_draw_delta = np.linspace(extent[0], extent[1], regrid_x, retstep=True)[1]
             y_draw_delta = np.linspace(extent[2], extent[3], regrid_y, retstep=True)[1]
             if REGRID_LEN == 2:
-                x_draw = np.arange(extent[0] + x_draw_delta / 2, extent[1], x_draw_delta)
+                x_draw = np.arange(extent[0] - center_lon + x_draw_delta / 2, extent[1] - center_lon, x_draw_delta)
                 y_draw = np.arange(extent[2] + y_draw_delta / 2, extent[3], y_draw_delta)
             elif x_draw_delta < y_draw_delta:
-                x_draw = np.arange(extent[0] + x_draw_delta / 2, extent[1], x_draw_delta)
+                x_draw = np.arange(extent[0] - center_lon + x_draw_delta / 2, extent[1] - center_lon, x_draw_delta)
                 y_draw = np.arange(extent[2] + x_draw_delta / 2, extent[3], x_draw_delta)
             else:
-                x_draw = np.arange(extent[0] + y_draw_delta / 2, extent[1], y_draw_delta)
+                x_draw = np.arange(extent[0] - center_lon + y_draw_delta / 2, extent[1] - center_lon, y_draw_delta)
                 y_draw = np.arange(extent[2] + y_draw_delta / 2, extent[3], y_draw_delta)
         else:
             x_draw = x
@@ -1363,7 +1363,7 @@ if __name__ == '__main__':
     #####
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100.5))
-    ax1.set_extent([-180, 180, -80, 80], crs=ccrs.PlateCarree())
+    ax1.set_extent([-50, 130, -80, 80], crs=ccrs.PlateCarree())
     a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, thinning=['50%', 'min'], center_lon=100.5)
     ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
