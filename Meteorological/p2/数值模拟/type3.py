@@ -27,8 +27,9 @@ def draw_frc():
     z = lbm['z'][19:25].mean('time')
     lon = lbm['lon']
     lat = lbm['lat']
-    extent1 = [-70, 150, -20, 80]
-    c_lon_1 = 40
+    extent1 = [0, 360, -20, 80]
+    c_lon_1 = 60
+    scale = 8
     # 绘图
     # 图1
     lev = 200
@@ -39,7 +40,7 @@ def draw_frc():
     ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
-    var = 't'
+    var = 'v'
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
     lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
 
@@ -51,10 +52,10 @@ def draw_frc():
 
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
-                        levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25,
+                        levels=lev_range, cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=scale, regrid=13, linewidth=.25,
                         color="#454545", center_lon=c_lon_1, thinning=[.4, 'max'])
-    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=scale, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                         color="black", center_lon=c_lon_1, thinning=[.4, 'max_full'])
     wind200.key(fig, U=.4, label='0.4 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
     wind200_.key(fig, U=.4, label='> 0.4 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
@@ -77,10 +78,10 @@ def draw_frc():
     V, lon_UV = v.sel(lev=lev), lon
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax2.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
-                        levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+                        levels=lev_range, cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=scale/2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                            color="#454545", center_lon=c_lon_1, thinning=[.2, 'max'])
-    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=scale/2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                         color="black", center_lon=c_lon_1, thinning=[.2, 'max_full'])
     wind500.key(fig, U=.2, label='0.2 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
     wind500_.key(fig, U=.2, label='> 0.2 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
@@ -104,11 +105,11 @@ def draw_frc():
     V, lon_UV = v.sel(lev=lev), lon
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax4.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
-                        levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+                        levels=lev_range, cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
-    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=scale/4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                            color="#454545", center_lon=c_lon_1, thinning=[.1, 'max'])
-    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=scale/4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                         color="black", center_lon=c_lon_1, thinning=[.1, 'max_full'])
     wind850.key(fig, U=.1, label='0.1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
     wind850_.key(fig, U=.1, label='> 0.1 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
@@ -178,8 +179,8 @@ def draw_frc():
     z = lbm['z'][19:25].mean('time')
     lon = lbm['lon']
     lat = lbm['lat']
-    extent1 = [65, 360-105, -20, 45]
-    c_lon_1 = 180
+    extent1 = [0, 360, -20, 80]
+    c_lon_1 = 60
     # 绘图
     # 图1
     lev = 200
@@ -203,9 +204,9 @@ def draw_frc():
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=scale, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                         color="#454545", center_lon=c_lon_1, thinning=[.4, 'max'])
-    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=scale, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                         color="black", center_lon=c_lon_1, thinning=[.4, 'max_full'])
     wind200.key(fig, U=.4, label='0.4 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
     wind200_.key(fig, U=.4, label='> 0.4 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
@@ -229,9 +230,9 @@ def draw_frc():
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax2.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=scale/2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                            color="#454545", center_lon=c_lon_1, thinning=[.2, 'max'])
-    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=scale/2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                         color="black", center_lon=c_lon_1, thinning=[.2, 'max_full'])
     wind500.key(fig, U=.2, label='0.2 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
     wind500_.key(fig, U=.2, label='> 0.2 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
@@ -257,9 +258,9 @@ def draw_frc():
     var_contr = ax4.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
-    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=scale/4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                            color="#454545", center_lon=c_lon_1, thinning=[.1, 'max'])
-    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=scale/4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                         color="black", center_lon=c_lon_1, thinning=[.1, 'max_full'])
     wind850.key(fig, U=.1, label='0.1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
     wind850_.key(fig, U=.1, label='> 0.1 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
@@ -328,8 +329,8 @@ def draw_frc():
     z = lbm['z'][19:25].mean('time')
     lon = lbm['lon']
     lat = lbm['lat']
-    extent1 = [-70, 360 - 105, -20, 80]
-    c_lon_1 = 90
+    extent1 = [0, 360, -20, 80]
+    c_lon_1 = 60
     # 绘图
     # 图1
     lev = 200
@@ -345,6 +346,11 @@ def draw_frc():
     lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)),
                             np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
 
+    var2 = 'v'
+    frc_fill_white2, lon_fill_white2 = add_cyclic(frc_nc_p[var2].sel(lev=lev, time=0), frc_nc_p[var2]['lon'])
+    lev_range2 = np.linspace(-np.nanmax(np.abs(frc_nc_p[var2].sel(lev=lev).data)),
+                            np.nanmax(np.abs(frc_nc_p[var2].sel(lev=lev).data)), 8)
+
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -352,15 +358,22 @@ def draw_frc():
     V, lon_UV = v.sel(lev=lev), lon
 
     zero_mask = (lev_range[1] - lev_range[0]) / 2
+    zero_mask2 = (lev_range2[1] - lev_range2[0]) / 2
     var_contr = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'],
                              np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white,
                                       np.nan),
                              levels=lev_range,
                              cmap=cmaps.MPL_RdYlGn[22 + 0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106 - 0],
                              transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
+    var_contr = ax1.contourf(lon_fill_white2, frc_nc_p[var2]['lat'],
+                             np.where((frc_fill_white2 >= zero_mask2) | (frc_fill_white2 <= -zero_mask2), frc_fill_white2,
+                                      np.nan),
+                             levels=lev_range2,
+                             cmap=plt.cm.PuOr_r,
+                             transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=scale, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                           color="#454545", center_lon=c_lon_1, thinning=[.4, 'max'])
-    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25,
+    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=scale, regrid=13, linewidth=.25,
                            nanmax=wind200.nanmax,
                            color="black", center_lon=c_lon_1, thinning=[.4, 'max_full'])
     wind200.key(fig, U=.4, label='0.4 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
@@ -378,6 +391,9 @@ def draw_frc():
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
     lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)),
                             np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white2, lon_fill_white2 = add_cyclic(frc_nc_p[var2].sel(lev=lev, time=0), frc_nc_p[var2]['lon'])
+    lev_range2 = np.linspace(-np.nanmax(np.abs(frc_nc_p[var2].sel(lev=lev).data)),
+                            np.nanmax(np.abs(frc_nc_p[var2].sel(lev=lev).data)), 8)
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -390,10 +406,16 @@ def draw_frc():
                              levels=lev_range,
                              cmap=cmaps.MPL_RdYlGn[22 + 0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106 - 0],
                              transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25,
+    var_contr = ax2.contourf(lon_fill_white2, frc_nc_p[var2]['lat'],
+                             np.where((frc_fill_white2 >= zero_mask2) | (frc_fill_white2 <= -zero_mask2), frc_fill_white2,
+                                      np.nan),
+                             levels=lev_range2,
+                             cmap=plt.cm.PuOr_r,
+                             transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=scale/2, regrid=13, linewidth=.25,
                           nanmax=wind200.nanmax,
                           color="#454545", center_lon=c_lon_1, thinning=[.2, 'max'])
-    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25,
+    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=scale/2, regrid=13, linewidth=.25,
                            nanmax=wind200.nanmax,
                            color="black", center_lon=c_lon_1, thinning=[.2, 'max_full'])
     wind500.key(fig, U=.2, label='0.2 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
@@ -412,6 +434,9 @@ def draw_frc():
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
     lev_range = np.linspace(-np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)),
                             np.nanmax(np.abs(frc_nc_p[var].sel(lev=lev).data)), 8)
+    frc_fill_white2, lon_fill_white2 = add_cyclic(frc_nc_p[var2].sel(lev=lev, time=0), frc_nc_p[var2]['lon'])
+    lev_range2 = np.linspace(-np.nanmax(np.abs(frc_nc_p[var2].sel(lev=lev).data)),
+                            np.nanmax(np.abs(frc_nc_p[var2].sel(lev=lev).data)), 8)
     # 响应
     T, lon_T = t.sel(lev=lev), lon
     Z, lon_Z = ndimage.gaussian_filter(z.sel(lev=lev), 1), lon
@@ -424,11 +449,17 @@ def draw_frc():
                              levels=lev_range,
                              cmap=cmaps.MPL_RdYlGn[22 + 0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106 - 0],
                              transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+    var_contr = ax4.contourf(lon_fill_white2, frc_nc_p[var2]['lat'],
+                             np.where((frc_fill_white2 >= zero_mask2) | (frc_fill_white2 <= -zero_mask2), frc_fill_white2,
+                                      np.nan),
+                             levels=lev_range2,
+                             cmap=plt.cm.PuOr_r,
+                             transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     # z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
-    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25,
+    wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=scale/4, regrid=13, linewidth=.25,
                           nanmax=wind200.nanmax,
                           color="#454545", center_lon=c_lon_1, thinning=[.1, 'max'])
-    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25,
+    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=scale/4, regrid=13, linewidth=.25,
                            nanmax=wind200.nanmax,
                            color="black", center_lon=c_lon_1, thinning=[.1, 'max_full'])
     wind850.key(fig, U=.1, label='0.1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)

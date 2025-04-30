@@ -135,8 +135,6 @@ if __name__ == '__main__':
     #                 - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
     #             ['year']))
     #                * corr_NPW).mean(['lat', 'lon']).to_numpy()
-    # time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
-    #                                        range(len(time_series)))  # 去除线性趋势
     # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
     # zone = [53, 83, 10, -10]  # 印度洋对流
 
@@ -149,49 +147,45 @@ if __name__ == '__main__':
                     - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
                    * corr_NPW).mean(['lat', 'lon']).to_numpy()
     time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    zone = [100, 360-140, 10, -10]  # 对应对流
+    zone = [100, 360-150, 10, -10]  # 对应对流
 
     # ## 西部型
     # K_series = K_type.sel(type=3)['K'].data
     # K_series = (K_series - np.mean(K_series)) / np.std(K_series)
-
-    # #### 大西洋干旱
-    # info_sst = lonlat_trs(info_sst, type='360->180')
-    # info_t = lonlat_trs(info_t, type='360->180')
-    # info_pre = lonlat_trs(info_pre, type='360->180')
-    # zone_corr = [-50, 10, 15, -10]  # 海洋性大陆对流异常
-    # corr_NPW = corr(K_series,
-    #                 info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
-    # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
-    #                 - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
-    #             ['year']))
-    #                * corr_NPW).mean(['lat', 'lon']).to_numpy()
-    # time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
-    #                                        range(len(time_series)))  # 去除线性趋势
-    # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    # zone = [-50, 10, 15, -10]  # 厄尔尼诺
-
+    #
+    # # #### 大西洋干旱
+    # # info_sst = lonlat_trs(info_sst, type='360->180')
+    # # info_t = lonlat_trs(info_t, type='360->180')
+    # # info_pre = lonlat_trs(info_pre, type='360->180')
+    # # zone_corr = [-50, 10, 15, -10]  # 海洋性大陆对流异常
+    # # corr_NPW = corr(K_series,
+    # #                 info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+    # # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+    # #                 - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
+    # #             ['year']))
+    # #                * corr_NPW).mean(['lat', 'lon']).to_numpy()
+    # # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
+    # # zone = [-50, 10, 15, -10]  # 厄尔尼诺
+    #
     # #### 厄尔尼诺
-    # zone_corr = [80, 360-110, 10, -10]  # 海洋性大陆对流异常
+    # zone_corr = [180, 360-90, 5, -5]
     # corr_NPW = corr(K_series,
     #                 info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
     # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
     #                 - info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(
     #             ['year']))
     #                * corr_NPW).mean(['lat', 'lon']).to_numpy()
-    # time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1),
-    #                                        range(len(time_series)))  # 去除线性趋势
     # time_series = (time_series - np.mean(time_series)) / np.std(time_series)
-    # zone = [80, 360-110, 10, -10]  # 厄尔尼诺
+    # zone = [130, 360-150, 10, -10]
 
 
     #################
     #K_series = time_series
     ols = time_series  # 读取缓存
-    #corr_weight = regress(K_series, info_pre.data)
-    #corr_weight_1times = 1 / np.nanmean(np.abs(regress(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
-    corr_weight = regress(time_series, info_pre.data)
-    corr_weight_1times = 1 / np.std(regress(time_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data))
+    # corr_weight = regress(ols, info_pre.data)
+    # corr_weight_1times = 1 / np.nanmean(np.abs(regress(K_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
+    corr_weight = regress(ols, info_pre.data)
+    corr_weight_1times = 1 / np.std(np.abs(regress(time_series, info_pre.sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).data)))
     corr_weight = corr_weight * corr_weight_1times
 
     t1000 = np.nan_to_num(regress(ols, info_t.sel(level=1000).data), nan=0)
@@ -216,6 +210,9 @@ if __name__ == '__main__':
     #frc['t'] = frc['t'] / frc['t'] * frc['t'].sel(lon=slice(zone[0], zone[1]), lat=slice(zone[2], zone[3])).mean(['lon', 'lat'])
     # 读取强迫场
     # 选择45-90N，35W-35E的区域
+
+    # 筛选出大于0.5的格点
+    corr_weight = np.where(np.abs(corr_weight) > 0.5, corr_weight, 0)
 
     T = np.abs(frc) * corr_weight
     lon, lat = np.meshgrid(frc['lon'], frc['lat'])

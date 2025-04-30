@@ -92,10 +92,10 @@ K_series = K_type.sel(type=2)['K'].data
 K_series = K_series[:-1]
 K_series = (K_series - np.mean(K_series))/np.std(K_series)
 #### NAO
-zone_corr = [-75, -10, 65, 25]
-info_z = info_z.sel(year=slice(1961, 2021))
-info_u = info_u.sel(year=slice(1961, 2021))
-info_v = info_v.sel(year=slice(1961, 2021))
+zone_corr = [-75, -10, 50, 25]
+info_z = info_z.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+info_u = info_u.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+info_v = info_v.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
 info_sst = info_sst.sel(year=slice(1961, 2021))
 info_sst = lonlat_trs(info_sst, type='360->180')
 corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
@@ -104,25 +104,32 @@ time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zo
                *corr_NPW).mean(['lat', 'lon']).to_numpy()
 info_sst = lonlat_trs(info_sst, type='180->360')
 time_series = (time_series - np.mean(time_series))/np.std(time_series)
-zone = [360-80, 360-5, 68, 35] #NAO
+K_series = time_series
+zone = [360-80, 360-37, 50, 35] #NAO
 
 zone_up = [360-80, 360-40, 50, 30] # -
 zone_p = [360-50, 360-0, 70, 30] # +
-zone = [zone_up, zone_p] # -+
+#zone = [zone_up, zone_p] # -+
 
 # ## 西部型
 # K_series = K_type.sel(type=3)['K'].data
 # K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
 # K_series = (K_series - np.mean(K_series))/np.std(K_series)
 # #### 北大西洋经向异常
-# zone_corr = [360-80, 360-15, 55, 10]
+# zone_corr = [-70, -20, 55, 35]
+# info_z = info_z.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+# info_u = info_u.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+# info_v = info_v.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+# info_sst = info_sst
+# info_sst = lonlat_trs(info_sst, type='360->180')
 # corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
 # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
 #                 -info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
 #                *corr_NPW).mean(['lat', 'lon']).to_numpy()
-# time_series = time_series - np.polyval(np.polyfit(range(len(time_series)), time_series, 1), range(len(time_series)))  # 去除线性趋势
+# info_sst = lonlat_trs(info_sst, type='180->360')
 # time_series = (time_series - np.mean(time_series))/np.std(time_series)
-# zone = [360-70, 360-20, 50, 15] #
+# K_series = time_series
+# zone = [360-75, 360-20, 63, 35] #
 
 #############
 #K_series = time_series
@@ -154,11 +161,11 @@ v100 = np.nan_to_num(regress(K_series, info_v.sel(level=100).data), nan=0) * uni
 #                     coords={'lev': [1000, 850, 500, 200, 150, 100], 'lat': info_z['lat'], 'lon': info_z['lon']})
 
 # 整层一致
-frc = xr.Dataset({'z':(['lev', 'lat', 'lon'], np.array([z500, z500, z500, z500, z500, z500]))},
-                 coords={'lev': [1000, 850, 500, 200, 150, 100], 'lat': info_z['lat'], 'lon': info_z['lon']})
-uv = xr.Dataset({'u':(['lev', 'lat', 'lon'], np.array([u500, u500, u500, u500, u500, u500])),
-                    'v':(['lev', 'lat', 'lon'], np.array([v500, v500, v500, v500, v500, v500]))},
-                    coords={'lev': [1000, 850, 500, 200, 150, 100], 'lat': info_z['lat'], 'lon': info_z['lon']})
+frc = xr.Dataset({'z':(['lev', 'lat', 'lon'], np.array([z200, z200, z200, z200, z200, z200, z200]))},
+                 coords={'lev': [1000, 850, 500, 200, 150, 100, 5], 'lat': info_z['lat'], 'lon': info_z['lon']})
+uv = xr.Dataset({'u':(['lev', 'lat', 'lon'], np.array([u200, u200, u200, u200, u200, u200, u200])),
+                    'v':(['lev', 'lat', 'lon'], np.array([v200, v200, v200, v200, v200, v200, v200]))},
+                    coords={'lev': [1000, 850, 500, 200, 150, 100, 5], 'lat': info_z['lat'], 'lon': info_z['lon']})
 
 # 计算涡度
 heights = frc['z'] * units('m^2/s^2')
@@ -166,13 +173,13 @@ wind = uv['u'] * units('m/s'), uv['v'] * units('m/s')
 dx, dy = mpcalc.lat_lon_grid_deltas(np.meshgrid(heights.lon, heights.lat)[0], np.meshgrid(heights.lon, heights.lat)[1])
 vor = np.zeros(heights.shape)
 p=0
-for i in [1000, 850, 500, 200, 150, 100]:
+for i in [1000, 850, 500, 200, 150, 100, 5]:
     ug, vg = wind[0].sel(lev=i), wind[1].sel(lev=i)
-    vor[p] = mpcalc.vorticity(ug, vg) # 计算水平风的垂直涡度
+    vor[p] = mpcalc.vorticity(ug, vg, dx=dx, dy=dy) # 计算水平风的垂直涡度
     p += 1
 
 vor = xr.Dataset({'v':(['lev', 'lat', 'lon'], np.where(np.isnan(vor), 0, vor))},
-                    coords={'lev': [1000, 850, 500, 200, 150, 100], 'lat': info_z['lat'], 'lon': info_z['lon']})
+                    coords={'lev': [1000, 850, 500, 200, 150, 100, 5], 'lat': info_z['lat'], 'lon': info_z['lon']})
 
 
 lon, lat = np.meshgrid(frc['lon'], frc['lat'])
@@ -180,7 +187,7 @@ lon, lat = np.meshgrid(frc['lon'], frc['lat'])
 if len(zone)==4:
     mask = ((np.where(lon<= zone[1], 1, 0) * np.where(lon>= zone[0], 1, 0))
             * (np.where(lat>= zone[3], 1, 0) * np.where(lat<= zone[2], 1, 0))
-            * np.where(vor['v'] != 0, 1, 0))
+            * np.where(vor['v'] <= 0, 1, 0))
 elif len(zone)==2:
     zone_1 = zone[0]
     zone_2 = zone[1]
@@ -195,6 +202,13 @@ elif len(zone)==2:
     mask = mask_1 + mask_2
 ########################################
 vor_mask = vor.where(mask != 0, 0)
+
+# 各层进行归一化
+vor_mask = vor_mask / np.nanmax(np.abs(vor_mask['v']), axis=(1, 2))[:, np.newaxis, np.newaxis]
+
+# 设置垂直廓线(2x10e-6 K/day)
+vor_mask *= 2e-6
+
 
 frc_nc_sigma = interp3d_lbm(vor_mask)
 frc_nc_p = interp3d_lbm(vor_mask, 'p')
@@ -212,6 +226,7 @@ frc_fill_white, lon_fill_white = add_cyclic(frc_vor_avg.sel(time=0), frc_nc_p[va
 lev_range = np.linspace(-np.nanmax(np.abs(frc_vor_avg.sel(time=0).data)), np.nanmax(np.abs(frc_vor_avg.sel(time=0).data)), 10)
 var200 = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'], frc_fill_white,
                     levels=lev_range, cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(central_longitude=0), extend='both')
+ax1.quiver(info_z['lon'], info_z['lat'], wind[0].sel(lev=500).data, wind[1].sel(lev=500).data, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=20)
 # 刻度线设置
 xticks1 = np.arange(extent1[0], extent1[1] + 1, 10)
 yticks1 = np.arange(extent1[2], extent1[3] + 1, 10)

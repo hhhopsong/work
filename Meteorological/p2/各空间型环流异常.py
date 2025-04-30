@@ -33,11 +33,11 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     cont_.clabel(inline=1, fontsize=4)
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
     if nanmax:
-        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.3,
-                         regrid=15, color='#454545', nanmax=nanmax)
+        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.5,
+                         regrid=15, color='k', nanmax=nanmax)
     else:
-        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.3,
-                         regrid=15, color='#454545')
+        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.5,
+                         regrid=15, color='k')
     Cq.key(fig, U=1, label='1 m/s', color='k')
     nanmax = Cq.nanmax
     ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)

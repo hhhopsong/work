@@ -170,15 +170,13 @@ for cluster in range(K_s):
     extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
     ax = fig.add_subplot(2, K_s, cluster + 1, projection=ccrs.PlateCarree())
     ax.set_title(f"{abc_index[cluster]})Type {cluster + 1}", loc='left', fontsize=12, weight='bold')
-    ax.add_geometries(Reader(r'D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
-    ax.add_geometries(Reader(r'D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(
         r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
                       ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江\长江.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='blue', linewidth=0.2)
+    ax.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(),
+                    ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
     ax.set_extent(extent_CN)
     # 刻度线设置
     ax.grid(False)
