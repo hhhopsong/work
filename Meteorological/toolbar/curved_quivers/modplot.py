@@ -383,11 +383,13 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             u_global_interp = RegularGridInterpolator((y, x), u, method='linear', bounds_error=bound_err)
             v_global_interp = RegularGridInterpolator((y, x), v, method='linear', bounds_error=bound_err)
 
-        x_1degree = np.arange(-181, 181 + regrid_reso/2, regrid_reso)
-        y_1degree = np.arange(-90, 90 + regrid_reso/2, regrid_reso)
-        cent_int = center_lon//regrid_reso
-        cent_flt = center_lon%regrid_reso
-        X_1degree_cent, Y_1degree = np.meshgrid(x_1degree + cent_int + cent_flt, y_1degree)
+        x_1degree = np.arange(-181, 181.5, 1)
+        y_1degree = np.arange(-90, 90.5, 1)
+        cent_int = center_lon//1
+        cent_flt = center_lon%1
+        x_cent = x_1degree + cent_int + cent_flt
+        y_cent = y_1degree
+        X_1degree_cent, Y_1degree = np.meshgrid(x_cent[::regrid_reso//1], y_cent[::regrid_reso//1])
         u_1degree = u_global_interp((Y_1degree, X_1degree_cent))
         v_1degree = v_global_interp((Y_1degree, X_1degree_cent))
     else:
