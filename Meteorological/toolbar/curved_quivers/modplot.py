@@ -401,7 +401,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     if regrid:
         # 将网格插值为正方形等间隔网格
         x = np.arange(-180, 180 + regrid_reso/2, regrid_reso)
-        y = np.arange(-89, 90 + regrid_reso/2, regrid_reso)
+        y = np.arange(-89, 89 + regrid_reso/2, regrid_reso)
         U = RegularGridInterpolator((y_1degree, x_1degree + cent_flt), u_1degree, method='linear', bounds_error=True)
         V = RegularGridInterpolator((y_1degree, x_1degree + cent_flt), v_1degree, method='linear', bounds_error=True)
         ## 裁剪绘制区域的数据->得到正确的regird
