@@ -78,7 +78,7 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
-                 integration_direction='both', mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random']):
+                 regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random']):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -111,6 +111,8 @@ class Curlyquiver:
                 原数据是否为掩码数组
             *regrid* : int(>=2)
                 是否重新插值网格
+            *regrid_reso* : float
+                重新插值网格分辨率
             *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
                 矢量向前、向后或双向绘制。
             *mode* : {'loose', 'strict'}, default: 'loose'
@@ -161,6 +163,7 @@ class Curlyquiver:
         self.scale = scale
         self.masked = masked
         self.regrid = regrid
+        self.regrid_reso = regrid_reso
         self.integration_direction = integration_direction
         self.mode = mode
         self.NanMax = nanmax
@@ -172,7 +175,7 @@ class Curlyquiver:
     def quiver(self):
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
-                        self.start_points, self.scale, self.masked, self.regrid, self.integration_direction,
+                        self.start_points, self.scale, self.masked, self.regrid, self.regrid_reso, self.integration_direction,
                         self.mode, self.NanMax, self.center_lon, self.thinning)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
@@ -205,7 +208,7 @@ class Curlyquiver:
 def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
-               scale=100., masked=True, regrid=30, integration_direction='both',
+               scale=100., masked=True, regrid=30, regrid_reso=2.5, integration_direction='both',
                mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random']):
     """绘制矢量曲线.
 
@@ -239,6 +242,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         原数据是否为掩码数组
     *regrid* : int(>=2)
         是否重新插值网格
+    *regrid_reso* : int
+        重新插值网格分辨率
     *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
         矢量向前、向后或双向绘制。
     *mode* : {'loose', 'strict'}, default: 'loose'
@@ -395,8 +400,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     REGRID_LEN = 1 if isinstance(regrid, int) else len(regrid)
     if regrid:
         # 将网格插值为正方形等间隔网格
-        x = x_1degree[1:-1]
-        y = y_1degree[1:-1]
+        x = np.arange(-180, 180 + regrid_reso/2, regrid_reso)
+        y = np.arange(-89, 90 + regrid_reso/2, regrid_reso)
         U = RegularGridInterpolator((y_1degree, x_1degree + cent_flt), u_1degree, method='linear', bounds_error=True)
         V = RegularGridInterpolator((y_1degree, x_1degree + cent_flt), v_1degree, method='linear', bounds_error=True)
         ## 裁剪绘制区域的数据->得到正确的regird
