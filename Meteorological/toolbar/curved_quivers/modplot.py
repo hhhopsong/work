@@ -387,9 +387,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         y_1degree = np.arange(-90, 90.5, 1)
         cent_int = center_lon//1
         cent_flt = center_lon%1
-        x_cent = x_1degree + cent_int + cent_flt
-        y_cent = y_1degree
-        X_1degree_cent, Y_1degree = np.meshgrid(x_cent[::regrid_reso//1], y_cent[::regrid_reso//1])
+        X_1degree_cent, Y_1degree = np.meshgrid((x_1degree + cent_int + cent_flt)[::regrid_reso//1], y_1degree[::regrid_reso//1])
         u_1degree = u_global_interp((Y_1degree, X_1degree_cent))
         v_1degree = v_global_interp((Y_1degree, X_1degree_cent))
     else:
@@ -404,8 +402,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         # 将网格插值为正方形等间隔网格
         x = np.arange(-180, 180 + regrid_reso/2, regrid_reso)
         y = np.arange(-89, 89 + regrid_reso/2, regrid_reso)
-        U = RegularGridInterpolator((y_1degree, x_1degree + cent_flt), u_1degree, method='linear', bounds_error=True)
-        V = RegularGridInterpolator((y_1degree, x_1degree + cent_flt), v_1degree, method='linear', bounds_error=True)
+        U = RegularGridInterpolator((y_1degree[::regrid_reso//1], (x_1degree + cent_flt)[::regrid_reso//1]), u_1degree, method='linear', bounds_error=True)
+        V = RegularGridInterpolator((y_1degree[::regrid_reso//1], (x_1degree + cent_flt)[::regrid_reso//1]), v_1degree, method='linear', bounds_error=True)
         ## 裁剪绘制区域的数据->得到正确的regird
         if REGRID_LEN == 2:
             regrid_x = regrid[0]
