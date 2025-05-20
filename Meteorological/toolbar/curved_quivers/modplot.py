@@ -1,6 +1,10 @@
 """
 2D 向量场的流线型矢量绘图。
+作者
+hopsong
 
+Github项目地址
+https://github.com/hhhopsong/work/blob/master/Meteorological/toolbar/curved_quivers/modplot.py
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
