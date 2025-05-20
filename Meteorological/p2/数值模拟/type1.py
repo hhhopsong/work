@@ -37,7 +37,7 @@ def draw_frc():
     # 图1
     lev = 200
     ax1 = fig.add_subplot(331, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax1.set_title('a)Exp 200hPa UVZ', fontsize=10, loc='left')
+    ax1.set_title('a) Exp 200hPa UVZ', fontsize=10, loc='left')
     ax1.set_aspect('auto')
     ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -56,17 +56,17 @@ def draw_frc():
     zero_mask = (lev_range[1] - lev_range[0]) / 2
     var_contr = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
-    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25,
-                        color="#454545", center_lon=c_lon_1, thinning=[.4, 'max'])
-    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                        color="black", center_lon=c_lon_1, thinning=[.4, 'max_full'])
-    wind200.key(fig, U=.4, label='0.4 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind200_.key(fig, U=.4, label='> 0.4 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+    wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=1.5,
+                        color="black", center_lon=c_lon_1, thinning=[[0.75, 1.5], 'range'])
+    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.35, nanmax=wind200.nanmax,
+                        color="black", center_lon=c_lon_1, thinning=[1.5, 'max_full'])
+    wind200.key(fig, U=1.5, label='1.5 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
+    wind200_.key(fig, U=1.5, label='> 1.5 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
     # 图2
     lev = 500
     extent1 = extent1
     ax2 = fig.add_subplot(334, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax2.set_title('b)Exp 500hPa UVZ', fontsize=10, loc='left')
+    ax2.set_title('b) Exp 500hPa UVZ', fontsize=10, loc='left')
     ax2.set_aspect('auto')
     ax2.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -83,17 +83,17 @@ def draw_frc():
     var_contr = ax2.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                           color="#454545", center_lon=c_lon_1, thinning=[.2, 'max'])
-    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                        color="black", center_lon=c_lon_1, thinning=[.2, 'max_full'])
-    wind500.key(fig, U=.2, label='0.2 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind500_.key(fig, U=.2, label='> 0.2 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+                           color="black", center_lon=c_lon_1, thinning=[[.5, 1.], 'range'])
+    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.35, nanmax=wind200.nanmax,
+                        color="black", center_lon=c_lon_1, thinning=[1., 'max_full'])
+    wind500.key(fig, U=1., label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
+    wind500_.key(fig, U=1., label='> 1 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
 
     # 图1
     lev = 850
     extent1 = extent1
     ax4 = fig.add_subplot(337, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax4.set_title('c)Exp 850hPa UVZ', fontsize=10, loc='left')
+    ax4.set_title('c) Exp 850hPa UVZ', fontsize=10, loc='left')
     ax4.set_aspect('auto')
     ax4.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -111,11 +111,11 @@ def draw_frc():
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                           color="#454545", center_lon=c_lon_1, thinning=[.1, 'max'])
-    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                        color="black", center_lon=c_lon_1, thinning=[.1, 'max_full'])
-    wind850.key(fig, U=.1, label='0.1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind850_.key(fig, U=.1, label='> 0.1 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+                           color="black", center_lon=c_lon_1, thinning=[[.25, .5], 'range'])
+    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.5, nanmax=wind200.nanmax,
+                        color="black", center_lon=c_lon_1, thinning=[.5, 'max_full'])
+    wind850.key(fig, U=.5, label='0.5 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.35)
+    wind850_.key(fig, U=.5, label='> 0.5 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
     DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
     provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
     ax4.add_feature(provinces, lw=0.5, zorder=2)
@@ -189,7 +189,7 @@ def draw_frc():
     # 图1
     lev = 200
     ax1 = fig.add_subplot(332, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax1.set_title('d)Exp 200hPa UVZ', fontsize=10, loc='left')
+    ax1.set_title('d) Exp 200hPa UVZ', fontsize=10, loc='left')
     ax1.set_aspect('auto')
     ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -209,16 +209,16 @@ def draw_frc():
     var_contr = ax1.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                        color="#454545", center_lon=c_lon_1, thinning=[.4, 'max'])
-    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                        color="black", center_lon=c_lon_1, thinning=[.4, 'max_full'])
-    wind200.key(fig, U=.4, label='0.4 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind200_.key(fig, U=.4, label='> 0.4 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+                        color="black", center_lon=c_lon_1, thinning=[[.4, 1.], 'range'])
+    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.35, nanmax=wind200.nanmax,
+                        color="black", center_lon=c_lon_1, thinning=[1., 'max_full'])
+    wind200.key(fig, U=1., label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
+    wind200_.key(fig, U=1., label='> 1 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
     # 图2
     lev = 500
     extent1 = extent1
     ax2 = fig.add_subplot(335, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax2.set_title('e)Exp 500hPa UVZ', fontsize=10, loc='left')
+    ax2.set_title('e) Exp 500hPa UVZ', fontsize=10, loc='left')
     ax2.set_aspect('auto')
     ax2.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -235,17 +235,17 @@ def draw_frc():
     var_contr = ax2.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                           color="#454545", center_lon=c_lon_1, thinning=[.2, 'max'])
-    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                        color="black", center_lon=c_lon_1, thinning=[.2, 'max_full'])
-    wind500.key(fig, U=.2, label='0.2 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind500_.key(fig, U=.2, label='> 0.2 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+                           color="black", center_lon=c_lon_1, thinning=[[.2, .5], 'range'])
+    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.35, nanmax=wind200.nanmax,
+                        color="black", center_lon=c_lon_1, thinning=[.5, 'max_full'])
+    wind500.key(fig, U=.5, label='0.5 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
+    wind500_.key(fig, U=.5, label='> 0.5 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
 
     # 图1
     lev = 850
     extent1 = extent1
     ax4 = fig.add_subplot(338, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax4.set_title('f)Exp 850hPa UVZ', fontsize=10, loc='left')
+    ax4.set_title('f) Exp 850hPa UVZ', fontsize=10, loc='left')
     ax4.set_aspect('auto')
     ax4.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -263,11 +263,11 @@ def draw_frc():
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                           color="#454545", center_lon=c_lon_1, thinning=[.1, 'max'])
-    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                        color="black", center_lon=c_lon_1, thinning=[.1, 'max_full'])
-    wind850.key(fig, U=.1, label='0.1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind850_.key(fig, U=.1, label='> 0.1 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+                           color="black", center_lon=c_lon_1, thinning=[[.1, .25], 'range'])
+    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.35, nanmax=wind200.nanmax,
+                        color="black", center_lon=c_lon_1, thinning=[.25, 'max_full'])
+    wind850.key(fig, U=.25, label='0.25 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
+    wind850_.key(fig, U=.25, label='> 0.25 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
     DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
     provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
     ax4.add_feature(provinces, lw=0.5, zorder=2)
@@ -340,7 +340,7 @@ def draw_frc():
     # 图1
     lev = 200
     ax1 = fig.add_subplot(333, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax1.set_title('g)Exp 200hPa UVZ', fontsize=10, loc='left')
+    ax1.set_title('g) Exp 200hPa UVZ', fontsize=10, loc='left')
     ax1.set_aspect('auto')
     ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -364,17 +364,16 @@ def draw_frc():
                              cmap=cmaps.MPL_RdYlGn[22 + 0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106 - 0],
                              transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                          color="#454545", center_lon=c_lon_1, thinning=[.4, 'max'])
-    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.25,
-                           nanmax=wind200.nanmax,
-                           color="black", center_lon=c_lon_1, thinning=[.4, 'max_full'])
-    wind200.key(fig, U=.4, label='0.4 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind200_.key(fig, U=.4, label='> 0.4 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+                          color="black", center_lon=c_lon_1, thinning=[[.4, 1.], 'range'])
+    wind200_ = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.5, scale=4, regrid=13, linewidth=.35,
+                           nanmax=wind200.nanmax, color="black", center_lon=c_lon_1, thinning=[1., 'max_full'])
+    wind200.key(fig, U=1., label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
+    wind200_.key(fig, U=1., label='> 1 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
     # 图2
     lev = 500
     extent1 = extent1
     ax2 = fig.add_subplot(336, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax2.set_title('h)Exp 500hPa UVZ', fontsize=10, loc='left')
+    ax2.set_title('h) Exp 500hPa UVZ', fontsize=10, loc='left')
     ax2.set_aspect('auto')
     ax2.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -396,18 +395,18 @@ def draw_frc():
                              transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25,
                           nanmax=wind200.nanmax,
-                          color="#454545", center_lon=c_lon_1, thinning=[.2, 'max'])
-    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.25,
+                          color="black", center_lon=c_lon_1, thinning=[[.2, .5], 'range'])
+    wind500_ = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.5, scale=2, regrid=13, linewidth=.35,
                            nanmax=wind200.nanmax,
-                           color="black", center_lon=c_lon_1, thinning=[.2, 'max_full'])
-    wind500.key(fig, U=.2, label='0.2 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind500_.key(fig, U=.2, label='> 0.2 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+                           color="black", center_lon=c_lon_1, thinning=[.5, 'max_full'])
+    wind500.key(fig, U=.5, label='0.5 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
+    wind500_.key(fig, U=.5, label='> 0.5 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
 
     # 图1
     lev = 850
     extent1 = extent1
     ax4 = fig.add_subplot(339, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax4.set_title('i)Exp 850hPa UVZ', fontsize=10, loc='left')
+    ax4.set_title('i) Exp 850hPa UVZ', fontsize=10, loc='left')
     ax4.set_aspect('auto')
     ax4.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -429,13 +428,11 @@ def draw_frc():
                              transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     # z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25,
-                          nanmax=wind200.nanmax,
-                          color="#454545", center_lon=c_lon_1, thinning=[.1, 'max'])
-    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.25,
-                           nanmax=wind200.nanmax,
-                           color="black", center_lon=c_lon_1, thinning=[.1, 'max_full'])
-    wind850.key(fig, U=.1, label='0.1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
-    wind850_.key(fig, U=.1, label='> 0.1 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.5)
+                          nanmax=wind200.nanmax, color="black", center_lon=c_lon_1, thinning=[[.1, .25], 'range'])
+    wind850_ = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.5, scale=1, regrid=13, linewidth=.35,
+                           nanmax=wind200.nanmax, color="black", center_lon=c_lon_1, thinning=[.25, 'max_full'])
+    wind850.key(fig, U=.25, label='0.25 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5)
+    wind850_.key(fig, U=.25, label='> 0.25 m/s', ud=7.8, lr=2, edgecolor='none', arrowsize=.5, color='k', linewidth=.75)
     DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
     provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
     ax4.add_feature(provinces, lw=0.5, zorder=2)

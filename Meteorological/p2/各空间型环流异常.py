@@ -18,8 +18,9 @@ from toolbar.significance_test import r_test
 nanmax = None
 def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     global lev_t, nanmax
+    pic_ind = ['', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
     ax = fig.add_subplot(pic_loc, projection=ccrs.PlateCarree(central_longitude=180-70))
-    ax.set_title(f'{str(picloc)[2]}) Type{str(picloc)[2]}', loc='left', fontsize=10)
+    ax.set_title(f'{pic_ind[eval(str(picloc)[2])]}) Type{str(picloc)[2]}', loc='left', fontsize=10)
     ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
     contf = ax.contourf(t2m['lon'], t2m['lat'], corr_t2m[0], cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
                         levels=lev_t, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
@@ -168,5 +169,5 @@ cbar.set_ticklabels([str(i) for i in lev_t])
 cbar.ax.tick_params(labelsize=8, length=0)
 
 
-plt.savefig(r"D:\PyFile\p2\pic\图4.png", dpi=600, bbox_inches='tight')
+plt.savefig(r"D:\PyFile\p2\pic\图4.svg", bbox_inches='tight')
 plt.show()

@@ -67,11 +67,14 @@ def specx_anal(x, m=None, alpha1=0.1, alpha2=0.1):
 
 if __name__ == '__main__':
     x = np.load("D:\PyFile\paper1\OLS35.npy")
+    url = 'http://paos.colorado.edu/research/wavelets/wave_idl/nino3sst.txt'
+    x = np.genfromtxt(url, skip_header=19)
     l,Sl,Sr,Sw,r1 = specx_anal(x,x.shape[0]//2,0.1,0.1)
     plt.plot(l,Sl,'-b',label='Real')
     plt.plot(l,Sr[1],'--r',color='gray',label='red noise')
     plt.plot(l,Sr[0],':r',label='red noise 90%')
     plt.plot(l,Sr[2],':',color='green',label='red noise 10%')
+    plt.xlim(0, 64)
     #plt.plot(l,np.linspace(Sw[1],Sw[1],l.shape[0]),'--m',label='white noise')
     plt.legend()
     plt.show()

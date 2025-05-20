@@ -79,7 +79,7 @@ reg_map, corr_map = np.zeros(
     (3, 4, len(t_budget['Q'].level), len(t_budget['Q'].lat), len(t_budget['Q'].lon))), np.zeros(
     (3, 4, len(t_budget['Q'].level), len(t_budget['Q'].lat), len(t_budget['Q'].lon)))
 
-p_lev = 950 #950
+p_lev = 900 #950
 
 for i in tq.trange(len(K_type['type'])):
     K_series = K_type.sel(type=i + 1)['K'].data
@@ -137,7 +137,7 @@ for KType in range(1, 4):
     for ipic in tq.trange(4):
         ax1 = fig.add_subplot(gs[pic_loc[KType-1][ipic]], projection=ccrs.PlateCarree(central_longitude=180 - 70))
         ax1.set_aspect('auto')
-        if ipic==0: ax1.set_title(f"{chr(ord('a') + KType-1)})Temp. pert budget&Surf. Energy of type{KType}", fontsize=12, loc='left')
+        if ipic==0: ax1.set_title(f"{chr(ord('a') + KType-1)}) Temp. pert budget&Surf. Energy of type{KType}", fontsize=12, loc='left')
         ax1.set_extent(extent_CN, crs=ccrs.PlateCarree(central_longitude=0))
         ####
         num_times = [0.1, 10, 10, 10]
@@ -307,7 +307,7 @@ reg_map_heating = xr.Dataset({'cnvhr': (['type', 'level', 'lat', 'lon'], reg_map
                       'vdfhr': (['type', 'level', 'lat', 'lon'], reg_map_heating[:, 4])},
                      coords={'type': K_type['type'], 'level': heating.plev.data, 'lat': heating.lat, 'lon': heating.lon})
 
-reg_heating_bar = reg_map_heating.sel(level=950*100)
+reg_heating_bar = reg_map_heating.sel(level=900*100)
 
 # 创建柱状图
 fig = plt.figure(figsize=(12, 3))
@@ -338,29 +338,28 @@ for KType in range(1, 4):
                    + np.nanmean(reg_heating_bar_['vdfhr'])) * 31
 
     # 准备绘图数据
-    variables = ['Adv', 'Ver', 'Q', 'Surf. E.']
-    values = [adv_X_dTdt, ver_X_dTdt, Q_X_dTdt, Radio]
+    variables = ['Adv', 'Ver', 'Q']
+    values = [adv_X_dTdt, ver_X_dTdt, Q_X_dTdt]
     colors = ['red' if val > 0 else 'blue' for val in values]
 
 
     # 添加标题和网格
     ax = fig.add_subplot(1, 3, KType)
-    ax.set_title(f'{chr(ord("a") + KType - 1)})Temp. pert budget&Surf. energy of type{KType}', fontsize=12,loc='left')
+    ax.set_title(f'{chr(ord("a") + KType - 1)}) Temp. pert budget of type{KType}', fontsize=12,loc='left')
     ax.grid(True, linestyle='--', zorder=0, axis='y')
 
-    bars = ax.bar(range(4), values, width=0.3, color=colors, edgecolor='black', zorder=2)
+    bars = ax.bar(range(3), values, width=0.3, color=colors, edgecolor='black', zorder=2)
 
     # 设置坐标轴标签,字体为 Times New Roman
-    ax.set_xticks(range(4))
+    ax.set_xticks(range(3))
     ax.set_xticklabels([r'$-(\mathbf{v} \cdot \nabla T)^{\prime}$',
                         r'$(\omega \sigma)^{\prime}$',
-                        r'${\dot{Q}}^{\prime}$',
-                        r'Surf. E.'], fontsize=12, fontname='Times New Roman')
+                        r'${\dot{Q}}^{\prime}$'], fontsize=12, fontname='Times New Roman')
 
     # 设置y轴范围
     ymax = 3
     ax.set_ylim(-ymax, ymax)
-    ax.set_xlim(-.5, 3.5)
+    ax.set_xlim(-.5, 2.5)
 
     #仅当 KType == 1 时添加y刻度标签
     if KType == 1:
@@ -373,7 +372,7 @@ for KType in range(1, 4):
 
     # 添加零线
     ax.axhline(0, color='black', lw=1)
-    ax.axvline(2.5, color='black', lw=1)
+    # ax.axvline(2.5, color='black', lw=1)
 
     # 边框显示为黑色
     ax.spines['top'].set_color('black')

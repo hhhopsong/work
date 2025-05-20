@@ -198,7 +198,7 @@ class WaveletAnalysis:
         # 第三个子图，全局小波和傅里叶功率谱以及理论噪声谱。请注意，周期刻度是对数的。
         var = self.var
         cx = plt.axes([0.77, 0.37, 0.2, 0.28], sharey=bx)
-        #cx.plot(var * fft_power, np.log2(1. / fft_freqs), '-', color='#cccccc', linewidth=1)
+        cx.plot(var * fft_power, np.log2(1. / fft_freqs), '-', color='#cccccc', linewidth=1)
         cx.plot(var * fft_theor, np.log2(period), ':', color='#cccccc')
         cx.plot(var * glbl_power, np.log2(period), '-', color='k', linewidth=1.5)
         cx.plot(glbl_signif, np.log2(period), ':', color='red', linewidth=1.5)
