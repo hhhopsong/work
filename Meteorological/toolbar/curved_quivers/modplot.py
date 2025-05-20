@@ -126,9 +126,11 @@ class Curlyquiver:
                 中心经度
             *thinning* : [float , str]
                 float为百分位阈值阈值，长度超过此百分位阈值的流线将被随机稀疏化。
-                str为采样方式，'random', 'max'或'min'。
-                例如：[10, 'random']，将随机稀疏化长度超过10%的 streamline。
-                例如：[10, 'max']，将不予绘制超过10%的 streamline。
+                str为采样方式，'random'、'max'、'min'或'range'。
+                例如：['10%', 'random']，将随机稀疏化长度超过10%百分位的 streamline。
+                例如：[10, 'max']，将不予绘制超过10的 streamline。
+                例如：[10, 'min']，将不予绘制小于10的 streamline。
+                例如：[[10, 20], 'range']，将绘制长度在10~20之间的 streamline。
 
             Returns:
 
@@ -575,6 +577,28 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             start_points = start_points.reshape([*u.shape, -1]) * mask[..., np.newaxis]
             start_points = start_points.reshape(-1, 2)
             start_points = start_points[~np.isnan(start_points).any(axis=1)]
+        elif thinning[1] == 'range':
+            wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
+            if isinstance(thinning[0], str):
+                if thinning[0][0][-1] == "%":
+                    thinning_min_wind_1 = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][0][:-1]) / 100)
+                    draw_probability_1 = thinning_min_wind_1 / wind_0
+                    draw_probability_1 = np.where(draw_probability_1 < 1, 1, 0)
+                    thinning_min_wind_2 = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][1][:-1]) / 100)
+                    draw_probability_2 = thinning_min_wind_2 / wind_0
+                    draw_probability_2 = np.where(draw_probability_2 > 1, 1, 0)
+                    draw_probability = np.where((draw_probability_1 + draw_probability_2) == 2, 1, np.nan)
+                else: raise ValueError('thinning 的两个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
+            else:
+                draw_probability_1 = thinning[0][0] * wind_shrink / wind_0
+                draw_probability_1 = np.where(draw_probability_1 < 1, 1, 0)
+                draw_probability_2 = thinning[0][1] * wind_shrink / wind_0
+                draw_probability_2 = np.where(draw_probability_2 > 1, 1, 0)
+                draw_probability = np.where((draw_probability_1 + draw_probability_2) == 2, 1, np.nan)
+            magnitude = np.where(draw_probability == 1, magnitude, 0)
+            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
+                                       integration_direction=integration_direction, mode=mode,
+                                       axes_scale=[is_x_log, is_y_log])
         elif thinning[1] == 'max':
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
@@ -720,7 +744,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         try:
             integrate_ = integrate_timelimit(xg, yg)
         except FunctionTimedOut:
-            print("流线绘制超时，已自动跳过该流线.")
+            print(f"({xg}, {yg})流线绘制超时，已自动跳过该流线.")
             continue
         t = integrate_[0:2] if integrate_[0][0] is not None else None
         if t is not None:
