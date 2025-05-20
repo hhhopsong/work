@@ -13,6 +13,7 @@ from scipy.ndimage import map_coordinates
 import numpy as np
 import cartopy.crs as ccrs
 from cartopy.util import add_cyclic_point
+from func_timeout import func_set_timeout, FunctionTimedOut
 
 import matplotlib
 from matplotlib import _api, cm, patches
@@ -708,11 +709,19 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     sp2[:, 0] -= grid.x_origin
     sp2[:, 1] -= grid.y_origin
 
+    @func_set_timeout(1)
+    def integrate_timelimit(xg, yg):
+        return integrate(xg, yg)
+
     for xs, ys in tq.tqdm(sp2, desc='路径积分', colour='green', unit='points', total=len(sp2)):
         xg, yg = dmap.data2grid(xs, ys)
         xg = np.clip(xg, 0, grid.nx - 1)
         yg = np.clip(yg, 0, grid.ny - 1)
-        integrate_ = integrate(xg, yg)
+        try:
+            integrate_ = integrate_timelimit(xg, yg)
+        except FunctionTimedOut:
+            print("流线绘制超时，已自动跳过该流线.")
+            continue
         t = integrate_[0:2] if integrate_[0][0] is not None else None
         if t is not None:
             trajectories.append(t[0])
