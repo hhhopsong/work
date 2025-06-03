@@ -87,40 +87,16 @@ info_sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc").interp(lat=info_z['lat']
 # time_series = (time_series - np.mean(time_series))/np.std(time_series)
 # zone = [360-60, 360-14, 60, 10] #北大西洋强迫
 
-## 全局一致型
-K_series = K_type.sel(type=2)['K'].data
-K_series = K_series[:-1]
-K_series = (K_series - np.mean(K_series))/np.std(K_series)
-#### NAO
-zone_corr = [-75, -10, 50, 25]
-info_z = info_z.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
-info_u = info_u.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
-info_v = info_v.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
-info_sst = info_sst.sel(year=slice(1961, 2021))
-info_sst = lonlat_trs(info_sst, type='360->180')
-corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
-time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
-                -info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
-               *corr_NPW).mean(['lat', 'lon']).to_numpy()
-info_sst = lonlat_trs(info_sst, type='180->360')
-time_series = (time_series - np.mean(time_series))/np.std(time_series)
-K_series = time_series
-zone = [360-80, 360-37, 50, 35] #NAO
-
-zone_up = [360-80, 360-40, 50, 30] # -
-zone_p = [360-50, 360-0, 70, 30] # +
-#zone = [zone_up, zone_p] # -+
-
-# ## 西部型
-# K_series = K_type.sel(type=3)['K'].data
-# K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
+# ## 全局一致型
+# K_series = K_type.sel(type=2)['K'].data
+# K_series = K_series[:-1]
 # K_series = (K_series - np.mean(K_series))/np.std(K_series)
-# #### 北大西洋经向异常
-# zone_corr = [-70, -20, 55, 35]
-# info_z = info_z.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
-# info_u = info_u.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
-# info_v = info_v.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
-# info_sst = info_sst
+# #### NAO
+# zone_corr = [-75, -10, 50, 25]
+# info_z = info_z.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+# info_u = info_u.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+# info_v = info_v.sel(year=slice(1961, 2021)).interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+# info_sst = info_sst.sel(year=slice(1961, 2021))
 # info_sst = lonlat_trs(info_sst, type='360->180')
 # corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
 # time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
@@ -129,7 +105,31 @@ zone_p = [360-50, 360-0, 70, 30] # +
 # info_sst = lonlat_trs(info_sst, type='180->360')
 # time_series = (time_series - np.mean(time_series))/np.std(time_series)
 # K_series = time_series
-# zone = [360-75, 360-20, 63, 35] #
+# zone = [360-80, 360-37, 50, 35] #NAO
+#
+# zone_up = [360-80, 360-40, 50, 30] # -
+# zone_p = [360-50, 360-0, 70, 30] # +
+# #zone = [zone_up, zone_p] # -+
+
+## 西部型
+K_series = K_type.sel(type=3)['K'].data
+K_series = K_series - np.polyval(np.polyfit(range(len(K_series)), K_series, 1), range(len(K_series)))
+K_series = (K_series - np.mean(K_series))/np.std(K_series)
+#### 北大西洋经向异常
+zone_corr = [-70, -20, 55, 35]
+info_z = info_z.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+info_u = info_u.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+info_v = info_v.interp(lon=np.arange(0, 360, 2), lat=np.arange(-90, 90.1, 2))
+info_sst = info_sst
+info_sst = lonlat_trs(info_sst, type='360->180')
+corr_NPW = corr(K_series, info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).data)
+time_series = ((info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3]))
+                -info_sst.sel(lon=slice(zone_corr[0], zone_corr[1]), lat=slice(zone_corr[2], zone_corr[3])).mean(['year']))
+               *corr_NPW).mean(['lat', 'lon']).to_numpy()
+info_sst = lonlat_trs(info_sst, type='180->360')
+time_series = (time_series - np.mean(time_series))/np.std(time_series)
+K_series = time_series
+zone = [360-75, 360-20, 63, 35] #
 
 #############
 #K_series = time_series
@@ -207,7 +207,7 @@ vor_mask = vor.where(mask != 0, 0)
 vor_mask = vor_mask / np.nanmax(np.abs(vor_mask['v']), axis=(1, 2))[:, np.newaxis, np.newaxis]
 
 # 设置垂直廓线(2x10e-6 K/day)
-vor_mask *= 2e-6
+vor_mask *= 10e-6
 
 
 frc_nc_sigma = interp3d_lbm(vor_mask)
