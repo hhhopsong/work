@@ -83,7 +83,8 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
-                 regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random']):
+                 regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180.,
+                 thinning=[1, 'random'], MinDistance=[0.1, 0.5]):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -135,6 +136,10 @@ class Curlyquiver:
                 例如：[10, 'max']，将不予绘制超过10的 streamline。
                 例如：[10, 'min']，将不予绘制小于10的 streamline。
                 例如：[[10, 20], 'range']，将绘制长度在10~20之间的 streamline。
+            *MinDistance* : [float , str]
+                最小距离阈值。
+                float为最小距离阈值，流线之间的最小距离（格点间距为单位一）.
+                str为重叠部分的总长度（格点间距为单位一）.
 
             Returns:
 
@@ -176,6 +181,7 @@ class Curlyquiver:
         self.NanMax = nanmax
         self.center_lon = center_lon
         self.thinning = thinning
+        self.MinDistance = MinDistance
 
         self.quiver = self.quiver()
         self.nanmax = self.quiver[2]
@@ -183,7 +189,7 @@ class Curlyquiver:
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
                         self.start_points, self.scale, self.masked, self.regrid, self.regrid_reso, self.integration_direction,
-                        self.mode, self.NanMax, self.center_lon, self.thinning)
+                        self.mode, self.NanMax, self.center_lon, self.thinning, self.MinDistance)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
             width_shrink=1., height_shrink=1., edgecolor='k', arrowsize=None, linewidth=None,color=None):
@@ -216,7 +222,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
                transform=None, zorder=None, start_points=None,
                scale=100., masked=True, regrid=30, regrid_reso=2.5, integration_direction='both',
-               mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random']):
+               mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random'], MinDistance=[0.1, 0.5]):
     """绘制矢量曲线.
 
     *x*, *y* : 1d arrays
@@ -261,6 +267,16 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         风速单位一
     *center_lon* : float
         中心经度(regrid=True时有效)
+    *thinning* : [float , str]
+        float为百分位阈值阈值，长度超过此百分位阈值的流线将被随机稀疏化。
+        str为采样方式，'random'、'max'、'min'或'range'。
+        例如：['10%', 'random']，将随机稀疏化长度超过10%百分位的 streamline。
+        例如：[10, 'max']，将不予绘制超过10的 streamline。
+        例如：[10, 'min']，将不予绘制小于10的 streamline。
+        例如：[[10, 20], 'range']，将绘制长度在10~20之间的 streamline。
+    *MinDistance* : [float1, float2]
+        float1为最小距离阈值，流线之间的最小距离（格点间距为单位一）.
+        float2为重叠部分的总长度（格点间距为单位一）.
     Returns:
 
         *stream_container* : StreamplotSet
