@@ -1363,6 +1363,54 @@ def _gen_starting_points(x,y,grains):
     return seed_points.T
 
 
+def distance(x, y):
+    """Calculate the sum_distance between some points."""
+    if len(x) != len(y):
+        raise ValueError("x and y must have the same length")
+
+    if len(x) < 2:
+        return None
+
+    x = np.asarray(x)
+    y = np.asarray(y)
+    dx = np.diff(x)
+    dy = np.diff(y)
+
+    return np.sqrt(dx**2 + dy**2).sum()
+
+def traj_overlap(traj1, traj2, threshold=0.01):
+    from scipy.spatial import cKDTree
+    """
+    检查两条轨迹是否重叠
+    :param traj1: 第一条轨迹，格式为 (x, y)
+    :param traj2: 第二条轨迹，格式为 (x, y)
+    :param threshold: 重叠的距离阈值
+    :return:  返回两条轨迹重叠部分占两条轨迹长度的各自百分比，如 (p1, p2)
+    """
+
+    # 将轨迹转换为Numpy数组
+    points1 = np.column_stack(traj1)
+    points2 = np.column_stack(traj2)
+
+    # 构建KD树用于快速邻近搜索
+    tree1 = cKDTree(points1)
+    tree2 = cKDTree(points2)
+
+    # 找出轨迹1中与轨迹2的点距离小于threshold的点
+    overlap1 = tree1.query_ball_tree(tree2, threshold)
+    count1 = sum([1 for neighbors in overlap1 if neighbors])
+
+    # 找出轨迹2中与轨迹1的点距离小于threshold的点
+    overlap2 = tree2.query_ball_tree(tree1, threshold)
+    count2 = sum([1 for neighbors in overlap2 if neighbors])
+
+    # 计算百分比
+    percent1 = count1 / len(points1) if len(points1) > 0 else 0
+    percent2 = count2 / len(points2) if len(points2) > 0 else 0
+
+    return percent1, percent2
+
+
 def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5,
                  fontproperties={'size': 5}, lr=1., ud=1., width_shrink=1., height_shrink=1., arrowsize=1., edgecolor='k'):
     '''
