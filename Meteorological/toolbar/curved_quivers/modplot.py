@@ -84,7 +84,7 @@ class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
                  regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180.,
-                 thinning=[1, 'random'], MinDistance=[0.1, 0.5]):
+                 thinning=[1, 'random'], MinDistance=[0, 1]):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -136,10 +136,10 @@ class Curlyquiver:
                 例如：[10, 'max']，将不予绘制超过10的 streamline。
                 例如：[10, 'min']，将不予绘制小于10的 streamline。
                 例如：[[10, 20], 'range']，将绘制长度在10~20之间的 streamline。
-            *MinDistance* : [float , str]
+            *MinDistance* : [float1, float2]
                 最小距离阈值。
-                float为最小距离阈值，流线之间的最小距离（格点间距为单位一）.
-                str为重叠部分的总长度（格点间距为单位一）.
+                float1为最小距离阈值，流线之间的最小距离（格点间距为单位一）.
+                float2为重叠部分占总线长的百分比.
 
             Returns:
 
@@ -276,7 +276,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         例如：[[10, 20], 'range']，将绘制长度在10~20之间的 streamline。
     *MinDistance* : [float1, float2]
         float1为最小距离阈值，流线之间的最小距离（格点间距为单位一）.
-        float2为重叠部分的总长度（格点间距为单位一）.
+        float2为重叠部分占总线长的百分比.
     Returns:
 
         *stream_container* : StreamplotSet
@@ -757,6 +757,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     def integrate_timelimit(xg, yg):
         return integrate(xg, yg)
 
+    traj_length = []
     for xs, ys in tq.tqdm(sp2, desc='路径积分', colour='green', unit='points', total=len(sp2)):
         xg, yg = dmap.data2grid(xs, ys)
         xg = np.clip(xg, 0, grid.nx - 1)
@@ -770,6 +771,38 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
+            traj_length.append(distance(t[0][0], t[0][1]))
+
+    if MinDistance[0] > 0 and MinDistance[1] < 1:
+        # 按照traj_length从长到短排序
+        from operator import itemgetter
+        # 假设 trajectories, edges, traj_length 都是长度为 n 的列表
+        # 1. 一次性 zip 三个列表，生成 [(length, traj, edge), ...]
+        combined = list(zip(traj_length, trajectories, edges))
+        # 2. 原地 sort，按第 0 个元素（traj_length）降序
+        combined.sort(key=itemgetter(0), reverse=True)
+        # 3. 一次性解包
+        traj_length, trajectories, edges = map(list, zip(*combined))
+
+
+        distance_limit_traj = []
+        distance_limit_edges = []
+        for i in range(len(trajectories)):
+            if i == 0:
+                distance_limit_traj.append(trajectories[i])
+                distance_limit_edges.append(edges[i])
+            else:
+                add_signl = True
+                for i_in in range(len(distance_limit_traj)):
+                    too_close_percent = traj_overlap(trajectories[i], distance_limit_traj[i_in], MinDistance[0])[0]
+                    if too_close_percent >= MinDistance[1]:
+                        add_signl = False
+                        break
+                if add_signl:
+                    distance_limit_traj.append(trajectories[i])
+                    distance_limit_edges.append(edges[i])
+        trajectories, edges = distance_limit_traj, distance_limit_edges
+
 
     # 单位
     try:
@@ -1470,7 +1503,7 @@ if __name__ == '__main__':
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100.5))
     ax1.set_extent([-50, 130, -80, 80], crs=ccrs.PlateCarree())
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, thinning=['50%', 'min'], center_lon=100.5)
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, center_lon=100.5, MinDistance=[0.1, 0.1])
     ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     # ax1.quiver(x, y, U, V, transform=ccrs.PlateCarree(0), regrid_shape=20, scale=25)
