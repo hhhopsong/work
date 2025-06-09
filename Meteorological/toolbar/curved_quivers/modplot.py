@@ -788,6 +788,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         distance_limit_traj = []
         distance_limit_edges = []
         for i in range(len(trajectories)):
+            if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
+                continue
             if i == 0:
                 distance_limit_traj.append(trajectories[i])
                 distance_limit_edges.append(edges[i])
