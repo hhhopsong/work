@@ -87,6 +87,9 @@ corr_t = np.zeros((2, len(K_type['type']), len(T['level']), len(T['lat']), len(T
 corr_pre = np.zeros((2, len(K_type['type']), len(Pre['lat']), len(Pre['lon'])))
 corr_sst = np.zeros((2, len(K_type['type']), len(Sst['lat']), len(Sst['lon'])))
 
+# 字体为新罗马
+plt.rcParams['font.family'] = 'Times New Roman'
+
 for i in tq.trange(len(K_type['type'])):
     time_series = K_type.sel(type=i+1)['K'].data
     if i != 1:
@@ -175,7 +178,7 @@ gs = gridspec.GridSpec(3, 1)
 xticks1 = np.arange(-180, 180, 10)
 yticks1 = np.arange(-30, 81, 30)
 ax1 = fig.add_subplot(gs[0], projection=ccrs.PlateCarree(central_longitude=180-70))
-ax1.set_title(f"a)Type1", fontsize=8, loc='left')
+ax1.set_title(f"a) MLB Type", fontsize=8, loc='left')
 # ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.25)
 ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
                    facecolor='none', edgecolor='black', linewidth=.5)
@@ -205,7 +208,7 @@ sst = ax1.contourf(lon, corr_sst['lat'], reg_sst_,
                    extend='both', transform=ccrs.PlateCarree(central_longitude=0), alpha=0.75)
 
 ax2 = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180-70))
-ax2.set_title(f"b)Type2", fontsize=8, loc='left')
+ax2.set_title(f"b) ALL Type", fontsize=8, loc='left')
 # ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.25)
 ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
 ax2.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
@@ -227,7 +230,7 @@ reg_sst_ = np.where((np.abs(reg_sst_) < 0.05), np.nan, reg_sst_)
 sst = ax2.contourf(lon, corr_sst['lat'], reg_sst_, cmap=cmaps.GMT_polar[2:10-2] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10+2:-2], levels=lev_sst, extend='both', transform=ccrs.PlateCarree(central_longitude=0), alpha=0.75)
 
 ax3 = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=110))
-ax3.set_title(f"c)Type3", fontsize=8, loc='left')
+ax3.set_title(f"c) UB Type", fontsize=8, loc='left')
 ax3.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
 ax3.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
 ax3.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
