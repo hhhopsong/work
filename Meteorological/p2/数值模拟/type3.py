@@ -38,7 +38,7 @@ def draw_frc():
     # 图1
     lev = 200
     ax1_ = fig.add_subplot(331, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax1_.set_title('a) Exp NAS2 200hPa UV&FRC', fontsize=10, loc='left')
+    ax1_.set_title('a) Exp SNT 200hPa UV&FRC', fontsize=10, loc='left')
     ax1_.set_aspect('auto')
     ax1_.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax1_.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -65,7 +65,7 @@ def draw_frc():
     lev = 500
     extent1 = extent1
     ax2_ = fig.add_subplot(334, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax2_.set_title('b) Exp NAS2 500hPa UV&FRC', fontsize=10, loc='left')
+    ax2_.set_title('b) Exp SNT 500hPa UV&FRC', fontsize=10, loc='left')
     ax2_.set_aspect('auto')
     ax2_.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax2_.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -90,7 +90,7 @@ def draw_frc():
     lev = 850
     extent1 = extent1
     ax4_ = fig.add_subplot(337, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax4_.set_title('c) Exp NAS2 850hPa UV&FRC', fontsize=10, loc='left')
+    ax4_.set_title('c) Exp SNT 850hPa UV&FRC', fontsize=10, loc='left')
     ax4_.set_aspect('auto')
     ax4_.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax4_.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -184,7 +184,7 @@ def draw_frc():
     # 图1
     lev = 200
     ax1 = fig.add_subplot(332, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax1.set_title('d) Exp W-TMP 200hPa UV&FRC', fontsize=10, loc='left')
+    ax1.set_title('d) Exp TCP 200hPa UV&FRC', fontsize=10, loc='left')
     ax1.set_aspect('auto')
     ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -210,7 +210,7 @@ def draw_frc():
     lev = 500
     extent1 = extent1
     ax2 = fig.add_subplot(335, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax2.set_title('e) Exp W-TMP 500hPa UV&FRC', fontsize=10, loc='left')
+    ax2.set_title('e) Exp TCP 500hPa UV&FRC', fontsize=10, loc='left')
     ax2.set_aspect('auto')
     ax2.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
@@ -234,7 +234,7 @@ def draw_frc():
     lev = 850
     extent1 = extent1
     ax4 = fig.add_subplot(338, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax4.set_title('f) Exp W-TMP 850hPa UV&FRC', fontsize=10, loc='left')
+    ax4.set_title('f) Exp TCP 850hPa UV&FRC', fontsize=10, loc='left')
     ax4.set_aspect('auto')
     ax4.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
     ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)

@@ -171,7 +171,7 @@ KM_all = KM_all[sort_index]  # 重新排列聚类顺序
 Tavg_weight = Tavg_weight[sort_index]  # 同步排列权重矩阵
 time = [time[i] for i in sort_index] # 同步调整时间顺序
 
-type_name = ['MLB Type', 'ALL Type', 'UB Type']
+type_name = ['MLR Type', 'AR Type', 'UR Type']
 for cluster in range(K_s):
     extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
     ax = fig.add_subplot(2, K_s, cluster + 1, projection=ccrs.PlateCarree())

@@ -29,7 +29,7 @@ import metpy.constants as constants
 plt.rcParams['font.family'] = 'Times New Roman'
 
 nanmax = None
-type_name = ['', '500UVZ&T2M of MLB Type', '500UVZ&T2M of ALL Type', '500UVZ&T2M of UB Type']
+type_name = ['', '500UVZ&T2M of MLR Type', '500UVZ&T2M of AR Type', '500UVZ&T2M of UR Type']
 def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     global lev_t, nanmax
     pic_ind = ['', 'd', 'e', 'f']
@@ -101,26 +101,26 @@ def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, lat_pat, lon_pat, contour_1, cont
     # 显著性打点
     p_test = np.where(np.abs(contourf_1[1]) >= r_test(r_N), 0, np.nan)
     p = ax.quiver(lon_f, lat_f, p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=60, color='k', scale=20, headlength=2, headaxislength=2)
-    cont = ax.contour(lon, lat, contour_1[0], colors=color[1], levels=lev[1], linestyles='--', linewidths=0.4,
+    cont = ax.contour(lon, lat, contour_1[0], colors=color[1], levels=lev[1], linestyles='--', linewidths=0.8,
                       transform=ccrs.PlateCarree(central_longitude=0))
-    cont_ = ax.contour(lon, lat, contour_1[0], colors=color[0], levels=lev[0], linestyles='solid', linewidths=0.4,
+    cont_ = ax.contour(lon, lat, contour_1[0], colors=color[0], levels=lev[0], linestyles='solid', linewidths=0.8,
                        transform=ccrs.PlateCarree(central_longitude=0))
     if clabel_tf:
-        cont.clabel(inline=1, fontsize=4)
-        cont_.clabel(inline=1, fontsize=4)
+        cont.clabel(inline=1, fontsize=8)
+        cont_.clabel(inline=1, fontsize=8)
 
-    plt.rcParams['hatch.color'] = color_pat[0]
-    plt.rcParams['hatch.linewidth'] = 0.2
-    low_patch = ax.contourf(lon_pat, lat_pat, contpatch[0],
-                            levels=[-9e9, lev_pat[0][0], lev_pat[0][1]], add_colorbar=False,
-                            colors='none', edgecolor='none', transform=ccrs.PlateCarree(central_longitude=0),
-                            hatches=['xxxxxxxxxxxxxxxxxxxxxxxx', '////////////////////////'])
-
-    plt.rcParams['hatch.color'] = color_pat[1]
-    high_patch = ax.contourf(lon_pat, lat_pat, contpatch[0],
-                             levels=[lev_pat[1][0], lev_pat[1][1], 9e9], add_colorbar=False,
-                             colors='none', edgecolor='none', transform=ccrs.PlateCarree(central_longitude=0),
-                             hatches=[r'\\\\\\\\\\\\\\\\\\\\\\\\', 'xxxxxxxxxxxxxxxxxxxxxxxx'])
+    # plt.rcParams['hatch.color'] = color_pat[0]
+    # plt.rcParams['hatch.linewidth'] = 0.2
+    # low_patch = ax.contourf(lon_pat, lat_pat, contpatch[0],
+    #                         levels=[-9e9, lev_pat[0][0], lev_pat[0][1]], add_colorbar=False,
+    #                         colors='none', edgecolor='none', transform=ccrs.PlateCarree(central_longitude=0),
+    #                         hatches=['xxxxxxxxxxxxxxxxxxxxxxxx', '////////////////////////'])
+    #
+    # plt.rcParams['hatch.color'] = color_pat[1]
+    # high_patch = ax.contourf(lon_pat, lat_pat, contpatch[0],
+    #                          levels=[lev_pat[1][0], lev_pat[1][1], 9e9], add_colorbar=False,
+    #                          colors='none', edgecolor='none', transform=ccrs.PlateCarree(central_longitude=0),
+    #                          hatches=[r'\\\\\\\\\\\\\\\\\\\\\\\\', 'xxxxxxxxxxxxxxxxxxxxxxxx'])
 
 
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
@@ -333,7 +333,7 @@ if __name__ == '__main__':
         # 添加标题和网格
         ax = fig.add_subplot(3, 3, KType)
         ax.set_aspect('auto')
-        title = ['MLB Type', 'ALL Type', 'UB Type'][KType - 1]
+        title = ['MLR Type', 'AR Type', 'UR Type'][KType - 1]
         ax.set_title(f'{chr(ord("a") + KType - 1)}) Temp. pert budget of {title}', fontsize=12, loc='left')
         ax.grid(True, linestyle='--', zorder=0, axis='y')
 
@@ -442,21 +442,21 @@ if __name__ == '__main__':
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                              ['#a35a49', '#4c7952'], f'h) 500W&TCC&QDIV of MLB Type')
+                              ['#a35a49', '#4c7952'], f'h) 500W&TCC of MLR Type')
         elif i == 2:
             contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc, reg_K_w, reg_K_qdiv,
                               np.array([[-.04, -.02], [.02, .04]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               61, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                               ['#a35a49', '#4c7952'], f'i) 500W&TCC&QDIV of ALL Type')
+                               ['#a35a49', '#4c7952'], f'i) 500W&TCC of AR Type')
         elif i == 3:
             contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc, reg_K_w, reg_K_qdiv,
                               np.array([[-.04, -.02], [.02, .04]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                              ['#a35a49', '#4c7952'], f'j) 500W&TCC&QDIV of UB Type')
+                              ['#a35a49', '#4c7952'], f'j) 500W&TCC of UR Type')
 
     # 添加全局colorbar  # 为colorbar腾出空间
     cbar_ax = fig.add_axes([0.915, 0.39, 0.01, 0.21]) # [left, bottom, width, height]
