@@ -437,22 +437,22 @@ if __name__ == '__main__':
 
         contourfs = pic(fig, picloc, uvz['lat'], uvz['lon'], reg_K_u, reg_K_v, reg_K_z, reg_K_t2m)
         if i == 1:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc, reg_K_w, reg_K_qdiv,
-                              np.array([[-.04, -.02], [.02, .04]]),
+            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*100, reg_K_w, reg_K_qdiv,
+                              np.array([[-4, -2], [2, 4]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
                               ['#a35a49', '#4c7952'], f'h) 500W&TCC of MLR Type')
         elif i == 2:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc, reg_K_w, reg_K_qdiv,
-                              np.array([[-.04, -.02], [.02, .04]]),
+            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*100, reg_K_w, reg_K_qdiv,
+                              np.array([[-4, -2], [2, .4]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               61, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
                                ['#a35a49', '#4c7952'], f'i) 500W&TCC of AR Type')
         elif i == 3:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc, reg_K_w, reg_K_qdiv,
-                              np.array([[-.04, -.02], [.02, .04]]),
+            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*100, reg_K_w, reg_K_qdiv,
+                              np.array([[-4, -2], [2, 4]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
