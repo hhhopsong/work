@@ -135,7 +135,7 @@ def plot_test(data, max_clusters=10):
 
     plt.xticks(np.arange(2, max_clusters + 1, 1))  # 整数x轴刻度
     fig.tight_layout()
-    plt.savefig(fr"D:\PyFile\p2\pic\图3_1.png", dpi=600, bbox_inches='tight')
+    plt.savefig(fr"D:\PyFile\p2\pic\图3_1.pdf", bbox_inches='tight')
     plt.show()
 
 plot_test(EHD20_.to_numpy(), max_clusters=10)
@@ -365,5 +365,5 @@ fig.subplots_adjust(hspace=0.01)
 plt.tight_layout()
 
 # 显示图表
-plt.savefig(fr"D:\PyFile\p2\pic\图3.png", dpi=600, bbox_inches='tight')
+plt.savefig(fr"D:\PyFile\p2\pic\图3.pdf", bbox_inches='tight')
 plt.show()
