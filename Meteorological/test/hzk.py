@@ -43,8 +43,8 @@ arrow_style = FancyArrowPatch((0, 0), (1, 1), arrowstyle='->', mutation_scale=20
 #q = ax.quiver(longitudes[::10], latitudes[::10], u_wind[::10], v_wind[::10], color='k',
 #              scale=200, zorder=5, width=0.002,regrid_shape = 30, headwidth=3, headlength=4.5, transform=ccrs.PlateCarree())
 cq = Curlyquiver(ax,longitudes.reshape(281, 441)[0], latitudes.reshape(281, 441).T[0], u_wind.reshape(281, 441), v_wind.reshape(281, 441),
-            arrowsize=1, linewidth=.5, scale=100)
-cq.key(fig, U=10, label="10 m/s")
+            arrowsize=1, linewidth=1.5, scale=20, regrid=15, arrowstyle='fancy')
+cq.key(fig, U=30, label="30 m/s")
 # 添加矢量图的key0
 #plt.quiverkey(q, X=0.9, Y=1.05, U=10, label='Wind: 10 m/s', labelpos='E')
 
