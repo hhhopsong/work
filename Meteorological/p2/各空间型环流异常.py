@@ -29,7 +29,7 @@ import metpy.constants as constants
 plt.rcParams['font.family'] = 'Times New Roman'
 
 nanmax = None
-type_name = ['', '500UVZ&T2M of MLR Type', '500UVZ&T2M of AR Type', '500UVZ&T2M of UR Type']
+type_name = ['', 'MLR Type 500UVZ&T2M', 'AR Type 500UVZ&T2M', 'UR Type 500UVZ&T2M']
 def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     global lev_t, nanmax
     pic_ind = ['', 'd', 'e', 'f']
@@ -314,9 +314,9 @@ if __name__ == '__main__':
     # 柱状图
     for KType in range(1, 4):
         if KType == 3:
-            reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
+            reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp")
         elif KType == 1:
-            reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
+            reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp")
         elif KType == 2:
             reg_map_ = masked(reg_map, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
         reg_ = reg_map_.sel(type=KType, level=p_lev)
@@ -334,7 +334,7 @@ if __name__ == '__main__':
         ax = fig.add_subplot(3, 3, KType)
         ax.set_aspect('auto')
         title = ['MLR Type', 'AR Type', 'UR Type'][KType - 1]
-        ax.set_title(f'{chr(ord("a") + KType - 1)}) Temp. pert budget of {title}', fontsize=12, loc='left')
+        ax.set_title(f'{chr(ord("a") + KType - 1)}) {title} Temp_pert_budget', fontsize=12, loc='left')
         ax.grid(True, linestyle='--', zorder=0, axis='y')
 
         bars = ax.bar(range(3), values, width=0.3, color=colors, edgecolor='black', zorder=2)
@@ -442,21 +442,21 @@ if __name__ == '__main__':
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                              ['#a35a49', '#4c7952'], f'h) 500W&TCC of MLR Type')
+                              ['#a35a49', '#4c7952'], f'h) MLR Type 500W&TCC')
         elif i == 2:
             contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], reg_K_w, reg_K_qdiv,
                               np.array([[-4, -2], [2, 4]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               61, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                               ['#a35a49', '#4c7952'], f'i) 500W&TCC of AR Type')
+                               ['#a35a49', '#4c7952'], f'i) AR Type 500W&TCC')
         elif i == 3:
             contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], reg_K_w, reg_K_qdiv,
                               np.array([[-4, -2], [2, 4]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                              ['#a35a49', '#4c7952'], f'j) 500W&TCC of UR Type')
+                              ['#a35a49', '#4c7952'], f'j) UR Type 500W&TCC')
 
     # 添加全局colorbar  # 为colorbar腾出空间
     cbar_ax = fig.add_axes([0.915, 0.39, 0.01, 0.21]) # [left, bottom, width, height]

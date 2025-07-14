@@ -38,12 +38,13 @@ except:
     Tmax_5Day_filt.to_netcdf(fr"D:\PyFile\p2\data\Tmax_5Day_filt.nc")
     del Tmax
 T_th = 0.90
-t95 = masked(Tmax_5Day_filt, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").mean(dim=['year', 'day']).quantile(T_th)  # 夏季内 长江中下游流域 分位数
+t95 = masked(Tmax_5Day_filt.sel(day=slice('1', '88')),
+             r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").mean(dim=['year', 'day']).quantile(T_th)  # 夏季6-8月的5日滑动平均内 长江中下游流域 分位数
 EHD = Tmax_5Day_filt - t95
 EHD = EHD.where(EHD > 0, 0)  # 极端高温日温度距平
 EHD = EHD.where(EHD == 0, 1)  # 数据二值化处理(1:极端高温, 0:非极端高温)
 EHD = masked(EHD, r"D:\PyFile\map\self\长江_TP\长江_tp.shp")  # 掩膜处理得长江流域EHD温度距平
-EHD = EHD.sel(day=EHD['day'][30:]) # 截取7月3日至8月28日数据
+EHD = EHD.sel(day=EHD['day'][30:30+62-4]) # 截取7月3日至8月28日数据
 zone_stations = masked((CN051_2 - CN051_2 + 1).sel(time='2022-01-01'), r"D:\PyFile\map\self\长江_TP\长江_tp.shp").sum()['tmax'].data
 EHDstations_zone = EHD.sum(dim=['lat', 'lon']) / zone_stations  # 长江流域逐日极端高温格点占比
 S_q = 0.9
@@ -112,26 +113,27 @@ def plot_test(data, max_clusters=10):
     ax1.plot(cluster_range, silhouette_scores, color='r', label='S', zorder=4)
     ax1.set_xlabel('Number of Clusters', fontsize=16)
     ax1.set_ylabel('S', color='r', fontsize=16)
-    ax1.tick_params(axis='y', colors='r', labelsize=12)
+    ax1.tick_params(axis='y', colors='r', labelsize=14)
+    ax1.tick_params(axis='x', labelsize=14)
     ax1.set_ylim(bottom=min(silhouette_scores) - 0.1 * abs(min(silhouette_scores)),
                  top=max(silhouette_scores) + 0.1 * abs(max(silhouette_scores)))
     ax1.set_xlim(left=min(cluster_range)-0.2, right=max(cluster_range)+0.2)
-    ax1.scatter(3, silhouette_scores[1], color='red', marker='^')
+    ax1.scatter(3, silhouette_scores[1], edgecolors='red', marker='o', facecolors='none', linewidths=2)
     ax2 = ax1.twinx()
     ax2.plot(cluster_range, explained_variance_ratio, color='b', label='MSE', zorder=3)
     ax2.set_ylabel('MSE', color='b', fontsize=16)
     ax2.spines['left'].set_color('red')
     ax2.spines['right'].set_color('blue')
-    ax2.tick_params(axis='y', colors='b', labelsize=12)
+    ax2.tick_params(axis='y', colors='b', labelsize=14)
     ax2.set_ylim(bottom=min(explained_variance_ratio) - 0.025 * abs(min(explained_variance_ratio)),
                  top=max(explained_variance_ratio) + 0.025 * abs(max(explained_variance_ratio)))
-    ax2.scatter(3, explained_variance_ratio[1], color='blue', marker='o')
+    ax2.scatter(3, explained_variance_ratio[1], edgecolors='blue', marker='o', facecolors='none', linewidths=2)
 
     # 添加图例
     lines_1, labels_1 = ax1.get_legend_handles_labels()
     lines_2, labels_2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right', edgecolor='none')
-    ax1.set_title('MSE & Silhouette Coefficient', fontsize=18, loc='left')
+    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right', edgecolor='none', fontsize=14)
+    ax1.set_title('MSE & Silhouette Coefficient', fontsize=16, loc='left')
 
     plt.xticks(np.arange(2, max_clusters + 1, 1))  # 整数x轴刻度
     fig.tight_layout()
@@ -180,9 +182,11 @@ for cluster in range(K_s):
         r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
                       ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江\长江.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='blue', linewidth=0.2)
+                      facecolor='none', edgecolor='blue', linewidth=0.6)
     ax.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(),
                     ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
+    ax.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江干流_lake\lake_wsg84.shp').geometries(),
+                       ccrs.PlateCarree(), facecolor='blue', edgecolor='blue', linewidth=0.2, alpha=0.5)
     ax.set_extent(extent_CN)
     # 刻度线设置
     ax.grid(False)
@@ -276,7 +280,7 @@ ax1 = fig.add_subplot(2, 1, 2)
 
 # 绘制柱状图（单色表示每年的总天数）
 bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='')
-ax1.set_title('d) Days of types', loc='left', fontsize=14, weight='bold')  # 设置标题
+ax1.set_title('d) Annual Days of YRBWHT', loc='left', fontsize=14, weight='bold')  # 设置标题
 ax1.set_xlim(1960, 2023)
 ax1.set_xlabel('Year', fontsize=12)  # 设置 x 轴标签
 ax1.set_ylim(0, 63)

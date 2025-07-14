@@ -11,8 +11,8 @@ def detrend(data):
 
 t2m = xr.open_dataset(r"D:\PyFile\p2\data\t2m_78.nc")
 t2m_all_region = masked(t2m, r"D:\PyFile\map\self\长江_TP\长江_tp.shp")['t2m'].mean(['lat', 'lon'], skipna=True)
-t2m_region1 = masked(t2m, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")['t2m'].mean(['lat', 'lon'], skipna=True)
-t2m_region2 = masked(t2m, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")['t2m'].mean(['lat', 'lon'], skipna=True)
+t2m_region1 = masked(t2m, r"D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp")['t2m'].mean(['lat', 'lon'], skipna=True)
+t2m_region2 = masked(t2m, r"D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp")['t2m'].mean(['lat', 'lon'], skipna=True)
 # t2m去趋势
 t2m_weight = np.array([detrend(t2m_region2.to_numpy()),
                        detrend(t2m_all_region.to_numpy()),

@@ -119,9 +119,9 @@ for KType in range(1, 4):
     var = ['dTdt', 'adv_T', 'ver', 'Q']
     var_out = [r'$\frac{\partial T}{\partial t}$', r'$-V \cdot \nabla T$', r'$\omega \sigma$', r'$\dot{Q}$']
     if KType == 3:
-        reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
+        reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp")
     elif KType == 1:
-        reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
+        reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp")
     elif KType == 2:
         reg_map_ = masked(reg_map, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
     interp_lon = np.linspace(88, 124, 1000)
@@ -170,10 +170,10 @@ for KType in range(1, 4):
         ####
         ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
                            facecolor='none', edgecolor='black', linewidth=.5)
-        ax1.add_geometries(Reader(r'D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp').geometries(),
+        ax1.add_geometries(Reader(r'D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp').geometries(),
                           ccrs.PlateCarree(),
                           facecolor='none', edgecolor='black', linewidth=.5)
-        ax1.add_geometries(Reader(r'D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp').geometries(),
+        ax1.add_geometries(Reader(r'D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp').geometries(),
                           ccrs.PlateCarree(),
                           facecolor='none', edgecolor='black', linewidth=.5)
         ax1.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(),
@@ -207,9 +207,9 @@ for KType in range(1, 4):
     cb1.ax.tick_params(length=0, labelsize=12)  # length为刻度线的长度
 
     if KType == 3:
-        reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
+        reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp")
     elif KType == 1:
-        reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
+        reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp")
     elif KType == 2:
         reg_map_ = masked(reg_map, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
     reg = masked(reg_map, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").sel(
@@ -314,13 +314,13 @@ fig = plt.figure(figsize=(12, 3))
 
 for KType in range(1, 4):
     if KType == 3:
-        reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
-        reg_radio_ = masked(reg_radio, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
-        reg_heating_bar_ = masked(reg_heating_bar, r"D:\Code\work\Meteorological\p2\map\WYTR\长江_tp.shp")
+        reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp")
+        reg_radio_ = masked(reg_radio, r"D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp")
+        reg_heating_bar_ = masked(reg_heating_bar, r"D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp")
     elif KType == 1:
-        reg_map_ = masked(reg_map, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
-        reg_radio_ = masked(reg_radio, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
-        reg_heating_bar_ = masked(reg_heating_bar, r"D:\Code\work\Meteorological\p2\map\EYTR\长江_tp.shp")
+        reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp")
+        reg_radio_ = masked(reg_radio, r"D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp")
+        reg_heating_bar_ = masked(reg_heating_bar, r"D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp")
     elif KType == 2:
         reg_map_ = masked(reg_map, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
         reg_radio_ = masked(reg_radio, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
