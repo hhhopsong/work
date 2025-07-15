@@ -41,7 +41,7 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
                         levels=lev_t, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
     # 显著性打点
     p_test = np.where(np.abs(corr_t2m[1]) >= r_test(62), 0, np.nan)
-    p = ax.quiver(t2m['lon'], t2m['lat'], p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=60, color='k', scale=20, headlength=2, headaxislength=2)
+    p = ax.quiver(t2m['lon'], t2m['lat'], p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=40, color='k', scale=10, headlength=5, headaxislength=5, width=0.005)
     cont = ax.contour(lon, lat, corr_z[0], colors='red', levels=[20, 40, 60], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
     cont_ = ax.contour(lon, lat, corr_z[0], colors='blue', levels=[-60, -40, -20], linestyles='--', linewidths=0.4,
                        transform=ccrs.PlateCarree(central_longitude=0))
@@ -100,7 +100,7 @@ def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, lat_pat, lon_pat, contour_1, cont
                         levels=lev_f, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
     # 显著性打点
     p_test = np.where(np.abs(contourf_1[1]) >= r_test(r_N), 0, np.nan)
-    p = ax.quiver(lon_f, lat_f, p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=60, color='k', scale=20, headlength=2, headaxislength=2)
+    p = ax.quiver(lon_f, lat_f, p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=40, color='k', scale=10, headlength=5, headaxislength=5, width=0.005)
     cont = ax.contour(lon, lat, contour_1[0], colors=color[1], levels=lev[1], linestyles='--', linewidths=0.8,
                       transform=ccrs.PlateCarree(central_longitude=0))
     cont_ = ax.contour(lon, lat, contour_1[0], colors=color[0], levels=lev[0], linestyles='solid', linewidths=0.8,
@@ -470,7 +470,7 @@ if __name__ == '__main__':
     cbar1 = fig.colorbar(contourfs2, cax=cbar_ax1, orientation='vertical', drawedges=True)
     cbar1.locator = ticker.FixedLocator(lev_w)
     cbar1.set_ticklabels(['-1.25', '-1', '-0.75', '-0.5', '-0.25', '0.25', '0.5', '0.75', '1', '1.25'])
-    cbar1.set_label('×10$^{-2}$', fontsize=10, loc='bottom')
+    # cbar1.set_label('×10$^{-2}$', fontsize=10, loc='bottom')
     cbar1.ax.tick_params(labelsize=10, length=0)
 
 

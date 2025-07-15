@@ -280,7 +280,7 @@ ax1 = fig.add_subplot(2, 1, 2)
 
 # 绘制柱状图（单色表示每年的总天数）
 bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='')
-ax1.set_title('d) Annual Days of YRBWHT', loc='left', fontsize=14, weight='bold')  # 设置标题
+ax1.set_title('d) Annual Days of BWHT', loc='left', fontsize=14, weight='bold')  # 设置标题
 ax1.set_xlim(1960, 2023)
 ax1.set_xlabel('Year', fontsize=12)  # 设置 x 轴标签
 ax1.set_ylim(0, 63)

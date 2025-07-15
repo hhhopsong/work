@@ -24,7 +24,7 @@ plt.rcParams['hatch.linewidth'] = 2.2
 
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ax.set_title("YRBWHT Correlation across Thresholds", fontsize=14, loc='left')
+ax.set_title("BWHT Correlation across Thresholds", fontsize=14, loc='left')
 contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], cmap=cmaps.sunshine_9lev, levels=[.3, .4, .5, .6, .7, .8, .9, .95, 1], extend='both')
 cont = ax.contour(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], levels=[.5, .6, .7, .8, .9, .95, 1.], colors='k', linewidths=.5)
 xianzhu_contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], [0, .5, .9, 1],
