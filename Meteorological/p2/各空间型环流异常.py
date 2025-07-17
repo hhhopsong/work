@@ -37,7 +37,14 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     ax.set_aspect('auto')
     ax.set_title(f'{pic_ind[eval(str(picloc)[2])-3]}) {type_name[eval(str(picloc)[2])-3]}', loc='left', fontsize=12)
     ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
-    contf = ax.contourf(t2m['lon'], t2m['lat'], corr_t2m[0], cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
+
+    da_contour = xr.DataArray(
+        corr_t2m[0],
+        coords={'lat': t2m['lat'].data, 'lon': t2m['lon'].data},
+        dims=('lat', 'lon')
+    )
+    roi_shape = ((60, 0), (160, 60))
+    contf = ax.contourf(t2m['lon'], t2m['lat'], da_contour.salem.roi(corners=roi_shape), cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4],
                         levels=lev_t, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
     # 显著性打点
     p_test = np.where(np.abs(corr_t2m[1]) >= r_test(62), 0, np.nan)
@@ -96,7 +103,14 @@ def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, lat_pat, lon_pat, contour_1, cont
     ax.set_aspect('auto')
     ax.set_title(f'{title}', loc='left', fontsize=12)
     ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
-    contf = ax.contourf(lon_f, lat_f, contourf_1[0], cmap=cmap,
+
+    da_contour = xr.DataArray(
+        contourf_1[0],
+        coords={'lat': lat_f, 'lon': lon_f},
+        dims=('lat', 'lon')
+    )
+    roi_shape = ((60, 0), (160, 60))
+    contf = ax.contourf(lon_f, lat_f, da_contour.salem.roi(corners=roi_shape), cmap=cmap,
                         levels=lev_f, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
     # 显著性打点
     p_test = np.where(np.abs(contourf_1[1]) >= r_test(r_N), 0, np.nan)
@@ -473,6 +487,11 @@ if __name__ == '__main__':
     # cbar1.set_label('×10$^{-2}$', fontsize=10, loc='bottom')
     cbar1.ax.tick_params(labelsize=10, length=0)
 
+    for ax in fig.axes:
+        # 遍历每个子图中的所有艺术家对象 (artist)
+        for artist in ax.get_children():
+            # 强制开启裁剪
+            artist.set_clip_on(True)
 
     plt.savefig(r"D:\PyFile\p2\pic\图4.pdf", bbox_inches='tight')
     plt.show()

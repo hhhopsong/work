@@ -101,7 +101,7 @@ class LanczosFilter:
         :param filter_value: 滤波值
         :param filter_type: 滤波器类型[lowpass highpass bandpass bandstop]
         :param filter_window: 滤波器窗口, 必须为奇数
-        :param cutoff: 截止频率
+        :param cutoff: 截止周期
         """
         self.filter_type = filter_type
         self.filter_value = filter_value

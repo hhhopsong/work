@@ -31,6 +31,79 @@ import cartopy.feature as cfeature
 import tqdm as tq
 import warnings
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from matplotlib.path import Path
+
+
+class VHead(patches.ArrowStyle._Base):
+    """
+    一个自定义的 VHead 箭头样式。
+    通过实现 transmute 方法来保证兼容性。
+    """
+
+    def __init__(self, head_length=0.4, head_width=0.4):
+        self.head_length = head_length
+        self.head_width = head_width
+        super().__init__()
+
+    def transmute(self, path, mutation_size, transform):
+        """
+        接收原始路径，返回带有箭头的完整新路径。
+        这是创建箭头样式的“经典”方法。
+        """
+        # 获取箭身路径的最后一个点（即箭头的目标位置）和倒数第二个点（用来确定方向）
+        x_end, y_end = path.vertices[-1]
+        if len(path.vertices) > 1:
+            x_start, y_start = path.vertices[-2]
+        else:
+            x_start, y_start = x_end - 1, y_end
+        direction_vec = np.array([x_end - x_start, y_end - y_start])
+        norm = np.linalg.norm(direction_vec)
+        direction_vec = direction_vec / (norm if norm != 0 else 1)
+        arrow_angle_rad = np.arctan2(direction_vec[1], direction_vec[0])
+        hl = self.head_length * mutation_size
+        hw = self.head_width * mutation_size
+        rotation_matrix = np.array([
+            [np.cos(arrow_angle_rad), -np.sin(arrow_angle_rad)],
+            [np.sin(arrow_angle_rad), np.cos(arrow_angle_rad)]
+        ])
+        end_point = np.array([x_end, y_end])
+
+        # --- ✨ 核心修改在这里 ---
+
+        # 1. 定义 V 形的三个点（在原点坐标系，尖端朝向原点）
+        #    不再需要 gap 和 p1_end, p2_end
+        prong1_start_local = np.array([-hl, hw / 2.0])
+        vertex_local = np.array([0, 0])  # 交汇的顶点就是原点
+        prong2_start_local = np.array([-hl, -hw / 2.0])
+
+        # 2. 旋转并平移这三个点
+        prong1_start = np.dot(rotation_matrix, prong1_start_local) + end_point
+        vertex = np.dot(rotation_matrix, vertex_local) + end_point  # 这其实就是 end_point
+        prong2_start = np.dot(rotation_matrix, prong2_start_local) + end_point
+
+        # 3. 构建新的顶点列表和指令列表
+        all_verts = [
+            prong1_start,
+            vertex,
+            prong2_start
+        ]
+
+        all_codes = [
+            Path.MOVETO,  # 提笔，移动到 V 形一侧的起点
+            Path.LINETO,  # 画线到顶点
+            Path.LINETO  # 从顶点继续画线到另一侧的起点
+        ]
+
+        # 返回新的路径和是否可填充的标志
+        return Path(all_verts, all_codes), False
+
+
+# 2. 注册我们的样式
+patches.ArrowStyle.register("v", VHead)
+
+
 def lontransform(data, lon_name='lon', type='180->360'):
     """
     将经纬度从180->360或360->180转换
@@ -82,7 +155,7 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
 
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
-                 arrowstyle='->', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
+                 arrowstyle='v', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
                  regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180.,
                  thinning=[1, 'random'], MinDistance=[0, 1]):
         """绘制矢量曲线.
@@ -219,7 +292,7 @@ class Curlyquiver:
 
 
 def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
-               cmap=None, norm=None, arrowsize=.5, arrowstyle='->',
+               cmap=None, norm=None, arrowsize=.5, arrowstyle='vCurlyquiver',
                transform=None, zorder=None, start_points=None,
                scale=100., masked=True, regrid=30, regrid_reso=2.5, integration_direction='both',
                mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random'], MinDistance=[0.1, 0.5]):
@@ -774,14 +847,9 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             traj_length.append(distance(t[0][0], t[0][1]))
 
     if MinDistance[0] > 0 and MinDistance[1] < 1:
-        # 按照traj_length从长到短排序
         from operator import itemgetter
-        # 假设 trajectories, edges, traj_length 都是长度为 n 的列表
-        # 1. 一次性 zip 三个列表，生成 [(length, traj, edge), ...]
         combined = list(zip(traj_length, trajectories, edges))
-        # 2. 原地 sort，按第 0 个元素（traj_length）降序
-        combined.sort(key=itemgetter(0), reverse=True)
-        # 3. 一次性解包
+        combined.sort(key=itemgetter(0), reverse=True)  # 按第 0 个元素（traj_length）降序
         traj_length, trajectories, edges = map(list, zip(*combined))
 
 
@@ -852,47 +920,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 break
             except:
                 continue
-        arrow_tail = (tx[-2], ty[-2])
-        arrow_head = (tx[-1], ty[-1])
-        delta_ = np.array(arrow_head) - np.array(arrow_tail)
         arrow_tail = (tx[-1], ty[-1])
-        arrow_head = (tx[-1] + delta_[0], ty[-1] + delta_[1])
-        # 网格偏移避免异常箭头
-        arrow_start = np.array([arrow_head[0], arrow_head[1]])
-        arrow_end = np.array([arrow_tail[0], arrow_tail[1]])
-        delta = arrow_start - arrow_end
-        if np.sqrt(delta[0] ** 2 + delta[1] ** 2) == 0.:    continue        # 长度为0的轨迹
-        zone_fix = np.array([360 / np.abs(extent[0] - extent[1]), 180 / np.abs(extent[2] - extent[3])]).min()  # 箭头偏移修正系数
-        delta = delta / np.sqrt(delta[0] ** 2 + delta[1] ** 2) / zone_fix
-        arrow_end =  arrow_start + delta
-        arrow_head = [arrow_start[0], arrow_start[1]]
-        arrow_tail = [arrow_end[0], arrow_end[1]]
-        if MAP:
-            a_start = arrow_start[0] - 360 - lon_trunc if arrow_start[0] - lon_trunc > 180 else arrow_start[0]  - lon_trunc
-            a_end = arrow_end[0] - 360 - lon_trunc if arrow_end[0] - lon_trunc > 180 else arrow_end[0]  - lon_trunc
-            a_start = a_start + 360 if a_start < -180 else a_start
-            a_end = a_end + 360 if a_end < -180 else a_end
-
-            # 网格偏移避免异常箭头
-            if np.abs(a_start - a_end) < 90:
-                if np.min([a_start, a_end]) <= 0 <= np.max([a_start, a_end]):
-                    arrow_start = [arrow_start[0] - a_start * 1.01, arrow_start[1] - a_start * delta[1] / delta[0] * 1.01]
-                    arrow_end =  [arrow_end[0] - a_start * 1.01, arrow_end[1] - a_start * delta[1] / delta[0] * 1.01]
-            arrow_head = [arrow_start[0], arrow_start[1]]
-            arrow_tail = [arrow_end[0], arrow_end[1]]
-
-            # 防止出现纬度超过90度
-            if np.abs(arrow_head[1]) >= 90 or np.abs(arrow_tail[1]) >= 90:
-                error = np.argmax([np.abs(arrow_head[1]), np.abs(arrow_tail[1])])
-                error = [arrow_head[1], arrow_tail[1]][error]
-                if error > 0:
-                    error -= (90 - 1e-5)
-                    arrow_head = np.array([arrow_head[0], arrow_head[1] - error])
-                    arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
-                else:
-                    error -= (-90 + 1e-5)
-                    arrow_head = np.array([arrow_head[0], arrow_head[1] - error])
-                    arrow_tail = np.array([arrow_tail[0], arrow_tail[1] - error])
+        arrow_head = (tx[-2], ty[-2])
 
         if isinstance(linewidth, np.ndarray):
             line_widths = interpgrid(linewidth, tgx, tgy, masked=masked, mode=mode)[:-1]
@@ -1224,7 +1253,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     # This error is below that needed to match the RK4 integrator. It
     # is set for visual reasons -- too low and corners start
     # appearing ugly and jagged. Can be tuned.
-    maxerror = 3e-5
+    maxerror = 2e-4
 
     # This limit is important (for all integrators) to avoid the
     # trajectory skipping some mask cells. We could relax this
@@ -1232,7 +1261,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     # increment the location gradually. However, due to the efficient
     # nature of the interpolation, this doesn't boost speed by much
     # for quite a bit of complexity.
-    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 1e-4)
+    maxds = min(1. / dmap.mask.nx, 1. / dmap.mask.ny, 6e-4)
 
     ds = maxds
     stotal = 0
@@ -1277,13 +1306,29 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
             xi += dx2
             yi += dy2
             
-            dmap.update_trajectory(xi, yi)
-            
             if not dmap.grid.within_grid(xi, yi):
                 hit_edge=False
             
             if (stotal + ds) > resolution*np.mean(m_total):
+                s_remaining = resolution*np.mean(m_total) - stotal
+                fraction = s_remaining / ds
+                if (fraction-1) < -1:
+                    break  # 防止出现负值导致负步长
+                # 按比例缩放最后一步的位移
+                xi += dx2 * (fraction-1)
+                yi += dy2 * (fraction-1)
+                dmap.update_trajectory(xi, yi)
+                if not dmap.grid.within_grid(xi, yi):
+                    hit_edge = False
+                # 将总长度精确地更新到目标值
+                stotal += s_remaining
+                # 将这个精确的终点加入轨迹
+                xf_traj.append(xi)
+                yf_traj.append(yi)
+                m_total.append(interpgrid(magnitude, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale))
                 break
+
+            dmap.update_trajectory(xi, yi)
             stotal += ds
 
         # recalculate stepsize based on step error
@@ -1485,7 +1530,7 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
     # 绘制图例
     x, y = U_trans * np.cos(angle) * 2. / width_shrink, U_trans * np.sin(angle) * 3. / height_shrink
     arrow = patches.FancyArrowPatch(
-        (x, y), (x+(1e-1)*np.cos(angle), y+(1e-1)*np.sin(angle))
+    (x-(1e-1)*np.cos(angle), y-(1e-1)*np.sin(angle)), (x, y)
               , arrowstyle=arrowstyle, mutation_scale=10 * arrowsize, linewidth=linewidth, color=color)
     axes_sub.add_patch(arrow)
     lines = [[[-x, y], [x, -y]]]
@@ -1505,10 +1550,15 @@ if __name__ == '__main__':
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100.5))
     ax1.set_extent([-50, 130, -80, 80], crs=ccrs.PlateCarree())
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, center_lon=100.5, MinDistance=[0.1, 0.1])
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, center_lon=100.5, MinDistance=[0.1, 0.1], arrowstyle='v')
     ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     # ax1.quiver(x, y, U, V, transform=ccrs.PlateCarree(0), regrid_shape=20, scale=25)
     a1.key(fig, shrink=0.15)
-    plt.savefig('test.png', dpi=600, bbox_inches='tight')
+    ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
+
+    for artist in ax1.get_children():
+        # 强制开启裁剪
+        artist.set_clip_on(True)
+    plt.savefig('test.pdf', bbox_inches='tight')
     plt.show()
