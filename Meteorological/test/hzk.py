@@ -1,4 +1,4 @@
-import toolbar.significance_test as st
+import xarray as xr
 
-st.r_test(11, 0.05)
+sst = xr.open_dataset("E:/data/NOAA/ERSSTv5/sst.mnmean.nc")
 pass
