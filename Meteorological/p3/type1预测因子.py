@@ -179,14 +179,15 @@ def sub_pic(fig, axes_sub, title, extent, geoticks,
     for spine in axes_sub.spines.values():
         spine.set_edgecolor('black')
     # 色标
-    ax_colorbar = inset_axes(axes_sub, width="3%", height="100%", loc='lower left', bbox_to_anchor=(1.05, 0., 1, 1),
-                             bbox_transform=axes_sub.transAxes, borderpad=0)
-    cb1 = plt.colorbar(shading_draw, cax=ax_colorbar, orientation='vertical', drawedges=True)
-    cb1.outline.set_edgecolor('black')  # 将colorbar边框调为黑色
-    cb1.dividers.set_color('black') # 将colorbar内间隔线调为黑色
-    cb1.locator = ticker.FixedLocator(shading_levels)
-    cb1.set_ticklabels([str(lev) for lev in shading_levels])
-    cb1.ax.tick_params(length=0, labelsize=6)  # length为刻度线的长度
+    if shading_signal:
+        ax_colorbar = inset_axes(axes_sub, width="3%", height="100%", loc='lower left', bbox_to_anchor=(1.05, 0., 1, 1),
+                                 bbox_transform=axes_sub.transAxes, borderpad=0)
+        cb1 = plt.colorbar(shading_draw, cax=ax_colorbar, orientation='vertical', drawedges=True)
+        cb1.outline.set_edgecolor('black')  # 将colorbar边框调为黑色
+        cb1.dividers.set_color('black') # 将colorbar内间隔线调为黑色
+        cb1.locator = ticker.FixedLocator(shading_levels)
+        cb1.set_ticklabels([str(lev) for lev in shading_levels])
+        cb1.ax.tick_params(length=0, labelsize=6)  # length为刻度线的长度
     # 计算函数运行时长
     end_time = time.perf_counter()
     duration = end_time - start_time
@@ -217,7 +218,7 @@ default_shading_levels = np.array([-10, -8, -6, -4, -2, 2, 4, 6, 8, 10])
 default_shading_cmap = cmaps.temp_diff_18lev[5:-5]
 default_shading_corr = False
 default_p_test_drawSet = {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'} # 显著性绘制设置, 可为False
-default_edgedraw = True # 填色图边缘绘制
+default_edgedraw = False # 填色图边缘绘制
 ## 等值线
 default_contour = False # 等值线数据
 default_contour_levels = [[-1, -0.5, -0.2], [0.2, 0.5, 1]]
@@ -238,7 +239,16 @@ default_rec_Set = {'point': [105, 120, 20, 30], 'color': 'blue', 'ls': '--', 'lw
 fig = plt.figure(figsize=(10, 5))
 fig.subplots_adjust(hspace=0.4)  # Increase vertical spacing between subplots
 gs = gridspec.GridSpec(3, 1)
+
 # 绘制子图1
-
-
+ax1 = fig.add_subplot(gs[0], projection=ccrs.PlateCarree(central_longitude=180-70))
+sub_pic(fig, ax1, title='子图1', extent=[-180, 180, -30, 80],
+        geoticks={'x': xticks, 'y': yticks, 'xmajor': 30, 'xminor': 10, 'ymajor': 30, 'yminor': 10},
+        shading=default_shading, shading_levels=default_shading_levels, shading_cmap=default_shading_cmap,
+        shading_corr=default_shading_corr, p_test_drawSet=default_p_test_drawSet, edgedraw=default_edgedraw,
+        contour=default_contour, contour_levels=default_contour_levels, contour_cmap=default_contour_cmap,
+        wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set,
+        wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set,
+        rec_Set=default_rec_Set)
+plt.show()
 
