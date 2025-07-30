@@ -117,10 +117,10 @@ def sub_pic(fig, axes_sub, title, extent, geoticks,
     # 裁剪多余数据, 缩减绘制元素
     axes_sub.set_extent(extent, crs=ccrs.PlateCarree(central_longitude=0))
     roi_shape = ((extent[0], extent[2]), (extent[1], extent[3]))
-    shading = shading.salem.roi(shape=roi_shape) if shading_signal else None
-    contour = contour.salem.roi(shape=roi_shape) if contour_signal else None
-    wind_1 = wind_1.salem.roi(shape=roi_shape) if wind_1_signal else None
-    wind_2 = wind_2.salem.roi(shape=roi_shape) if wind_2_signal else None
+    shading = shading.salem.roi(corners=roi_shape) if shading_signal else None
+    contour = contour.salem.roi(corners=roi_shape) if contour_signal else None
+    wind_1 = wind_1.salem.roi(corners=roi_shape) if wind_1_signal else None
+    wind_2 = wind_2.salem.roi(corners=roi_shape) if wind_2_signal else None
 
     # 阴影
     if shading_signal:
@@ -256,14 +256,10 @@ ax3 = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=180-7
 if __name__ == '__main__':
     start_time = time.perf_counter()
     lbm = xr.open_dataset(r'D:\PyFile\p2\lbm\type1_apre.nc')
-    u = lbm['u'][19:25].mean('time')
-    v = lbm['v'][19:25].mean('time')
-    t = lbm['t'][19:25].mean('time')
-    z = lbm['z'][19:25].mean('time').sel(lev=200)
-    Ncpu = multiprocessing.cpu_count()
+    t = lbm['t'][19:25].mean('time').sel(lev=200)*10
     pic1 = [fig, ax1, '子图1', [-180, 180, -30, 80],
             {'x': xticks, 'y': yticks, 'xmajor': 30, 'xminor': 10, 'ymajor': 30, 'yminor': 10},
-            z, default_shading_levels, default_shading_cmap,
+            t, default_shading_levels, default_shading_cmap,
             default_shading_corr, default_p_test_drawSet, default_edgedraw,
             default_contour, default_contour_levels, default_contour_cmap,
             default_wind_1, default_wind_1_set, default_wind_1_key_set,
@@ -271,7 +267,7 @@ if __name__ == '__main__':
             default_rec_Set]
     pic2 = [fig, ax2, '子图2', [-180, 180, -30, 80],
             {'x': xticks, 'y': yticks, 'xmajor': 30, 'xminor': 10, 'ymajor': 30, 'yminor': 10},
-            z, default_shading_levels, default_shading_cmap,
+            t, default_shading_levels, default_shading_cmap,
             default_shading_corr, default_p_test_drawSet, default_edgedraw,
             default_contour, default_contour_levels, default_contour_cmap,
             default_wind_1, default_wind_1_set, default_wind_1_key_set,
@@ -279,7 +275,7 @@ if __name__ == '__main__':
             default_rec_Set]
     pic3 = [fig, ax3, '子图3', [-180, 180, -30, 80],
             {'x': xticks, 'y': yticks, 'xmajor': 30, 'xminor': 10, 'ymajor': 30, 'yminor': 10},
-            z, default_shading_levels, default_shading_cmap,
+            t, default_shading_levels, default_shading_cmap,
             default_shading_corr, default_p_test_drawSet, default_edgedraw,
             default_contour, default_contour_levels, default_contour_cmap,
             default_wind_1, default_wind_1_set, default_wind_1_key_set,
