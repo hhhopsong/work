@@ -155,7 +155,7 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
 
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
-                 arrowstyle='v', transform=None, zorder=None, start_points=None, scale=1., masked=True, regrid=30,
+                 arrowstyle='v', transform=None, zorder=None, start_points='interleaved', scale=1., masked=True, regrid=30,
                  regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180.,
                  thinning=[1, 'random'], MinDistance=[0, 1]):
         """绘制矢量曲线.
@@ -182,6 +182,7 @@ class Curlyquiver:
                 详情请参见：:class:`~matplotlib.patches.FancyArrowPatch`.
             *start_points*: Nx2 array
                 矢量起绘点的坐标。在数据坐标系中，与 ``x`` 和 ``y`` 数组相同。
+                当 ``start_points`` 为 'interleaved' 时，会根据 ``x`` 和 ``y`` 数组自动生成蜂窝状起绘点。
             *zorder* : int
                 ``zorder`` 属性决定了绘图元素的绘制顺序,数值较大的元素会被绘制在数值较小的元素之上。
             *scale* : float(0-100)
@@ -203,9 +204,8 @@ class Curlyquiver:
             *center_lon* : float
                 中心经度
             *thinning* : [float , str]
-                float为百分位阈值阈值，长度超过此百分位阈值的流线将被随机稀疏化。
-                str为采样方式，'random'、'max'、'min'或'range'。
-                例如：['10%', 'random']，将随机稀疏化长度超过10%百分位的 streamline。
+                float为百分位阈值阈值，长度超出此百分位阈值的流线将不予绘制。
+                str为采样方式，'max'、'min'或'range'。
                 例如：[10, 'max']，将不予绘制超过10的 streamline。
                 例如：[10, 'min']，将不予绘制小于10的 streamline。
                 例如：[[10, 20], 'range']，将绘制长度在10~20之间的 streamline。
@@ -293,7 +293,7 @@ class Curlyquiver:
 
 def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='vCurlyquiver',
-               transform=None, zorder=None, start_points=None,
+               transform=None, zorder=None, start_points= 'interleaved',
                scale=100., masked=True, regrid=30, regrid_reso=2.5, integration_direction='both',
                mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random'], MinDistance=[0.1, 0.5]):
     """绘制矢量曲线.
@@ -320,6 +320,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         详情请参见：:class:`~matplotlib.patches.FancyArrowPatch`.
     *start_points*: Nx2 array
         矢量起绘点的坐标。在数据坐标系中，与 ``x`` 和 ``y`` 数组相同。
+        当 ``start_points`` 为 'interleaved' 时，会根据 ``x`` 和 ``y`` 数组自动生成蜂窝状起绘点。
     *zorder* : int
         ``zorder`` 属性决定了绘图元素的绘制顺序,数值较大的元素会被绘制在数值较小的元素之上。
     *scale* : float(0-100)
@@ -341,9 +342,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     *center_lon* : float
         中心经度(regrid=True时有效)
     *thinning* : [float , str]
-        float为百分位阈值阈值，长度超过此百分位阈值的流线将被随机稀疏化。
-        str为采样方式，'random'、'max'、'min'或'range'。
-        例如：['10%', 'random']，将随机稀疏化长度超过10%百分位的 streamline。
+        float为百分位阈值阈值，长度超出此百分位阈值的流线将不予绘制。
+        str为采样方式，'max'、'min'或'range'。
         例如：[10, 'max']，将不予绘制超过10的 streamline。
         例如：[10, 'min']，将不予绘制小于10的 streamline。
         例如：[[10, 20], 'range']，将绘制长度在10~20之间的 streamline。
@@ -650,27 +650,24 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             start_points = np.array([X_re.flatten(), Y_re.flatten()]).T
         else:
             start_points=_gen_starting_points(x,y,grains)
+    elif start_points == 'interleaved':
+        if regrid:
+            X_re, Y_re = np.meshgrid(x_draw, y_draw)
+            if len(x_draw) > 1 and len(y_draw) > 1:
+                horizontal_shift = (x_draw[1] - x_draw[0]) / 2.0
+                X_re[1::2] += horizontal_shift
+                mask_ = np.ones_like(X_re, dtype=bool)
+                mask_[1::2, -1] = False
+                X_re = X_re[mask_]
+                Y_re = Y_re[mask_]
+            start_points = np.array([X_re.flatten(), Y_re.flatten()]).T
+        else:
+            warnings.warn('绘制点未成功插值为六边形: start_points 为 "interleaved" 时, regrid 的值必须非 False', UserWarning)
+            start_points=_gen_starting_points(x,y,grains)
 
     # 稀疏化
     if thinning[0] != 1:
-        if thinning[1] == 'random':
-            wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
-            if isinstance(thinning[0], str):
-                if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
-                    draw_probability = thinning_min_wind / wind_0
-                    draw_probability = np.where(draw_probability >= 1, 1, draw_probability)
-                else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
-            else:
-                draw_probability = thinning[0] * wind_shrink / wind_0
-                draw_probability = np.where(draw_probability >= 1, 1, draw_probability)
-            np.random.seed(123)  # 使用种子为123的随机数，固定结果
-            random_numbers = np.random.rand(*draw_probability.shape)
-            mask = np.where(draw_probability >= random_numbers, 1, np.nan)
-            start_points = start_points.reshape([*u.shape, -1]) * mask[..., np.newaxis]
-            start_points = start_points.reshape(-1, 2)
-            start_points = start_points[~np.isnan(start_points).any(axis=1)]
-        elif thinning[1] == 'range':
+        if thinning[1] == 'range':
             wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
             if isinstance(thinning[0], str):
                 if thinning[0][0][-1] == "%":
