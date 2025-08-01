@@ -9,30 +9,24 @@ https://github.com/hhhopsong/work/blob/master/Meteorological/toolbar/curved_quiv
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from matplotlib.streamplot import TerminateTrajectory
-
 import xarray as xr
 from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import map_coordinates
 import numpy as np
 import cartopy.crs as ccrs
-from cartopy.util import add_cyclic_point
+import tqdm as tq
+import warnings
 from func_timeout import func_set_timeout, FunctionTimedOut
+import cartopy.feature as cfeature
 
 import matplotlib
 from matplotlib import _api, cm, patches
+from matplotlib.streamplot import TerminateTrajectory
 import matplotlib.colors as mcolors
 import matplotlib.collections as mcollections
 import matplotlib.transforms as mtransforms
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
-import cartopy.feature as cfeature
 
-import tqdm as tq
-import warnings
-
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 from matplotlib.path import Path
 
 

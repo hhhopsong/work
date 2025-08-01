@@ -1,4 +1,3 @@
-from adodbapi.ado_consts import directions
 from cartopy import crs as ccrs
 import cartopy.feature as cfeature
 import multiprocessing

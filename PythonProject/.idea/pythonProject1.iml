@@ -7,7 +7,7 @@
     <content url="file://$MODULE_DIR$/../../../lanqiaobei">
       <excludeFolder url="file://$MODULE_DIR$/../../../lanqiaobei" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.9 (PythonProject)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="PY312" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="PyQT6" />
     <orderEntry type="module" module-name="Meteorological" />
