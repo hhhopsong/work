@@ -136,6 +136,35 @@ def era5_s(data_path, begin_year, end_year, var_name):
                                  'lon': era5['longitude'].data})
     return pre
 
+
+def era5_land(data_path, begin_year, end_year, var_name):
+    '''
+    读取ERA5数据
+    :param data_path:  ERA5数据路径
+    :param begin_year:  开始年份
+    :param end_year:  结束年份
+    :param var_name:  变量名称
+    :return:
+    '''
+    try:
+        era5 = xr.open_dataset(data_path).sel(
+            date=slice(str(begin_year) + '-01-01', str(end_year + 1) + '-12-31'),
+            latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(719)])[var_name]
+        pre = xr.Dataset({var_name:(['time', 'lat', 'lon'], era5.data)},
+                         coords={'time': pd.to_datetime(era5['date'], format="%Y%m%d"),
+                                 'lat': era5['latitude'].data,
+                                 'lon': era5['longitude'].data})
+    except:
+        era5 = xr.open_dataset(data_path).sel(
+            valid_time=slice(str(begin_year) + '-01-01', str(end_year + 1) + '-12-31'),
+            latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(719)])[var_name]
+        pre = xr.Dataset({var_name:(['time', 'lat', 'lon'], era5.data)},
+                         coords={'time': pd.to_datetime(era5['valid_time'], format="%Y%m%d"),
+                                 'lat': era5['latitude'].data,
+                                 'lon': era5['longitude'].data})
+    return pre
+
+
 def prec(data_path, begin_year, end_year):
     pre = xr.open_dataset(data_path)['precip']
     pre = pre.sel(time=slice(str(begin_year) + '-01-01', str(end_year) + '-12-31'))
@@ -153,3 +182,7 @@ def ersst(data_path, begin_year, end_year):
                              'lat': ersst['lat'].data,
                              'lon': ersst['lon'].data})
     return ersst
+
+
+if __name__ == '__main__':
+    era5_land("E:/data/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
