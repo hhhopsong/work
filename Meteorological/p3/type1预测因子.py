@@ -56,6 +56,7 @@ def rec(ax, point, color='blue', ls='--', lw=0.5):
 
 def sub_pic(fig, axes_sub, title, extent, geoticks,
             shading, shading_levels, shading_cmap, shading_corr, p_test_drawSet, edgedraw,
+            shading2, shading2_levels, shading2_cmap, shading2_corr, p_test_drawSet2, edgedraw2,
             contour, contour_levels, contour_cmap,
             wind_1, wind_1_set, wind_1_key_set,
             wind_2, wind_2_set, wind_2_key_set,
@@ -76,6 +77,12 @@ def sub_pic(fig, axes_sub, title, extent, geoticks,
     :param shading_corr:  shading相关系数结果 ['lat', 'lon']
     :param p_test_drawSet:  显著性绘制设置, {N, alpha, lw, color}, such as {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}
     :param edgedraw:  shading是否有边缘绘制, bool类型
+    :param shading2:  xr.DataArray对象, ['lat', 'lon']
+    :param shading2_levels:  shading2级别
+    :param shading2_cmap:  shading2颜色映射
+    :param shading2_corr:  shading2相关系数结果 ['lat', 'lon']
+    :param p_test_drawSet2:  显著性绘制设置, {N, alpha, lw, color}, such as {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}
+    :param edgedraw2:  shading2是否有边缘绘制, bool类型
     :param contour:  xr.DataArray对象, ['lat', 'lon']
     :param contour_levels:  contour级别, [[负等值线], [正等值线]], such as [[-1, -0.5, -0.2], [0.2, 0.5, 1]]
     :param contour_cmap:  contour颜色, [负等值线颜色, 正等值线颜色], such as ['blue', 'red']
@@ -110,6 +117,8 @@ def sub_pic(fig, axes_sub, title, extent, geoticks,
     # 判断是否绘制
     shading_signal = True if isinstance(shading, xr.DataArray) else False
     shading_corr_signal = True if isinstance(shading_corr, xr.DataArray) else False
+    shading2_signal = True if isinstance(shading2, xr.DataArray) else False
+    shading2_corr_signal = True if isinstance(shading2_corr, xr.DataArray) else False
     contour_signal = True if isinstance(contour, xr.DataArray) else False
     wind_1_signal = True if isinstance(wind_1, xr.DataArray) else False
     wind_2_signal = True if isinstance(wind_2, xr.DataArray) else False
@@ -118,6 +127,7 @@ def sub_pic(fig, axes_sub, title, extent, geoticks,
     axes_sub.set_extent(extent, crs=ccrs.PlateCarree(central_longitude=0))
     roi_shape = ((extent[0], extent[2]), (extent[1], extent[3]))
     shading = shading.salem.roi(corners=roi_shape) if shading_signal else None
+    shading2 = shading2.salem.roi(corners=roi_shape) if shading2_signal else None
     contour = contour.salem.roi(corners=roi_shape) if contour_signal else None
     wind_1 = wind_1.salem.roi(corners=roi_shape) if wind_1_signal else None
     wind_2 = wind_2.salem.roi(corners=roi_shape) if wind_2_signal else None
@@ -140,6 +150,26 @@ def sub_pic(fig, axes_sub, title, extent, geoticks,
     if shading_corr_signal:
         p_test = np.where(np.abs(shading_corr) > r_test(p_test_drawSet['N'], p_test_drawSet['alpha']), 0, np.nan)    # 显著性
         axes_sub.contourf(shading_corr['lon'], shading_corr['lat'], p_test, levels=[0, 1], hatches=['////////////', None],
+                                  colors="none", add_colorbar=False, transform=ccrs.PlateCarree(central_longitude=0), edgecolor='none', linewidths=0)
+
+    # 阴影2
+    if shading2_signal:
+        shading2_draw = axes_sub.contourf(shading2['lon'], shading2['lat'], shading2.data,
+                                               levels=shading2_levels,
+                                               cmap=shading2_cmap,
+                                               extend='both', alpha=.75,
+                                               transform=ccrs.PlateCarree(central_longitude=0))
+    else:
+        shading2_draw = False
+
+    # 阴影2图边缘绘制
+    if shading2_signal and shading2_draw:  axes_sub.contour(shading2['lon'], shading2['lat'], shading2.data, colors='white', levels=shading2_levels,
+                                            linestyles='solid', linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
+
+    # 显著性检验2
+    if shading2_corr_signal:
+        p_test2 = np.where(np.abs(shading2_corr) > r_test(p_test_drawSet['N'], p_test_drawSet['alpha']), 0, np.nan)    # 显著性
+        axes_sub.contourf(shading2_corr['lon'], shading2_corr['lat'], p_test2, levels=[0, 1], hatches=['////////////', None],
                                   colors="none", add_colorbar=False, transform=ccrs.PlateCarree(central_longitude=0), edgecolor='none', linewidths=0)
 
     # 等值线
@@ -189,6 +219,16 @@ def sub_pic(fig, axes_sub, title, extent, geoticks,
         cb1.set_ticklabels([str(lev) for lev in shading_levels])
         cb1.ax.tick_params(length=0, labelsize=6)  # length为刻度线的长度
 
+        # 阴影2色标
+        if shading2_signal:
+            ax_colorbar2 = inset_axes(axes_sub, width="3%", height="100%", loc='lower left', bbox_to_anchor=(1.10, 0., 1, 1),
+                                 bbox_transform=axes_sub.transAxes, borderpad=0)
+            cb2 = plt.colorbar(shading2_draw, cax=ax_colorbar2, orientation='vertical', drawedges=True)
+            cb2.outline.set_edgecolor('black')  # 将colorbar边框调为黑色
+            cb2.dividers.set_color('black') # 将colorbar内间隔线调为黑色
+            cb2.locator = ticker.FixedLocator(shading2_levels)
+
+
     for artist in axes_sub.get_children():
         # 强制开启裁剪
         artist.set_clip_on(True)
@@ -211,8 +251,8 @@ yticks = np.arange(-30, 81, 30)
 # wind_1, wind_1_set, wind_1_key_set
 # wind_2, wind_2_set, wind_2_key_set
 # rec_Set
-## 填色图
 default_clon = 180
+## 填色图
 default_extent = [-180, 180, -30, 80]  # 子图范围
 default_geoticks = {'x': xticks, 'y': yticks,
                     'xmajor': 30, 'xminor': 10,
@@ -223,6 +263,17 @@ default_shading_cmap = cmaps.temp_diff_18lev[5:-5]
 default_shading_corr = False
 default_p_test_drawSet = {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'} # 显著性绘制设置, 可为False
 default_edgedraw = False # 填色图边缘绘制
+## 填色图2
+default_extent2 = [-180, 180, -30, 80]  # 子图范围
+default_geoticks2 = {'x': xticks, 'y': yticks,
+                    'xmajor': 30, 'xminor': 10,
+                    'ymajor': 30, 'yminor': 10}  # 地理坐标刻度
+default_shading2 = False # 填色图数据
+default_shading_levels2 = np.array([-10, -8, -6, -4, -2, 2, 4, 6, 8, 10])
+default_shading_cmap2 = cmaps.temp_diff_18lev[5:-5]
+default_shading_corr2 = False
+default_p_test_drawSet2 = {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'} # 显著性绘制设置, 可为False
+default_edgedraw2 = False # 填色图边缘绘制
 ## 等值线
 default_contour = False # 等值线数据
 default_contour_levels = [[-1, -0.5, -0.2], [0.2, 0.5, 1]]
@@ -240,6 +291,26 @@ default_wind_2_key_set = {'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr
 # 矩形框设置, 可为False
 default_rec_Set = {'point': [105, 120, 20, 30], 'color': 'blue', 'ls': '--', 'lw': 0.5}
 
+typesTimeSer = xr.open_dataset(r"D:/PyFile/p3/time_ser/typesTimeSer.nc")
+# 2mT
+t2m = era5_land("E:/data/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
+# SLP
+slp = era5_s("E:/data/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
+# sst
+sst = ersst("E:/data/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
+# %% 计算6月的z的年平均
+t2m_6 = t2m.sel(time=t2m['time.month'].isin([6])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon')
+slp_6 = slp.sel(time=slp['time.month'].isin([6])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon')
+sst_6 = sst.sel(time=sst['time.month'].isin([6])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon')
+# %%
+timeSerie = typesTimeSer.sel(type=1)['K'].data
+timeSerie = (timeSerie - np.mean(timeSerie))/np.std(timeSerie) # 标准化处理
+t2mReg, t2mCorr = regress(timeSerie, t2m_6['t2m'].data), corr(timeSerie, t2m_6['t2m'].data)
+slpReg, slpCorr = regress(timeSerie, slp_6['msl'].data), corr(timeSerie, slp_6['msl'].data)
+sstReg, sstCorr = regress(timeSerie, sst_6['sst'].data), corr(timeSerie, sst_6['sst'].data)
+# %%
+
+#
 fig = plt.figure(figsize=(10, 5))
 fig.subplots_adjust(hspace=0.4)  # Increase vertical spacing between subplots
 gs = gridspec.GridSpec(3, 1)
@@ -255,6 +326,8 @@ sub_pic(fig, ax1, title='子图1', extent=[-180, 180, -30, 80],
         geoticks={'x': xticks, 'y': yticks, 'xmajor': 30, 'xminor': 10, 'ymajor': 30, 'yminor': 10},
         shading=default_shading, shading_levels=default_shading_levels, shading_cmap=default_shading_cmap,
         shading_corr=default_shading_corr, p_test_drawSet=default_p_test_drawSet, edgedraw=default_edgedraw,
+        shading2=default_shading2, shading2_levels=default_shading_levels2, shading2_cmap=default_shading_cmap2,
+        shading2_corr=default_shading_corr2, p_test_drawSet2=default_p_test_drawSet2, edgedraw2=default_edgedraw2,
         contour=default_contour, contour_levels=default_contour_levels, contour_cmap=default_contour_cmap,
         wind_1=uv, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set,
         wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set,
