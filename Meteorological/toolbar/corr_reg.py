@@ -38,11 +38,11 @@ def regress(time_series, data):
 
     # 计算回归系数
     regression_coef = numerator / denominator
-    correlation = numerator / (np.sqrt(np.sum(data_mean ** 2, axis=0)) * np.sqrt(np.sum(time_series_mean ** 2)))
+
     # 重塑为 (lat, lon)
     regression_map = regression_coef.reshape(data.shape[1:])
-    correlation_map = correlation.reshape(data.shape[1:])
-    return regression_map, correlation_map
+
+    return regression_map
 
 if __name__ == '__main__':
     print('Successfully import toolbar.corr_reg!')
