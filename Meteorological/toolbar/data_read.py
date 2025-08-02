@@ -149,7 +149,7 @@ def era5_land(data_path, begin_year, end_year, var_name):
     try:
         era5 = xr.open_dataset(data_path).sel(
             date=slice(str(begin_year) + '-01-01', str(end_year + 1) + '-12-31'),
-            latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(719)])[var_name]
+            latitude=slice(None, None, 5), longitude=slice(None, None, 10))[var_name]
         pre = xr.Dataset({var_name:(['time', 'lat', 'lon'], era5.data)},
                          coords={'time': pd.to_datetime(era5['date'], format="%Y%m%d"),
                                  'lat': era5['latitude'].data,
@@ -157,7 +157,7 @@ def era5_land(data_path, begin_year, end_year, var_name):
     except:
         era5 = xr.open_dataset(data_path).sel(
             valid_time=slice(str(begin_year) + '-01-01', str(end_year + 1) + '-12-31'),
-            latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(719)])[var_name]
+            latitude=slice(None, None, 5), longitude=slice(None, None, 5))[var_name]
         pre = xr.Dataset({var_name:(['time', 'lat', 'lon'], era5.data)},
                          coords={'time': pd.to_datetime(era5['valid_time'], format="%Y%m%d"),
                                  'lat': era5['latitude'].data,
