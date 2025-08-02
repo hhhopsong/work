@@ -175,9 +175,9 @@ def sub_pic(fig, axes_sub, title, extent, geoticks,
     # 等值线
     if contour_signal:
         contour_low = axes_sub.contour(contour['lon'], contour['lat'], contour.data, colors=contour_cmap[0],
-                                       levels=contour_cmap[0], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
+                                       levels=contour_levels[0], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
         contour_high = axes_sub.contour(contour['lon'], contour['lat'], contour.data, colors=contour_cmap[1],
-                                        levels=contour_cmap[1], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
+                                        levels=contour_levels[1], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
         contour_low.clabel(inline=1, fontsize=3)
         contour_high.clabel(inline=1, fontsize=3)
 
@@ -309,8 +309,19 @@ t2mReg, t2mCorr = regress(timeSerie, t2m_6['t2m'].data), corr(timeSerie, t2m_6['
 slpReg, slpCorr = regress(timeSerie, slp_6['msl'].data), corr(timeSerie, slp_6['msl'].data)
 sstReg, sstCorr = regress(timeSerie, sst_6['sst'].data), corr(timeSerie, sst_6['sst'].data)
 # %%
-
-#
+t2mReg = xr.DataArray(t2mReg, coords=[t2m_6['lat'], t2m_6['lon']],
+                      dims=['lat', 'lon'], name='t2m_reg')
+slpReg = xr.DataArray(slpReg, coords=[slp_6['lat'], slp_6['lon']],
+                      dims=['lat', 'lon'], name='slp_reg')
+sstReg = xr.DataArray(sstReg, coords=[sst_6['lat'], sst_6['lon']],
+                      dims=['lat', 'lon'], name='sst_reg')
+t2mCorr = xr.DataArray(t2mCorr, coords=[t2m_6['lat'], t2m_6['lon']],
+                      dims=['lat', 'lon'], name='t2m_corr')
+slpCorr = xr.DataArray(slpCorr, coords=[slp_6['lat'], slp_6['lon']],
+                      dims=['lat', 'lon'], name='slp_corr')
+sstCorr = xr.DataArray(sstCorr, coords=[sst_6['lat'], sst_6['lon']],
+                      dims=['lat', 'lon'], name='sst_corr')
+# %%
 fig = plt.figure(figsize=(10, 5))
 fig.subplots_adjust(hspace=0.4)  # Increase vertical spacing between subplots
 gs = gridspec.GridSpec(3, 1)
@@ -324,11 +335,11 @@ ax2 = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180-7
 ax3 = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=180-70))
 sub_pic(fig, ax1, title='子图1', extent=[-180, 180, -30, 80],
         geoticks={'x': xticks, 'y': yticks, 'xmajor': 30, 'xminor': 10, 'ymajor': 30, 'yminor': 10},
-        shading=default_shading, shading_levels=default_shading_levels, shading_cmap=default_shading_cmap,
-        shading_corr=default_shading_corr, p_test_drawSet=default_p_test_drawSet, edgedraw=default_edgedraw,
-        shading2=default_shading2, shading2_levels=default_shading_levels2, shading2_cmap=default_shading_cmap2,
-        shading2_corr=default_shading_corr2, p_test_drawSet2=default_p_test_drawSet2, edgedraw2=default_edgedraw2,
-        contour=default_contour, contour_levels=default_contour_levels, contour_cmap=default_contour_cmap,
+        shading=t2mReg, shading_levels=default_shading_levels, shading_cmap=default_shading_cmap,
+        shading_corr=t2mCorr, p_test_drawSet=default_p_test_drawSet, edgedraw=default_edgedraw,
+        shading2=sstReg, shading2_levels=default_shading_levels2, shading2_cmap=default_shading_cmap2,
+        shading2_corr=sstCorr, p_test_drawSet2=default_p_test_drawSet2, edgedraw2=default_edgedraw2,
+        contour=slpReg, contour_levels=default_contour_levels, contour_cmap=default_contour_cmap,
         wind_1=uv, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set,
         wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set,
         rec_Set=default_rec_Set)
