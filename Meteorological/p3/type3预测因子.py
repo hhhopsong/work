@@ -407,7 +407,7 @@ sstCorr = xr.DataArray(sstCorr, coords=[sst_imonth['lat'], sst_imonth['lon']],
 
 
 
-X1_zone = [15, -25, 220, 290]  # sst纬度范围
+X1_zone = [15, -25, 140, 360-170]  # sst纬度范围
 sstWeight = sstCorr.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3]))  # sstCorr纬度范围
 X1_train = sst_imonth.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3])) * np.where(np.abs(sstWeight)>r_test(TR_time[1]-TR_time[0]+1, 0.1), sstWeight, np.nan)
 X1_train = X1_train.mean(['lat', 'lon'])
@@ -522,7 +522,7 @@ sstCorr = xr.DataArray(sstCorr, coords=[sst_imonth['lat'], sst_imonth['lon']],
                       dims=['lat', 'lon'], name='sst_corr')
 
 
-X2_zone = [10, -20, 160, 215]  # sst纬度范围
+X2_zone = [15, -10, 360-175, 360-135]  # sst纬度范围
 sstWeight2 = sstCorr.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3]))
 X2_train = sst_imonth.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3])) * np.where(np.abs(sstWeight2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), sstWeight2, np.nan)
 X2_train = X2_train.mean(['lat', 'lon'])
@@ -530,7 +530,7 @@ X2_mean, X2_std = X2_train.mean(), X2_train.std()  # 计算均值和标准差
 X2_train = (X2_train - X2_mean) / X2_std  # 标准化处理
 X2_train = pd.Series(X2_train.to_array()[0], index=pd.to_datetime(np.arange(TR_time[0]+1, TR_time[1]+1), format='%Y'), name='X2_train')
 
-X2_2_zone = [75, 10, 360-70, 360]  # slp纬度范围
+X2_2_zone = [15, -40, 75, 360-170]  # slp纬度范围
 slpWeight2 = slpCorr.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3]))
 X2_2_train = slp_imonth.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3])) * np.where(np.abs(slpWeight2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), slpWeight2, np.nan)
 X2_2_train = X2_2_train.mean(['lat', 'lon'])
@@ -640,7 +640,7 @@ slpCorr = xr.DataArray(slpCorr, coords=[slp_imonth['lat'], slp_imonth['lon']],
 sstCorr = xr.DataArray(sstCorr, coords=[sst_imonth['lat'], sst_imonth['lon']],
                       dims=['lat', 'lon'], name='sst_corr')
 
-X3_zone = [70, 50, -60, -30]  # sst纬度范围
+X3_zone = [55, 30, -70, -30]  # sst纬度范围
 sstCorr = transform(sstCorr, 'lon', '360->180')
 sst_imonth = transform(sst_imonth, 'lon', '360->180')
 sstWeight = sstCorr.sel(lat=slice(X3_zone[0], X3_zone[1]), lon=slice(X3_zone[2], X3_zone[3]))  # sstCorr纬度范围

@@ -659,146 +659,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             warnings.warn('绘制点未成功插值为六边形: start_points 为 "interleaved" 时, regrid 的值必须非 False', UserWarning)
             start_points=_gen_starting_points(x,y,grains)
 
-    # 稀疏化
-    if thinning[0] != 1:
-        if thinning[1] == 'range':
-            wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
-            if isinstance(thinning[0], str):
-                if thinning[0][0][-1] == "%":
-                    thinning_min_wind_1 = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][0][:-1]) / 100)
-                    draw_probability_1 = thinning_min_wind_1 / wind_0
-                    draw_probability_1 = np.where(draw_probability_1 < 1, 1, 0)
-                    thinning_min_wind_2 = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][1][:-1]) / 100)
-                    draw_probability_2 = thinning_min_wind_2 / wind_0
-                    draw_probability_2 = np.where(draw_probability_2 > 1, 1, 0)
-                    draw_probability = np.where((draw_probability_1 + draw_probability_2) == 2, 1, np.nan)
-                else: raise ValueError('thinning 的两个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
-            else:
-                draw_probability_1 = thinning[0][0] * wind_shrink / wind_0
-                draw_probability_1 = np.where(draw_probability_1 < 1, 1, 0)
-                draw_probability_2 = thinning[0][1] * wind_shrink / wind_0
-                draw_probability_2 = np.where(draw_probability_2 > 1, 1, 0)
-                draw_probability = np.where((draw_probability_1 + draw_probability_2) == 2, 1, np.nan)
-            magnitude = np.where(draw_probability == 1, magnitude, 0)
-            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
-                                       integration_direction=integration_direction, mode=mode,
-                                       axes_scale=[is_x_log, is_y_log])
-        elif thinning[1] == 'max':
-            wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
-            if isinstance(thinning[0], str):
-                if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
-                    draw_probability = thinning_min_wind / wind_0
-                    draw_probability = np.where(draw_probability >= 1, 1, np.nan)
-                else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
-            else:
-                draw_probability = thinning[0] * wind_shrink / wind_0
-                draw_probability = np.where(draw_probability >= 1, 1, np.nan)
-            magnitude = np.where(draw_probability == 1, magnitude, 0)
-            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
-                                       integration_direction=integration_direction, mode=mode,
-                                       axes_scale=[is_x_log, is_y_log])
-        elif thinning[1] == 'min':
-            wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
-            if isinstance(thinning[0], str):
-                if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
-                    draw_probability = thinning_min_wind / wind_0
-                    draw_probability = np.where(draw_probability <= 1, 1, np.nan)
-                else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
-            else:
-                draw_probability = thinning[0] * wind_shrink / wind_0
-                draw_probability = np.where(draw_probability <= 1, 1, np.nan)
-            magnitude = np.where(draw_probability == 1, magnitude, 0)
-            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
-                                       integration_direction=integration_direction, mode=mode,
-                                       axes_scale=[is_x_log, is_y_log])
-        elif thinning[1] == 'max_full':
-            wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
-            if isinstance(thinning[0], str):
-                if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
-                    draw_probability = thinning_min_wind / wind_0
-                    draw_probability = np.where(draw_probability < 1, 1, np.nan)
-                else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
-            else:
-                draw_probability = thinning[0] * wind_shrink / wind_0
-                draw_probability = np.where(draw_probability < 1, 1, np.nan)
-                thinning_min_wind = thinning[0] * wind_shrink
-            magnitude = np.where(draw_probability == 1, thinning_min_wind, 0)
-            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
-                                       integration_direction=integration_direction, mode=mode,
-                                       axes_scale=[is_x_log, is_y_log])
-        elif thinning[1] == 'min_full':
-            wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
-            if isinstance(thinning[0], str):
-                if thinning[0][-1] == "%":
-                    thinning_min_wind = np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
-                    draw_probability = thinning_min_wind / wind_0
-                    draw_probability = np.where(draw_probability > 1, 1, np.nan)
-                else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
-            else:
-                draw_probability = thinning[0] / wind_0
-                draw_probability = np.where(draw_probability > 1, 1, np.nan)
-                thinning_min_wind = thinning[0]
-            magnitude = np.where(draw_probability == 1, thinning_min_wind, 0)
-            integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude,
-                                       integration_direction=integration_direction, mode=mode,
-                                       axes_scale=[is_x_log, is_y_log])
-        elif thinning[1] == 'auto':
-            wind_0 = np.ma.sqrt(u ** 2 + v ** 2)
-            if isinstance(thinning[0], str):
-                if thinning[0][-1] == "%":
-                    draw_probability = wind_0 / np.nanquantile(wind_0.filled(np.nan), eval(thinning[0][:-1]) / 100)
-                    stable_zone = np.where(draw_probability <= 1, 1, np.nan)
-                    draw_probability = np.where(draw_probability > 1, draw_probability, np.nan)
-                else: raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
-            else:
-                draw_probability = wind_0 / (thinning[0] * wind_shrink)
-                stable_zone = np.where(draw_probability <= 1, 1, 0)
-                draw_probability = np.where(draw_probability > 1, draw_probability, np.nan)
-
-            def search_single(arr):
-                ######提取出孤立风速点
-                arr_padded = np.pad(arr, pad_width=1, mode='constant', constant_values=np.nan)
-                # 提取四个方向的邻居数组
-                upper = arr_padded[:-2, 1:-1]
-                lower = arr_padded[2:, 1:-1]
-                left = arr_padded[1:-1, :-2]
-                right = arr_padded[1:-1, 2:]
-                # 判断四个方向是否全为NaN
-                neighbors_nan = np.isnan(upper) & np.isnan(lower) & np.isnan(left) & np.isnan(right)
-                # 结合原始数组值为1的条件
-                mask_single = (arr == 1) & neighbors_nan
-                return np.where(mask_single, 1, 0)
-
-            start_points = start_points.reshape([*u.shape, -1])
-            # 格点变化区域
-            max_times =  int(np.nanmax(draw_probability))
-            single_points = np.zeros_like(draw_probability)
-            start_points_diff = np.array([[np.nan, np.nan]])
-            for i in range(max_times):
-                draw_prob_between_times = np.where(draw_probability > i+1, 1, np.nan) * np.where(draw_probability <= i+2, 1, np.nan)
-                grids_num_scale_times = i + 1
-                grids_diff = start_points * draw_prob_between_times[..., np.newaxis]
-                grids_diff = grids_diff.reshape(-1, 2)[::grids_num_scale_times]
-                grids_diff = grids_diff[~np.isnan(grids_diff).any(axis=1)]
-                start_points_diff = np.concatenate([start_points_diff, grids_diff], axis=0)
-                single_points += search_single(draw_prob_between_times)
-
-            # 格点无变化区域
-            start_points_stable_1 = stable_zone
-            ######提取出孤立风速点
-            mask_start_points_stable = np.where(start_points_stable_1 + single_points >= 1, 1, np.nan)
-            mask_start_points_diff = np.where(start_points_stable_1 + single_points < 1, 1, np.nan)
-            ##############
-            start_points_stable = start_points * mask_start_points_stable[..., np.newaxis]
-            start_points_stable = start_points_stable.reshape(-1, 2)
-            start_points_stable = start_points_stable[~np.isnan(start_points_stable).any(axis=1)]
-
-            start_points_diff = start_points_diff[~np.isnan(start_points_diff).any(axis=1)]
-            start_points = np.concatenate([start_points_stable, start_points_diff], axis=0)
-
 
     sp2 = np.asanyarray(start_points, dtype=float).copy()
     # 检查start_points是否在数据边界之外
@@ -837,13 +697,54 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
             edges.append(t[1])
             traj_length.append(distance(t[0][0], t[0][1]))
 
+    # 稀疏化
+    from operator import itemgetter
+    combined = list(zip(traj_length, trajectories, edges))
+    combined.sort(key=itemgetter(0), reverse=True)  # 按第 0 个元素（traj_length）降序
+    traj_length, trajectories, edges = map(list, zip(*combined))
+
+    # 稀疏化
+    if thinning[0] != 1:
+        len_index = len(traj_length)
+        index0 = 0
+        index1 = len_index
+        wind_to_traj_length = traj_length[0] / np.nanmax(np.ma.sqrt(u ** 2 + v ** 2))
+        if thinning[1] == 'range':  #################### 取整 ####################
+            if isinstance(thinning[0], str):
+                if thinning[0][0][-1] == "%":
+                    index1 = int(eval((1 - thinning[0][0][:-1]) / 100) * len_index)
+                    index0 = int(eval((1 - thinning[0][1][:-1]) / 100) * len_index)
+                else:
+                    raise ValueError('thinning 的两个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
+            else:
+                thres1 = thinning[0][0] * wind_shrink * wind_to_traj_length
+                index1 = np.where(np.array(traj_length) >= thres1)[0][0]
+                thres0 = thinning[0][1] * wind_shrink * wind_to_traj_length
+                index0 = np.where(np.array(traj_length) <= thres0)[0][0]
+        elif thinning[1] == 'max':
+            if isinstance(thinning[0], str):
+                if thinning[0][-1] == "%":
+                    index0 = int((1 - eval(thinning[0][:-1]) / 100) * len_index)
+                else:
+                    raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
+            else:
+                thres1 = thinning[0] * wind_shrink * wind_to_traj_length
+                index1 = np.where(np.array(traj_length) <= thres1)[0][0]
+        elif thinning[1] == 'min':
+            if isinstance(thinning[0], str):
+                if thinning[0][-1] == "%":
+                    index1 = int((1 - eval(thinning[0][:-1]) / 100) * len_index)
+                else:
+                    raise ValueError('thinning 的第一个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
+            else:
+                thres0 = thinning[0] * wind_shrink * wind_to_traj_length
+                index0 = np.where(np.array(traj_length) >= thres0)[0][0]
+        # 得到白化后的轨迹
+        trajectories = trajectories[index0:index1]
+        edges = edges[index0:index1]
+        traj_length = traj_length[index0:index1]
+
     if MinDistance[0] > 0 and MinDistance[1] < 1:
-        from operator import itemgetter
-        combined = list(zip(traj_length, trajectories, edges))
-        combined.sort(key=itemgetter(0), reverse=True)  # 按第 0 个元素（traj_length）降序
-        traj_length, trajectories, edges = map(list, zip(*combined))
-
-
         distance_limit_traj = []
         distance_limit_edges = []
         for i in range(len(trajectories)):
@@ -1541,7 +1442,7 @@ if __name__ == '__main__':
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100.5))
     ax1.set_extent([-50, 130, -80, 80], crs=ccrs.PlateCarree())
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, center_lon=100.5, MinDistance=[0.1, 0.1], arrowstyle='v')
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, center_lon=100.5, MinDistance=[0.1, 0.1], arrowstyle='v', thinning=['75%', 'min'])
     ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     # ax1.quiver(x, y, U, V, transform=ccrs.PlateCarree(0), regrid_shape=20, scale=25)
