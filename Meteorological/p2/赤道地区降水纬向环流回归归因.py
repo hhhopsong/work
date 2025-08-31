@@ -269,7 +269,7 @@ for i in range(2):
     f_ax.fill_between(Pre_nc['lon'], 125, 100, where=Pre_nc['reg'].mean('lat', skipna=True) <= -.3, facecolor='#cb8787', zorder=9) # 负降水异常
     f_ax.fill_between(Pre_nc['lon'], 125, 100, where=Pre_nc['reg'].mean('lat', skipna=True) <= -.4, facecolor='#bc6363', zorder=9) # 负降水异常
 
-    vec = Curlyquiver(f_ax, U_nc['lon'], U_nc['level'], U_nc['reg'].mean('lat'), W_nc['reg'].mean('lat'), arrowsize=1.5, scale=10, linewidth=1, regrid=[30, 18], color='k', zorder=8.5)
+    vec = Curlyquiver(f_ax, U_nc['lon'], U_nc['level'], U_nc['reg'].mean('lat'), W_nc['reg'].mean('lat'), arrowsize=1.5, scale=10, linewidth=1, regrid=[30, 18], color='k', zorder=8.5, regrid_reso=12)
     lev_z = np.array([-5, -4, -3, -2, -1, -.2, .2, 1, 2, 3, 4, 5])
     q_div = f_ax.contourf(Q_div_nc['lon'], Q_div_nc['level'], Q_div_nc['reg'].mean('lat', skipna=True), levels=lev_z * 10e-9,
                           cmap=cmaps.MPL_RdYlGn_r[22 + 0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn_r[72:106 - 0], zorder=8,

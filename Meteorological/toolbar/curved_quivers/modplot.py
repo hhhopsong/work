@@ -490,10 +490,24 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
     REGRID_LEN = 1 if isinstance(regrid, int) else len(regrid)
     if regrid:
         # 将网格插值为正方形等间隔网格
-        x = np.arange(-180, 180 + regrid_reso/2, regrid_reso)
-        y = np.arange(-89, 89 + regrid_reso/2, regrid_reso)
-        U = RegularGridInterpolator((y_1degree[::int(regrid_reso//1)], (x_1degree + cent_flt)[::int(regrid_reso//1)]), u_1degree, method='linear', bounds_error=True)
-        V = RegularGridInterpolator((y_1degree[::int(regrid_reso//1)], (x_1degree + cent_flt)[::int(regrid_reso//1)]), v_1degree, method='linear', bounds_error=True)
+        if MAP:
+            x = np.arange(-180, 180 + regrid_reso/2, regrid_reso)
+            y = np.arange(-89, 89 + regrid_reso/2, regrid_reso)
+            U = RegularGridInterpolator(
+                (y_1degree[::int(regrid_reso // 1)], (x_1degree + cent_flt)[::int(regrid_reso // 1)]), u_1degree,
+                method='linear', bounds_error=True)
+            V = RegularGridInterpolator(
+                (y_1degree[::int(regrid_reso // 1)], (x_1degree + cent_flt)[::int(regrid_reso // 1)]), v_1degree,
+                method='linear', bounds_error=True)
+        else:
+            x = np.arange(x[0], x[-1] + 1e-5, regrid_reso)
+            y = np.arange(y[0], y[-1] + 1e-5, regrid_reso*5.5556)
+            U = RegularGridInterpolator(
+                (y_1degree, (x_1degree + cent_flt)), u_1degree,
+                method='linear', bounds_error=True)
+            V = RegularGridInterpolator(
+                (y_1degree, (x_1degree + cent_flt)), v_1degree,
+                method='linear', bounds_error=True)
         ## 裁剪绘制区域的数据->得到正确的regird
         if REGRID_LEN == 2:
             regrid_x = regrid[0]
@@ -783,7 +797,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
 
     streamlines = []
     arrows = []
-    for t, edge in zip(trajectories,edges):
+    t_len_max = max(traj_length)
+    for t_len, t, edge in zip(traj_length, trajectories, edges):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
 		
@@ -814,6 +829,9 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                 continue
         arrow_tail = (tx[-1], ty[-1])
         arrow_head = (tx[-2], ty[-2])
+
+        arrow_sizes = np.log(((np.e-1) * t_len / t_len_max) + 1) * arrowsize
+        arrow_kw['mutation_scale'] = 10 * arrow_sizes
 
         if isinstance(linewidth, np.ndarray):
             line_widths = interpgrid(linewidth, tgx, tgy, masked=masked, mode=mode)[:-1]
@@ -1442,7 +1460,7 @@ if __name__ == '__main__':
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100.5))
     ax1.set_extent([-50, 130, -80, 80], crs=ccrs.PlateCarree())
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=.25, center_lon=100.5, MinDistance=[0.1, 0.1], arrowstyle='v', thinning=['75%', 'min'])
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=1, center_lon=100.5, MinDistance=[0.1, 0.1], arrowstyle='v', thinning=['0%', 'min'])
     ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
     # ax1.quiver(x, y, U, V, transform=ccrs.PlateCarree(0), regrid_shape=20, scale=25)
