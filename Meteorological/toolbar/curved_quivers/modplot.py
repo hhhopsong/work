@@ -797,7 +797,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
 
     streamlines = []
     arrows = []
-    t_len_max = max(traj_length)
+    t_len_max = np.nanmax(traj_length)
     for t_len, t, edge in zip(traj_length, trajectories, edges):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
@@ -830,7 +830,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         arrow_tail = (tx[-1], ty[-1])
         arrow_head = (tx[-2], ty[-2])
 
-        arrow_sizes = np.log(((np.e-1) * t_len / t_len_max) + 1) * arrowsize
+        arrow_sizes = (0.35 + 0.65 * np.log(((np.e-1) * t_len / t_len_max) + 1)) * arrowsize
         arrow_kw['mutation_scale'] = 10 * arrow_sizes
 
         if isinstance(linewidth, np.ndarray):
