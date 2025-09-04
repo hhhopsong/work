@@ -724,7 +724,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         index1 = len_index
         wind_to_traj_length = traj_length[0] / np.nanmax(np.ma.sqrt(u ** 2 + v ** 2))
         if thinning[1] == 'range':  #################### 取整 ####################
-            if isinstance(thinning[0], str):
+            if isinstance(thinning[0][0], str):
                 if thinning[0][0][-1] == "%":
                     index1 = int((1 - eval((thinning[0][0][:-1])) / 100) * len_index)
                     index0 = int((1 - eval((thinning[0][1][:-1])) / 100) * len_index)
