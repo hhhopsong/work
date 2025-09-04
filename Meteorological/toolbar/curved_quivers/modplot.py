@@ -726,8 +726,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         if thinning[1] == 'range':  #################### 取整 ####################
             if isinstance(thinning[0], str):
                 if thinning[0][0][-1] == "%":
-                    index1 = int(eval((1 - thinning[0][0][:-1]) / 100) * len_index)
-                    index0 = int(eval((1 - thinning[0][1][:-1]) / 100) * len_index)
+                    index1 = int((1 - eval((thinning[0][0][:-1])) / 100) * len_index)
+                    index0 = int((1 - eval((thinning[0][1][:-1])) / 100) * len_index)
                 else:
                     raise ValueError('thinning 的两个参数必须为 0 到 1 间的值, 或 0% 到 100% 间的百分比')
             else:
