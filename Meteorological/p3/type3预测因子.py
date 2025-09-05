@@ -407,7 +407,7 @@ sstCorr = xr.DataArray(sstCorr, coords=[sst_imonth['lat'], sst_imonth['lon']],
 
 
 
-X1_zone = [15, -25, 140, 360-170]  # sst纬度范围
+X1_zone = [-15, -45, 360-160, 360-90]  # sst纬度范围
 sstWeight = sstCorr.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3]))  # sstCorr纬度范围
 X1_train = sst_imonth.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3])) * np.where(np.abs(sstWeight)>r_test(TR_time[1]-TR_time[0]+1, 0.1), sstWeight, np.nan)
 X1_train = X1_train.mean(['lat', 'lon'])
@@ -416,7 +416,7 @@ X1_train = (X1_train - X1_mean) / X1_std  # 标准化处理
 X1_train = pd.Series(X1_train.to_array()[0], index=train_years, name='X1_train')
 
 
-X1_2_zone = [5, -25, -40, 20]  # slp纬度范围
+X1_2_zone = [0, -30, -40, 15]  # slp纬度范围
 sstCorr = transform(sstCorr, 'lon', '360->180')
 sst_imonth = transform(sst_imonth, 'lon', '360->180')
 sstWeight2 = sstCorr.sel(lat=slice(X1_2_zone[0], X1_2_zone[1]), lon=slice(X1_2_zone[2], X1_2_zone[3]))
@@ -522,7 +522,7 @@ sstCorr = xr.DataArray(sstCorr, coords=[sst_imonth['lat'], sst_imonth['lon']],
                       dims=['lat', 'lon'], name='sst_corr')
 
 
-X2_zone = [15, -10, 360-175, 360-135]  # sst纬度范围
+X2_zone = [50, -10, 360-175, 360-120]  # sst纬度范围
 sstWeight2 = sstCorr.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3]))
 X2_train = sst_imonth.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3])) * np.where(np.abs(sstWeight2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), sstWeight2, np.nan)
 X2_train = X2_train.mean(['lat', 'lon'])
@@ -530,9 +530,9 @@ X2_mean, X2_std = X2_train.mean(), X2_train.std()  # 计算均值和标准差
 X2_train = (X2_train - X2_mean) / X2_std  # 标准化处理
 X2_train = pd.Series(X2_train.to_array()[0], index=pd.to_datetime(np.arange(TR_time[0]+1, TR_time[1]+1), format='%Y'), name='X2_train')
 
-X2_2_zone = [15, -40, 75, 360-170]  # slp纬度范围
-slpWeight2 = slpCorr.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3]))
-X2_2_train = slp_imonth.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3])) * np.where(np.abs(slpWeight2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), slpWeight2, np.nan)
+X2_2_zone = [20, -30, 100, 360-120]  # slp纬度范围
+sstWeight2_2 = sstCorr.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3]))
+X2_2_train = sst_imonth.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3])) * np.where(np.abs(sstWeight2_2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), sstWeight2_2, np.nan)
 X2_2_train = X2_2_train.mean(['lat', 'lon'])
 X2_2_mean, X2_2_std = X2_2_train.mean(), X2_2_train.std()  # 计算均值和标准差
 X2_2_train = (X2_2_train - X2_2_mean) / X2_2_std  # 标准化处理
@@ -555,7 +555,7 @@ X2_pre = X2_pre.mean(['lat', 'lon'])
 X2_pre = (X2_pre - X2_mean) / X2_std  # 标准化处理
 X2_pre = pd.Series(X2_pre.to_array()[0], index=pre_years, name='X2_train')
 
-X2_2_pre = slp_imonth_pre.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3])) * np.where(np.abs(slpWeight2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), slpWeight2, np.nan)
+X2_2_pre = sst_imonth_pre.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3])) * np.where(np.abs(sstWeight2_2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), sstWeight2_2, np.nan)
 X2_2_pre = X2_2_pre.mean(['lat', 'lon'])
 X2_2_pre = (X2_2_pre - X2_2_mean) / X2_2_std  # 标准化处理
 X2_2_pre = pd.Series(X2_2_pre.to_array()[0], index=pre_years, name='X2_2_train')
@@ -584,7 +584,7 @@ s1_pd = pd.Series(X2.to_array()[0])
 X2_rollingCorr = s1_pd.rolling(window=11).corr(s2_pd)
 
 
-X2_2 = slp_imonth_all.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3])) * np.where(np.abs(slpWeight2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), slpWeight2, np.nan)
+X2_2 = sst_imonth_all.sel(lat=slice(X2_2_zone[0], X2_2_zone[1]), lon=slice(X2_2_zone[2], X2_2_zone[3])) * np.where(np.abs(sstWeight2_2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), sstWeight2_2, np.nan)
 X2_2 = X2_2.mean(['lat', 'lon'])
 X2_2 = (X2_2 - X2_2_mean) / X2_2_std  # 标准化处理
 s1_pd = pd.Series(X2_2.to_array()[0])
@@ -604,23 +604,23 @@ sub_pic(fig, ax, title=f'b) AprMayDiffNovDec_SLP&2mT&SST', extent=[-180, 180, -5
         rec_Set=[{'point': [X2_zone[2], X2_zone[3], X2_zone[0], X2_zone[1]], 'color': 'blue', 'ls': (0, (1, 1)), 'lw': .8},
                  {'point': [X2_2_zone[2], X2_2_zone[3], X2_2_zone[0], X2_2_zone[1]], 'color': 'purple', 'ls': (0, (1, 1)), 'lw': .8}])
 ############################################################################################### X3
-t2m_imonth_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-slp_imonth_0 = slp.sel(time=slp['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-sst_imonth_0 = sst.sel(time=sst['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+# t2m_imonth_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+# slp_imonth_0 = slp.sel(time=slp['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+# sst_imonth_0 = sst.sel(time=sst['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+#
+# t2m_imonth_1 = t2m.sel(time=t2m['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+# slp_imonth_1 = slp.sel(time=slp['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+# sst_imonth_1 = sst.sel(time=sst['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+#
+# t2m_imonth = t2m_imonth_1 - t2m_imonth_0
+# slp_imonth = slp_imonth_1 - slp_imonth_0
+# sst_imonth = sst_imonth_1 - sst_imonth_0
+#
+# del t2m_imonth_0, slp_imonth_0, sst_imonth_0, t2m_imonth_1, slp_imonth_1, sst_imonth_1
 
-t2m_imonth_1 = t2m.sel(time=t2m['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-slp_imonth_1 = slp.sel(time=slp['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-sst_imonth_1 = sst.sel(time=sst['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-
-t2m_imonth = t2m_imonth_1 - t2m_imonth_0
-slp_imonth = slp_imonth_1 - slp_imonth_0
-sst_imonth = sst_imonth_1 - sst_imonth_0
-
-del t2m_imonth_0, slp_imonth_0, sst_imonth_0, t2m_imonth_1, slp_imonth_1, sst_imonth_1
-
-# t2m_imonth = t2m.sel(time=t2m['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-# slp_imonth = slp.sel(time=slp['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-# sst_imonth = sst.sel(time=sst['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+t2m_imonth = t2m.sel(time=t2m['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+slp_imonth = slp.sel(time=slp['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+sst_imonth = sst.sel(time=sst['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
 
 
 t2mReg, t2mCorr = regress(timeSerie, t2m_imonth['t2m'].data), corr(timeSerie, t2m_imonth['t2m'].data)
@@ -640,9 +640,9 @@ slpCorr = xr.DataArray(slpCorr, coords=[slp_imonth['lat'], slp_imonth['lon']],
 sstCorr = xr.DataArray(sstCorr, coords=[sst_imonth['lat'], sst_imonth['lon']],
                       dims=['lat', 'lon'], name='sst_corr')
 
-X3_zone = [55, 30, -70, -30]  # sst纬度范围
-sstCorr = transform(sstCorr, 'lon', '360->180')
-sst_imonth = transform(sst_imonth, 'lon', '360->180')
+X3_zone = [20, -40, 140, 360-90]  # sst纬度范围
+# sstCorr = transform(sstCorr, 'lon', '360->180')
+# sst_imonth = transform(sst_imonth, 'lon', '360->180')
 sstWeight = sstCorr.sel(lat=slice(X3_zone[0], X3_zone[1]), lon=slice(X3_zone[2], X3_zone[3]))  # sstCorr纬度范围
 X3_train = sst_imonth.sel(lat=slice(X3_zone[0], X3_zone[1]), lon=slice(X3_zone[2], X3_zone[3])) * np.where(np.abs(sstWeight)>r_test(TR_time[1]-TR_time[0]+1, 0.1), sstWeight, np.nan)
 X3_train = X3_train.mean(['lat', 'lon'])
@@ -653,25 +653,25 @@ X3_train = pd.Series(X3_train.to_array()[0], index=train_years, name='X3_train')
 
 timeSerie_pre = typesTimeSer.sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'),type=TYPE)['K'].data
 timeSerie_pre = (timeSerie_pre - np.mean(timeSerie_pre)) / np.std(timeSerie_pre)  # 标准化处理
-t2m_imonth_pre_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
-slp_imonth_pre_0 = slp.sel(time=slp['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
-sst_imonth_pre_0 = sst.sel(time=sst['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+# t2m_imonth_pre_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+# slp_imonth_pre_0 = slp.sel(time=slp['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+# sst_imonth_pre_0 = sst.sel(time=sst['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+#
+# t2m_imonth_pre_1 = t2m.sel(time=t2m['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+# slp_imonth_pre_1 = slp.sel(time=slp['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+# sst_imonth_pre_1 = sst.sel(time=sst['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+#
+# t2m_imonth_pre = t2m_imonth_pre_1 - t2m_imonth_pre_0
+# slp_imonth_pre = slp_imonth_pre_1 - slp_imonth_pre_0
+# sst_imonth_pre = sst_imonth_pre_1 - sst_imonth_pre_0
+#
+# del t2m_imonth_pre_0, slp_imonth_pre_0, sst_imonth_pre_0, t2m_imonth_pre_1, slp_imonth_pre_1, sst_imonth_pre_1
 
-t2m_imonth_pre_1 = t2m.sel(time=t2m['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
-slp_imonth_pre_1 = slp.sel(time=slp['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
-sst_imonth_pre_1 = sst.sel(time=sst['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+t2m_imonth_pre = t2m.sel(time=t2m['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+slp_imonth_pre = slp.sel(time=slp['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
+sst_imonth_pre = sst.sel(time=sst['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
 
-t2m_imonth_pre = t2m_imonth_pre_1 - t2m_imonth_pre_0
-slp_imonth_pre = slp_imonth_pre_1 - slp_imonth_pre_0
-sst_imonth_pre = sst_imonth_pre_1 - sst_imonth_pre_0
-
-del t2m_imonth_pre_0, slp_imonth_pre_0, sst_imonth_pre_0, t2m_imonth_pre_1, slp_imonth_pre_1, sst_imonth_pre_1
-
-# t2m_imonth_pre = t2m.sel(time=t2m['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
-# slp_imonth_pre = slp.sel(time=slp['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
-# sst_imonth_pre = sst.sel(time=sst['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
-
-sst_imonth_pre = transform(sst_imonth_pre, 'lon', '360->180')
+# sst_imonth_pre = transform(sst_imonth_pre, 'lon', '360->180')
 X3_pre = sst_imonth_pre.sel(lat=slice(X3_zone[0], X3_zone[1]), lon=slice(X3_zone[2], X3_zone[3])) * np.where(np.abs(sstWeight)>r_test(TR_time[1]-TR_time[0]+1, 0.1), sstWeight, np.nan)
 X3_pre = X3_pre.mean(['lat', 'lon'])
 X3_pre = (X3_pre - X3_mean) / X3_std  # 标准化处理
@@ -681,25 +681,25 @@ X3_pre = pd.Series(X3_pre.to_array()[0], index=pre_years, name='X3_train')
 timeSerie_all = typesTimeSer.sel(year=slice('1961', '2022'),type=TYPE)['K'].data
 s2_pd = pd.Series(timeSerie_all)
 timeSerie_all = (timeSerie_all - np.mean(timeSerie_all)) / np.std(timeSerie_all)  # 标准化处理
-t2m_imonth_all_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
-slp_imonth_all_0 = slp.sel(time=slp['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
-sst_imonth_all_0 = sst.sel(time=sst['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+# t2m_imonth_all_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+# slp_imonth_all_0 = slp.sel(time=slp['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+# sst_imonth_all_0 = sst.sel(time=sst['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+#
+# t2m_imonth_all_1 = t2m.sel(time=t2m['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+# slp_imonth_all_1 = slp.sel(time=slp['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+# sst_imonth_all_1 = sst.sel(time=sst['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+#
+# t2m_imonth_all = t2m_imonth_all_1 - t2m_imonth_all_0
+# slp_imonth_all = slp_imonth_all_1 - slp_imonth_all_0
+# sst_imonth_all = sst_imonth_all_1 - sst_imonth_all_0
+#
+# del t2m_imonth_all_0, slp_imonth_all_0, sst_imonth_all_0, t2m_imonth_all_1, slp_imonth_all_1, sst_imonth_all_1
 
-t2m_imonth_all_1 = t2m.sel(time=t2m['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
-slp_imonth_all_1 = slp.sel(time=slp['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
-sst_imonth_all_1 = sst.sel(time=sst['time.month'].isin([4, 5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+t2m_imonth_all = t2m.sel(time=t2m['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+slp_imonth_all = slp.sel(time=slp['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
+sst_imonth_all = sst.sel(time=sst['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
 
-t2m_imonth_all = t2m_imonth_all_1 - t2m_imonth_all_0
-slp_imonth_all = slp_imonth_all_1 - slp_imonth_all_0
-sst_imonth_all = sst_imonth_all_1 - sst_imonth_all_0
-
-del t2m_imonth_all_0, slp_imonth_all_0, sst_imonth_all_0, t2m_imonth_all_1, slp_imonth_all_1, sst_imonth_all_1
-
-# t2m_imonth_all = t2m.sel(time=t2m['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
-# slp_imonth_all = slp.sel(time=slp['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
-# sst_imonth_all = sst.sel(time=sst['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))
-
-sst_imonth_all = transform(sst_imonth_all, 'lon', '360->180')
+# sst_imonth_all = transform(sst_imonth_all, 'lon', '360->180')
 X3 = sst_imonth_all.sel(lat=slice(X3_zone[0], X3_zone[1]), lon=slice(X3_zone[2], X3_zone[3])) * np.where(np.abs(sstWeight)>r_test(TR_time[1]-TR_time[0]+1, 0.1), sstWeight, np.nan)
 X3 = X3.mean(['lat', 'lon'])
 X3 = (X3 - X3_mean) / X3_std  # 标准化处理
@@ -733,14 +733,15 @@ ax_rollingCorr.axhline(y=0, color='#999999', linestyle='-', linewidth=0.5, alpha
 ax_rollingCorr.legend(loc='lower right', fontsize=6*default_fontsize_times, ncol=3, frameon=False)
 
 import statsmodels.formula.api as smf
-formula = 'TS ~ X1_train + X3_train'
+formula = 'TS ~ X1_2_train + X2_train'
 df_train = pd.concat([TS, X1_train, X1_2_train, X2_train, X2_2_train, X3_train], axis=1)
 df_pre = pd.concat([TS_pre, X1_pre, X1_2_pre, X2_pre, X2_2_pre, X3_pre], axis=1)
 model = smf.ols(formula=formula, data=df_train).fit()
 intercept = model.params['Intercept']
-coef_X1 = model.params['X1_train']
-coef_X2 = model.params['X3_train']
+coef_X1 = model.params['X1_2_train']
+coef_X2 = model.params['X2_train']
 TS_all = pd.concat([TS, TS_pre])
+
 
 
 # 获取预测值和残差
@@ -750,7 +751,7 @@ df_train['residuals'] = model.resid
 
 
 ax_predict = fig.add_subplot(gs[4])
-ax_predict.set_ylim(-5.5, 5.5)
+ax_predict.set_ylim(-2.5, 5.5)
 ax_predict.plot(TS_all.index, TS_all, color='black', linestyle='-', linewidth=1.5, label='Obs')
 ax_predict.plot(df_train.index, df_train['predicted_TS'], color='blue', linestyle='--', linewidth=1.5, label='Reforecast')
 ax_predict.plot(df_pre.index, df_pre['inDependent_pre'], color='red', linestyle=(0, (1, 1)), linewidth=1.5, label='Independent forecast')
