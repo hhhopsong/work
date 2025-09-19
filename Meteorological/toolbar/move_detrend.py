@@ -23,15 +23,15 @@ def mdetrend(series, window_size):
         if i >= window_size >= 2:
             window = series[i-window_size:i]
             # 准备回归数据
-            X_train_window = np.arange(len(window.index)).reshape(-1, 1)
-            y_train_window = window.values
+            X_train_window = np.arange(len(window)).reshape(-1, 1)
+            y_train_window = window
 
             # 拟合局部线性趋势
             lr = LinearRegression()
             lr.fit(X_train_window, y_train_window)
 
             # 预测当前时间点的趋势值
-            current_year = len(window.index)
+            current_year = len(window)
             trend_values[i] = lr.predict([[current_year]])[0]
         else:
             trend_values[i] = np.nan
