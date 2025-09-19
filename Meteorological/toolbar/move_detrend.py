@@ -16,12 +16,12 @@ def mdetrend(series, window_size):
         pd.Series: 去趋势后的序列
         pd.Series: 趋势值序列
     """
-    trend_values = pd.Series(index=series.index, dtype=float)
+    trend_values = np.zeros_like(series)
 
     for i in range(len(series)):
         # 确定滑动窗口的起始点
         if i >= window_size >= 2:
-            window = series.iloc[i-window_size:i]
+            window = series[i-window_size:i]
             # 准备回归数据
             X_train_window = np.arange(len(window.index)).reshape(-1, 1)
             y_train_window = window.values
