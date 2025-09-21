@@ -33,9 +33,11 @@ def mdetrend(series, window_size):
             # 预测当前时间点的趋势值
             current_year = len(window)
             trend_values[i] = lr.predict([[current_year]])[0]
-        elif window_size == 1:
+        elif window_size == 0:
             window = series[i - window_size:i]
             trend_values[i] = window
+        elif window_size == 1:
+            raise ValueError("window_size must be greater than 1 or equal to 0.")
         else:
             trend_values[i] = np.nan
     detrended_series = series - trend_values
