@@ -34,8 +34,7 @@ def mdetrend(series, window_size):
             current_year = len(window)
             trend_values[i] = lr.predict([[current_year]])[0]
         elif window_size == 0:
-            window = series[i - window_size:i]
-            trend_values[i] = window
+            trend_values[i] = series[i]
         elif window_size == 1:
             raise ValueError("window_size must be greater than 1 or equal to 0.")
         else:
