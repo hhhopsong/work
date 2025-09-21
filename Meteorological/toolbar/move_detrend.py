@@ -34,7 +34,7 @@ def mdetrend(series, window_size):
             current_year = len(window)
             trend_values[i] = lr.predict([[current_year]])[0]
         elif window_size == 0:
-            trend_values[i] = series[i]
+            trend_values[i] = 0
         elif window_size == 1:
             raise ValueError("window_size must be greater than 1 or equal to 0.")
         else:
@@ -47,7 +47,8 @@ if __name__ == '__main__':
     dat = np.genfromtxt(url, skip_header=19)
     years = np.arange(len(dat))
     dat = pd.Series(dat, index=years)
-    detrended_data, trend = mdetrend(dat, window_size=9)
+    detrended_data, trend = mdetrend(dat, window_size=0)
+    print(dat, detrended_data)
     print("Successful install move_detrend!")
 
 
