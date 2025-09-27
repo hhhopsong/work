@@ -59,7 +59,7 @@ ols = np.load(r"D:\PyFile\paper1\OLS35.npy")
 try:
     corr = np.load(r"D:\PyFile\paper1\thresholds_corr.npy")
 except FileNotFoundError:
-    corr = corr_series(ols, 30, 40, 0.1, EHD, station_happended_num)
+    corr = corr_series(ols, 30, 40, 1, EHD, station_happended_num)
     np.save(r"D:\PyFile\paper1\thresholds_corr.npy", corr)
 
 fig = plt.figure()
