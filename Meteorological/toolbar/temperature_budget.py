@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 import tqdm as tq
-import os
 
 from metpy.units import units
 import metpy.calc as mpcalc

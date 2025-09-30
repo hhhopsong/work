@@ -44,5 +44,23 @@ def regress(time_series, data):
 
     return regression_map
 
+def cort(time_series, data):
+    # 计算 CORT 相关系数
+    # 将 data 重塑为二维：时间轴为第一个维度
+    reshaped_data = data.reshape(len(time_series), -1)
+
+    diff1 = np.diff(np.array(time_series))
+    diff2 = np.diff(np.array(reshaped_data))
+    # 计算分子（协方差）
+    numerator = np.sum(diff2 * diff1[:, np.newaxis], axis=0)
+    # 计算分母（标准差乘积）
+    denominator = np.sqrt(np.sum(diff2 ** 2, axis=0)) * np.sqrt(np.sum(diff1 ** 2))
+    # CORT 相关系数
+    cort = numerator / denominator
+
+    # 重塑为 (lat, lon)
+    cort_map = cort.reshape(data.shape[1:])
+    return cort_map
+
 if __name__ == '__main__':
     print('Successfully import toolbar.corr_reg!')

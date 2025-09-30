@@ -709,7 +709,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
-            traj_length.append(distance(t[0][0], t[0][1]))
+            D = distance(t[0][0], t[0][1]) if ~np.isnan(distance(t[0][0], t[0][1])) else 0
+            traj_length.append(D)
 
     # 稀疏化
     from operator import itemgetter
