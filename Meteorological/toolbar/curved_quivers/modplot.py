@@ -1386,6 +1386,13 @@ def traj_overlap(traj1, traj2, threshold=0.01):
     points1 = np.column_stack(traj1)
     points2 = np.column_stack(traj2)
 
+    if np.isnan(points1).any() or np.isnan(points2).any():
+        warnings.warn("Trajectory contains NaN values.")
+        return 1, 1
+    elif np.isinf(points1).any() or np.isinf(points2).any():
+        warnings.warn("Trajectory contains Inf values.")
+        return 1, 1
+
     # 构建KD树用于快速邻近搜索
     tree1 = cKDTree(points1)
     tree2 = cKDTree(points2)
