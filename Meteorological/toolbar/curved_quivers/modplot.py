@@ -10,6 +10,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import xarray as xr
+from matplotlib.patches import PathPatch
 from scipy.interpolate import RegularGridInterpolator
 import numpy as np
 import cartopy.crs as ccrs
@@ -150,7 +151,7 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='v', transform=None, zorder=None, start_points='interleaved', scale=1., masked=True, regrid=30,
-                 regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180.,
+                 regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180., alpha=1.,
                  thinning=[1, 'random'], MinDistance=[0, 1]):
         """绘制矢量曲线.
 
@@ -197,6 +198,9 @@ class Curlyquiver:
                 风速单位一
             *center_lon* : float
                 中心经度
+                中心经度，默认180.
+            *alpha* : float(0-1)
+                矢量透明度，默认1.
             *thinning* : [float , str]
                 float为百分位阈值阈值，长度超出此百分位阈值的流线将不予绘制。
                 str为采样方式，'max'、'min'或'range'。
@@ -249,6 +253,7 @@ class Curlyquiver:
         self.center_lon = center_lon
         self.thinning = thinning
         self.MinDistance = MinDistance
+        self.alpha = alpha
 
         self.quiver = self.quiver()
         self.nanmax = self.quiver[2]
@@ -256,7 +261,7 @@ class Curlyquiver:
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
                         self.start_points, self.scale, self.masked, self.regrid, self.regrid_reso, self.integration_direction,
-                        self.mode, self.NanMax, self.center_lon, self.thinning, self.MinDistance)
+                        self.mode, self.NanMax, self.center_lon, self.thinning, self.MinDistance, self.alpha)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
             width_shrink=1., height_shrink=1., edgecolor='k', arrowsize=None, linewidth=None,color=None):
@@ -289,76 +294,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
                cmap=None, norm=None, arrowsize=.5, arrowstyle='vCurlyquiver',
                transform=None, zorder=None, start_points= 'interleaved',
                scale=100., masked=True, regrid=30, regrid_reso=2.5, integration_direction='both',
-               mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random'], MinDistance=[0.1, 0.5]):
-    """绘制矢量曲线.
-
-    *x*, *y* : 1d arrays
-        *规则* 网格.
-    *u*, *v* : 2d arrays
-        ``x`` 和 ``y`` 方向变量。行数应与 ``y`` 的长度匹配，列数应与 ``x`` 匹配.
-    *lon_trunc* : float
-        经度截断
-    *linewidth* : numeric or 2d array
-        给定与速度形状相同的二维阵列，改变线宽。
-    *color* : matplotlib color code, or 2d array
-        矢量颜色。给定一个与 ``u`` , ``v`` 形状相同的数组时，将使用*cmap*将值转换为*颜色*。
-    *cmap* : :class:`~matplotlib.colors.Colormap`
-        用于绘制矢量的颜色图。仅在使用*cmap*进行颜色绘制时才需要。
-    *norm* : :class:`~matplotlib.colors.Normalize`
-        用于将数据归一化。
-        如果为 ``None`` ，则将（最小，最大）拉伸到（0,1）。只有当*color*为数组时才需要。
-    *arrowsize* : float
-        箭头大小
-    *arrowstyle* : str
-        箭头样式规范。
-        详情请参见：:class:`~matplotlib.patches.FancyArrowPatch`.
-    *start_points*: Nx2 array
-        矢量起绘点的坐标。在数据坐标系中，与 ``x`` 和 ``y`` 数组相同。
-        当 ``start_points`` 为 'interleaved' 时，会根据 ``x`` 和 ``y`` 数组自动生成蜂窝状起绘点。
-    *zorder* : int
-        ``zorder`` 属性决定了绘图元素的绘制顺序,数值较大的元素会被绘制在数值较小的元素之上。
-    *scale* : float(0-100)
-        矢量的最大长度。
-    *masked* : bool
-        原数据是否为掩码数组
-    *regrid* : int(>=2)
-        是否重新插值网格
-    *regrid_reso* : int
-        重新插值网格分辨率
-    *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
-        矢量向前、向后或双向绘制。
-    *mode* : {'loose', 'strict'}, default: 'loose'
-        流线边界绘制模式.
-        'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
-        'strict': 流线绘制时，严格裁切数据边界.
-    *nanmax* : float
-        风速单位一
-    *center_lon* : float
-        中心经度(regrid=True时有效)
-    *thinning* : [float , str]
-        float为百分位阈值阈值，长度超出此百分位阈值的流线将不予绘制。
-        str为采样方式，'max'、'min'或'range'。
-        例如：[10, 'max']，将不予绘制超过10的 streamline。
-        例如：[10, 'min']，将不予绘制小于10的 streamline。
-        例如：[[10, 20], 'range']，将绘制长度在10~20之间的 streamline。
-    *MinDistance* : [float1, float2]
-        float1为最小距离阈值，流线之间的最小距离（格点间距为单位一）.
-        float2为重叠部分占总线长的百分比.
-    Returns:
-
-        *stream_container* : StreamplotSet
-            具有属性的容器对象
-
-                - lines: `matplotlib.collections.LineCollection` of streamlines
-
-                - arrows: collection of `matplotlib.patches.FancyArrowPatch`
-                  objects representing arrows half-way along stream
-                  lines.
-
-            此容器将来可能会更改，以允许更改线条和箭头的颜色图、alpha等，但这些更改应该会向下兼容。
-        *scale* : float
-            矢量的最大长度。
-    """
+               mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random'], MinDistance=[0.1, 0.5], alpha=1.):
+    """绘制矢量曲线"""
 
     # 填充nan值为0
     if masked:
@@ -885,23 +822,53 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
         
         # ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
         # if ds<1e-15: continue  # 移除极小的箭头
-
+        p.set_alpha(alpha)
         axes.add_patch(p)
         arrows.append(p)
 
-    lc = mcollections.LineCollection(
-        streamlines, transform=transform, capstyle='round', **line_kw)
-    lc.sticky_edges.x[:] = [grid.x_origin, grid.x_origin + grid.width]
-    lc.sticky_edges.y[:] = [grid.y_origin, grid.y_origin + grid.height]
-    if use_multicolor_lines:
-        lc.set_array(np.ma.hstack(line_colors))
-        lc.set_cmap(cmap)
-        lc.set_norm(norm)
-    axes.add_collection(lc)
+    if alpha>=.999:
+        lc = mcollections.LineCollection(
+            streamlines, transform=transform, capstyle='round', **line_kw)
+        lc.sticky_edges.x[:] = [grid.x_origin, grid.x_origin + grid.width]
+        lc.sticky_edges.y[:] = [grid.y_origin, grid.y_origin + grid.height]
+        if use_multicolor_lines:
+            lc.set_array(np.ma.hstack(line_colors))
+            lc.set_cmap(cmap)
+            lc.set_norm(norm)
+        axes.add_collection(lc)
+    else:
+        # this part is powered by GPT5
+        # streamlines: list of arrays, 每个 array 是 (N_i, 2) 的坐标点
+        verts, codes = [], []
+        for sl in streamlines:
+            sl = np.asarray(sl)
+            if sl.size == 0:
+                continue
+            verts.append(sl[0])
+            codes.append(Path.MOVETO)
+            verts.extend(sl[1:])
+            codes.extend([Path.LINETO] * (len(sl) - 1))
+
+        path = Path(np.asarray(verts, float), codes)
+        patch = PathPatch(
+            path,
+            facecolor=line_kw.get("color", "C0"),
+            edgecolor=line_kw.get("color", "C0"),
+            lw=line_kw.get("linewidth", 1.0),
+            capstyle='round',
+            joinstyle='round',
+            transform=transform,
+            alpha=alpha
+        )
+
+        patch.sticky_edges.x[:] = [grid.x_origin, grid.x_origin + grid.width]
+        patch.sticky_edges.y[:] = [grid.y_origin, grid.y_origin + grid.height]
+        axes.add_patch(patch)
+
     axes.autoscale_view()
 
     ac = mcollections.PatchCollection(arrows)
-    stream_container = StreamplotSet(lc, ac)
+    stream_container = StreamplotSet(lc, ac) if alpha>=.999 else StreamplotSet(patch, ac)
     return stream_container, unit, nanmax
 
 	
@@ -1471,9 +1438,9 @@ if __name__ == '__main__':
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100.5))
     ax1.set_extent([-50, 130, -80, 80], crs=ccrs.PlateCarree())
-    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.2, arrowsize=1, center_lon=100.5, MinDistance=[0.1, 0.1], arrowstyle='v', thinning=['0%', 'min'])
-    ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
-    ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5)
+    a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.8, arrowsize=1, center_lon=100.5, MinDistance=[0.1, 0.1], arrowstyle='v', thinning=['0%', 'min'], alpha=0.6, zorder=100)
+    ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5, zorder=10)
+    ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5, zorder=10)
     # ax1.quiver(x, y, U, V, transform=ccrs.PlateCarree(0), regrid_shape=20, scale=25)
     a1.key(fig, shrink=0.15)
     ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
