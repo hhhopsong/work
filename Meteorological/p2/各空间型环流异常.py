@@ -29,13 +29,16 @@ import metpy.constants as constants
 plt.rcParams['font.family'] = 'Times New Roman'
 
 nanmax = None
-type_name = ['', 'MLR Type 500UVZ&T2M', 'AR Type 500UVZ&T2M', 'UR Type 500UVZ&T2M']
+type_name = ['', 'MLR-type 500UVZ&T2M', 'AR-type 500UVZ&T2M', 'UR-type 500UVZ&T2M']
 def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     global lev_t, nanmax
-    pic_ind = ['', 'd', 'e', 'f']
+    pic_ind = ['', 'b', 'e', 'i']
     ax = fig.add_subplot(pic_loc, projection=ccrs.PlateCarree(central_longitude=180-70))
+    # 统一加粗所有四个边框
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)  # 设置边框线宽
     ax.set_aspect('auto')
-    ax.set_title(f'{pic_ind[eval(str(picloc)[2])-3]}) {type_name[eval(str(picloc)[2])-3]}', loc='left', fontsize=12)
+    ax.set_title(f'({pic_ind[eval(str(picloc)[2])-3]}) {type_name[eval(str(picloc)[2])-3]}', loc='left', fontsize=12)
     ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
 
     da_contour = xr.DataArray(
@@ -61,7 +64,7 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     else:
         Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.5,
                          regrid=15, color='k')
-    Cq.key(fig, U=1, label='1 m/s', color='k')
+    Cq.key(fig, U=1, label='1 m/s', color='k', fontproperties={'size': 8})
     nanmax = Cq.nanmax
     ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
     ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
@@ -100,6 +103,9 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
 
 def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, lat_pat, lon_pat, contour_1, contourf_1, contpatch, lev, lev_f, lev_pat, r_N, color, clabel_tf, cmap, color_pat,  title):
     ax = fig.add_subplot(pic_loc, projection=ccrs.PlateCarree(central_longitude=180-70))
+    # 统一加粗所有四个边框
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)  # 设置边框线宽
     ax.set_aspect('auto')
     ax.set_title(f'{title}', loc='left', fontsize=12)
     ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
@@ -346,9 +352,12 @@ if __name__ == '__main__':
 
         # 添加标题和网格
         ax = fig.add_subplot(3, 3, KType)
+        # 统一加粗所有四个边框
+        for spine in ax.spines.values():
+            spine.set_linewidth(1.5)  # 设置边框线宽
         ax.set_aspect('auto')
-        title = ['MLR Type', 'AR Type', 'UR Type'][KType - 1]
-        ax.set_title(f'{chr(ord("a") + KType - 1)}) {title} Temp_pert_budget', fontsize=12, loc='left')
+        title = ['(a) MLR-type', '(d) AR-type', '(h) UR-type'][KType - 1]
+        ax.set_title(f'{title} temp_budget', fontsize=12, loc='left')
         ax.grid(True, linestyle='--', zorder=0, axis='y')
 
         bars = ax.bar(range(3), values, width=0.3, color=colors, edgecolor='black', zorder=2)
@@ -451,26 +460,26 @@ if __name__ == '__main__':
 
         contourfs = pic(fig, picloc, uvz['lat'], uvz['lon'], reg_K_u, reg_K_v, reg_K_z, reg_K_t2m)
         if i == 1:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], reg_K_w, reg_K_qdiv,
+            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
                               np.array([[-4, -2], [2, 4]]),
-                              np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
+                              np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025*10e2,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                              ['#a35a49', '#4c7952'], f'h) MLR Type 500W&TCC')
+                              ['#a35a49', '#4c7952'], f'(c) MLR-type 500$\omega$&TCC')
         elif i == 2:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], reg_K_w, reg_K_qdiv,
+            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
                               np.array([[-4, -2], [2, 4]]),
-                              np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
+                              np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025*10e2,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               61, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                               ['#a35a49', '#4c7952'], f'i) AR Type 500W&TCC')
+                               ['#a35a49', '#4c7952'], f'(f) AR-type 500$\omega$&TCC')
         elif i == 3:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], reg_K_w, reg_K_qdiv,
+            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
                               np.array([[-4, -2], [2, 4]]),
-                              np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025,
+                              np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025*10e2,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
-                              ['#a35a49', '#4c7952'], f'j) UR Type 500W&TCC')
+                              ['#a35a49', '#4c7952'], f'(j) UR-type 500$\omega$&TCC')
 
     # 添加全局colorbar  # 为colorbar腾出空间
     cbar_ax = fig.add_axes([0.915, 0.39, 0.01, 0.21]) # [left, bottom, width, height]
@@ -479,7 +488,7 @@ if __name__ == '__main__':
     cbar.set_ticklabels([str(i) for i in lev_t])
     cbar.ax.tick_params(labelsize=10, length=0)
 
-    lev_w = np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025
+    lev_w = np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025*10e2
     cbar_ax1 = fig.add_axes([0.915, 0.105, 0.01, 0.21])  # [left, bottom, width, height]
     cbar1 = fig.colorbar(contourfs2, cax=cbar_ax1, orientation='vertical', drawedges=True)
     cbar1.locator = ticker.FixedLocator(lev_w)
@@ -494,4 +503,5 @@ if __name__ == '__main__':
             artist.set_clip_on(True)
 
     plt.savefig(r"D:\PyFile\p2\pic\图4.pdf", bbox_inches='tight')
+    plt.savefig(r"D:\PyFile\p2\pic\图4.png", bbox_inches='tight', dpi=600)
     plt.show()

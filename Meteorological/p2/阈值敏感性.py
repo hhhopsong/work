@@ -25,21 +25,22 @@ plt.rcParams['font.family'] = 'Times New Roman'
 
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ax.set_title("BWHT Correlation across Thresholds", fontsize=14, loc='left')
+ax.set_title("Correlation among different thresholds", fontsize=14, loc='left')
 levels = [0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 0.95, 1]
 norm = BoundaryNorm(levels, cmaps.sunshine_9lev.N)
 contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], cmap=cmaps.sunshine_9lev, levels=[0, .2, .4, .6, .7, .8, .9, .95, 1], extend='both', norm=norm)
 cont = ax.contour(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], levels=[.4, .6, .7, .8, .9, .95, 1.], colors='k', linewidths=.5)
 
-# plt.rcParams['hatch.color'] = '#454545'
-# plt.rcParams['hatch.linewidth'] = 0.5
-# xianzhu_contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], [0, .2500349005300471, .3248184473571816, 1],
-#                             hatches=[None, r'++', r'//'], colors="none", zorder=3, corner_mask=False)
-
-plt.rcParams['hatch.color'] = '#c3c3c3'
-plt.rcParams['hatch.linewidth'] = 2.2
+plt.rcParams['hatch.color'] = '#454545'
+plt.rcParams['hatch.linewidth'] = 0.5
 xianzhu_contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], [0, .2500349005300471, .3248184473571816, 1],
-                            hatches=[None, r'..', r'/'], colors="none", zorder=3, corner_mask=False)
+                            hatches=[None, r'++', r'//'], colors="none", zorder=3, corner_mask=False)
+
+# plt.rcParams['hatch.color'] = '#c3c3c3'
+# plt.rcParams['hatch.linewidth'] = 2.2
+# xianzhu_contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], [0, .2500349005300471, .3248184473571816, 1],
+#                             hatches=[None, r'..', r'/'], colors="none", zorder=3, corner_mask=False)
+
 corr_edge = np.where(np.isnan(corr), 0, corr)
 # edge_cont = ax.contour(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr_edge[:, :], levels=[0], colors='red', linewidths=2)
 edge_contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr_edge[:, :], [-99, 0], colors="#454545", alpha=0.3)

@@ -108,36 +108,44 @@ def plot_test(data, max_clusters=10):
     explained_variance_ratio /= zone_stations
 
     # 绘制双折线图，设置双y轴
-    fig, ax1 = plt.subplots(figsize=(8, 4))
+    fig, ax1 = plt.subplots(figsize=(6, 6/2))
 
+    # 统一加粗所有四个边框
+    for spine in ax1.spines.values():
+        spine.set_linewidth(1.5)  # 设置边框线宽
     ax1.plot(cluster_range, silhouette_scores, color='r', label='S', zorder=4)
-    ax1.set_xlabel('Number of Clusters', fontsize=16)
-    ax1.set_ylabel('S', color='r', fontsize=16)
-    ax1.tick_params(axis='y', colors='r', labelsize=14)
-    ax1.tick_params(axis='x', labelsize=14)
+    ax1.set_xlabel('Number of Clusters', fontsize=12)
+    ax1.set_ylabel('S', color='r', fontsize=12)
+    ax1.tick_params(axis='y', colors='r', labelsize=10)
+    ax1.tick_params(axis='x', labelsize=10)
+    ax1.axvline(x=3, color='lightgreen', linestyle='-', alpha=0.8, linewidth=20)
     ax1.set_ylim(bottom=min(silhouette_scores) - 0.1 * abs(min(silhouette_scores)),
                  top=max(silhouette_scores) + 0.1 * abs(max(silhouette_scores)))
     ax1.set_xlim(left=min(cluster_range)-0.2, right=max(cluster_range)+0.2)
-    ax1.scatter(3, silhouette_scores[1], edgecolors='red', marker='o', facecolors='none', linewidths=2)
+    # ax1.scatter(3, silhouette_scores[1], edgecolors='red', marker='o', facecolors='none', linewidths=2)
     ax2 = ax1.twinx()
     ax2.plot(cluster_range, explained_variance_ratio, color='b', label='MSE', zorder=3)
-    ax2.set_ylabel('MSE', color='b', fontsize=16)
+    # 统一加粗所有四个边框
+    for spine in ax2.spines.values():
+        spine.set_linewidth(1.5)  # 设置边框线宽
+    ax2.set_ylabel('MSE', color='b', fontsize=12)
     ax2.spines['left'].set_color('red')
     ax2.spines['right'].set_color('blue')
-    ax2.tick_params(axis='y', colors='b', labelsize=14)
+    ax2.tick_params(axis='y', colors='b', labelsize=10)
     ax2.set_ylim(bottom=min(explained_variance_ratio) - 0.025 * abs(min(explained_variance_ratio)),
                  top=max(explained_variance_ratio) + 0.025 * abs(max(explained_variance_ratio)))
-    ax2.scatter(3, explained_variance_ratio[1], edgecolors='blue', marker='o', facecolors='none', linewidths=2)
+    # ax2.scatter(3, explained_variance_ratio[1], edgecolors='blue', marker='o', facecolors='none', linewidths=2)
 
     # 添加图例
     lines_1, labels_1 = ax1.get_legend_handles_labels()
     lines_2, labels_2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right', edgecolor='none', fontsize=14)
-    ax1.set_title('MSE & Silhouette Coefficient', fontsize=16, loc='left')
+    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right', edgecolor='none', fontsize=10)
+    ax1.set_title('MSE & Silhouette_coefficient', fontsize=12, loc='left')
 
     plt.xticks(np.arange(2, max_clusters + 1, 1))  # 整数x轴刻度
     fig.tight_layout()
     plt.savefig(fr"D:\PyFile\p2\pic\图3_1.pdf", bbox_inches='tight')
+    plt.savefig(fr"D:\PyFile\p2\pic\图3_1.png", dpi=600, bbox_inches='tight')
     plt.show()
 
 plot_test(EHD20_.to_numpy(), max_clusters=10)
@@ -152,9 +160,9 @@ K = K_Mean(EHD20_.to_numpy(), K_s)
 fig = plt.figure(figsize=(10, 6))
 time = [[] for i in range(K_s)]
 abc_index = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
-lev = np.array([[800, 900, 1000, 1100, 1130, 1150],
-                [400, 500, 600, 700, 800, 900],
-                [170, 190, 210, 230, 250, 270]])
+lev = np.array([[0, 800, 900, 1000, 1100, 1115, 1130, 1145, 1160],
+                [0, 500,  600,  700, 750,  800,  802,  804,  806],
+                [0, 170, 190,  210,  230,  240,  250,  255,  260]])
 Tavg_weight = np.zeros((K_s, 163, 283))
 KM_all = np.zeros((K_s, 163, 283))
 for cluster in range(K_s):
@@ -173,11 +181,14 @@ KM_all = KM_all[sort_index]  # 重新排列聚类顺序
 Tavg_weight = Tavg_weight[sort_index]  # 同步排列权重矩阵
 time = [time[i] for i in sort_index] # 同步调整时间顺序
 
-type_name = ['MLR Type', 'AR Type', 'UR Type']
+type_name = ['MLR-type', 'AR-type', 'UR-type']
 for cluster in range(K_s):
     extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
     ax = fig.add_subplot(2, K_s, cluster + 1, projection=ccrs.PlateCarree())
-    ax.set_title(f"{abc_index[cluster]}) {type_name[cluster]}", loc='left', fontsize=14, weight='bold')
+    # 统一加粗所有四个边框
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)  # 设置边框线宽
+    ax.set_title(f"({abc_index[cluster]}) {type_name[cluster]}", loc='left', fontsize=14)
     ax.add_geometries(Reader(
         r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
                       ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
@@ -215,7 +226,17 @@ for cluster in range(K_s):
     ax.tick_params(which='major', length=3.5, width=1, color='black')  # 最大刻度长度，宽度设置，
     ax.tick_params(which='minor', length=2, width=.9, color='black')  # 最小刻度长度，宽度设置
     ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
-    custom_colors = ["#FDDDB1", "#FDB57E", "#F26E4C", "#CA1E14", "#7F0000"]
+    # custom_colors = ["#FDDDB1", "#FDB57E", "#F26E4C", "#CA1E14", "#7F0000"]
+    custom_colors = [
+        "#FFFFFF",  # 原始
+        "#FFEAD5",  # (5-10) 非常淡的蜜桃色
+        "#FDB57E",  # (10-15) 柔和的橙色
+        "#F89A7B",  # (15-20) 柔和的珊瑚红/赤陶色作为过渡
+        "#E53E3E",  # (20-22) 纯正的红色
+        "#CA1E14",  # (22-24) 开始变深的红色
+        "#A8150D",  # (24-26) 暗红色
+        "#4C0000"   # (28-30) 极深的暗红色，接近黑色，突出极值"
+                    ]
     # if cluster == 0: custom_colors = ["#d1e5f0", "#92c5de", "#67b7df", "#4393c3", "#2166ac"]
     # elif cluster == 1: custom_colors = ["#ebb7cc", "#eb88af", "#eb6198", "#c55280", "#923c5e"]
     # elif cluster == 2: custom_colors = ["#D6B2F0", "#ca8ef6", "#ab78d0", "#a94ac9", "#7e3795"]
@@ -223,18 +244,20 @@ for cluster in range(K_s):
     norm = mcolors.BoundaryNorm(lev[cluster], custom_cmap.N)
     con = ax.contourf(CN051_2['lon'], CN051_2['lat'], KM_all[cluster],
                       cmap=custom_cmap, transform=ccrs.PlateCarree(),
-                      levels=lev[cluster], extend='max', norm=norm)
+                      levels=lev[cluster], extend='neither', norm=norm)
     ax.contour(CN051_2['lon'], CN051_2['lat'], KM_all[cluster],
                 colors='w', linewidths=0.1, transform=ccrs.PlateCarree(), linestyles='solid',
                 levels=lev[cluster][1:-1])
     # 色标
-    ax_colorbar = inset_axes(ax, width="55%", height="5%", loc='upper right', bbox_to_anchor=(-0.03, 0.17, 1, 1),
+    ax_colorbar = inset_axes(ax, width="85%", height="5%", loc='upper right', bbox_to_anchor=(-0.08, -0.04, 1, 1),
                              bbox_transform=ax.transAxes, borderpad=0)
     cb1 = plt.colorbar(con, cax=ax_colorbar, orientation='horizontal', drawedges=True)
     cb1.locator = ticker.FixedLocator(lev[cluster])
     #cb1.set_label('EHDs', fontsize=0, loc='left')
     cb1.set_ticklabels(lev[cluster])
     cb1.ax.tick_params(length=0, labelsize=10, direction='in')  # length为刻度线的长度
+    cb1.dividers.set_linewidth(1.25)  # 设置分割线宽度
+    cb1.outline.set_linewidth(1.25)  # 设置色标轮廓宽度
 
     print(f'---{cluster}---' * 10)
 Tavg_weight = xr.Dataset({'W': (['type', 'lat', 'lon'], Tavg_weight)},
@@ -277,10 +300,14 @@ contrasting_colors = ['blue', 'red', 'green']
 
 # 开始绘制图表
 ax1 = fig.add_subplot(2, 1, 2)
+# 统一加粗所有四个边框
+for spine in ax1.spines.values():
+    spine.set_linewidth(1.5)  # 设置边框线宽
 
 # 绘制柱状图（单色表示每年的总天数）
-bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='')
-ax1.set_title('d) Annual Days of BWHT', loc='left', fontsize=14, weight='bold')  # 设置标题
+bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='Total')
+ax1.legend(fontsize=10, loc='upper left', bbox_to_anchor=(0.28, 0.985), edgecolor='none', ncol=1)
+ax1.set_title('(d) Seasonal occurrences of BWHT', loc='left', fontsize=14)  # 设置标题
 ax1.set_xlim(1960, 2023)
 ax1.set_xlabel('Year', fontsize=12)  # 设置 x 轴标签
 ax1.set_ylim(0, 63)
@@ -294,13 +321,13 @@ ax1.set_xticklabels(total_by_year.index[::5])  # 设置 x 轴的刻度标签
 for bar in bars:
     height = bar.get_height()
     if height > 0:
-        ax1.text(bar.get_x() + bar.get_width() / 2, height, f'{int(height)}', ha='center', va='bottom', fontsize=8, weight='bold')
+        ax1.text(bar.get_x() + bar.get_width() / 2, height, f'{int(height)}', ha='center', va='bottom', fontsize=8)
 
 # 添加网格线，使图表更加美观
 #ax1.grid(axis='y', linestyle='--', alpha=0.7)
 
 # 颜色
-colors = ['#2166ac', '#f968a1', '#8c62aa']
+colors = ['#2166ac', '#ff5370', '#13a252']
 
 # 绘制并排柱状图（不同颜色表示每种类型的占比）
 x = np.arange(len(grouped_data.index))  # the label locations
@@ -321,7 +348,7 @@ for i, col in enumerate(grouped_data.columns):
 
 ax.set_ylim(0, 63)
 ax.yaxis.set_visible(False)  # ax隐藏y轴标签
-ax.legend(fontsize=10, loc='upper right', bbox_to_anchor=(1, 1.12), edgecolor='none', ncol=3)
+ax.legend(fontsize=10, loc='upper right', bbox_to_anchor=(0.77, 0.985), edgecolor='none', ncol=3)
 
 ax_reg = ax.twinx()
 # 获取 type=1 的数据并转换为 Pandas DataFrame
@@ -370,4 +397,5 @@ plt.tight_layout()
 
 # 显示图表
 plt.savefig(fr"D:\PyFile\p2\pic\图3.pdf", bbox_inches='tight')
+plt.savefig(fr"D:\PyFile\p2\pic\图3.png", dpi=600, bbox_inches='tight')
 plt.show()
