@@ -1366,11 +1366,11 @@ def traj_overlap(traj1, traj2, threshold=0.01):
 
     # 找出轨迹1中与轨迹2的点距离小于threshold的点
     overlap1 = tree1.query_ball_tree(tree2, threshold)
-    count1 = sum([1 for neighbors in overlap1 if neighbors])
+    count1 = sum(map(bool, overlap1))
 
     # 找出轨迹2中与轨迹1的点距离小于threshold的点
     overlap2 = tree2.query_ball_tree(tree1, threshold)
-    count2 = sum([1 for neighbors in overlap2 if neighbors])
+    count2 = sum(map(bool, overlap2))
 
     # 计算百分比
     percent1 = count1 / len(points1) if len(points1) > 0 else 0
@@ -1428,8 +1428,8 @@ def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', colo
 
 if __name__ == '__main__':
     "test"
-    x = np.linspace(-180, 180, 361)
-    y = np.linspace(-90, 90, 180)
+    x = np.linspace(-180, 180, 361*5)
+    y = np.linspace(-90, 90, 180*5)
     Y, X = np.meshgrid(y, x)
 
     U = np.linspace(-1, 1, X.shape[0])[np.newaxis, :] * np.ones(X.shape).T
