@@ -30,6 +30,21 @@ plt.rcParams['font.family'] = 'Times New Roman'
 
 nanmax = None
 type_name = ['', 'MLR-type 500UVZ&T2M', 'AR-type 500UVZ&T2M', 'UR-type 500UVZ&T2M']
+
+def plot_text(ax, x, y, title, size, color):
+    ax.text(x, y, title,
+         transform=ccrs.PlateCarree(),
+         ha='center',
+         va='center',
+         fontsize=size,
+         fontweight='bold',
+         color=color,
+         fontname='Times New Roman',
+         zorder=1000)
+    return 0
+
+
+
 def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     global lev_t, nanmax
     pic_ind = ['', 'b', 'e', 'i']
@@ -52,21 +67,21 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     # 显著性打点
     p_test = np.where(np.abs(corr_t2m[1]) >= r_test(62), 0, np.nan)
     p = ax.quiver(t2m['lon'], t2m['lat'], p_test, p_test, transform=ccrs.PlateCarree(central_longitude=0), regrid_shape=40, color='k', scale=10, headlength=5, headaxislength=5, width=0.005)
-    cont = ax.contour(lon, lat, corr_z[0], colors='red', levels=[20, 40, 60], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
-    cont_ = ax.contour(lon, lat, corr_z[0], colors='blue', levels=[-60, -40, -20], linestyles='--', linewidths=0.4,
+    cont = ax.contour(lon, lat, corr_z[0], colors='red', levels=[20, 40, 60], linewidths=0.8, transform=ccrs.PlateCarree(central_longitude=0))
+    cont_ = ax.contour(lon, lat, corr_z[0], colors='blue', levels=[-60, -40, -20], linestyles='--', linewidths=0.8,
                        transform=ccrs.PlateCarree(central_longitude=0))
     cont.clabel(inline=1, fontsize=4)
     cont_.clabel(inline=1, fontsize=4)
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
     if nanmax:
-        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.5,
-                         regrid=15, color='k', nanmax=nanmax)
+        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.3, arrowsize=.8,
+                         regrid=15, color='#454545', nanmax=nanmax)
     else:
-        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.2, arrowsize=.5,
-                         regrid=15, color='k')
+        Cq = Curlyquiver(ax, lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.3, arrowsize=.8,
+                         regrid=15, color='#454545')
     Cq.key(fig, U=1, label='1 m/s', color='k', fontproperties={'size': 8})
     nanmax = Cq.nanmax
-    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
+    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
     ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
@@ -99,7 +114,7 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     # 调整刻度值字体大小
     ax.tick_params(axis='both', labelsize=10, colors='black')
 
-    return contf
+    return contf, ax
 
 def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, lat_pat, lon_pat, contour_1, contourf_1, contpatch, lev, lev_f, lev_pat, r_N, color, clabel_tf, cmap, color_pat,  title):
     ax = fig.add_subplot(pic_loc, projection=ccrs.PlateCarree(central_longitude=180-70))
@@ -145,7 +160,7 @@ def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, lat_pat, lon_pat, contour_1, cont
 
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
 
-    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.2)
+    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
     ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
@@ -178,7 +193,7 @@ def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, lat_pat, lon_pat, contour_1, cont
     # 调整刻度值字体大小
     ax.tick_params(axis='both', labelsize=10, colors='black')
 
-    return contf
+    return contf, ax
 
 def regress(time_series, data):
     # 将 data 重塑为二维：时间轴为第一个维度
@@ -327,7 +342,7 @@ if __name__ == '__main__':
                           coords={'type': K_type['type'], 'level': t_budget['Q'].level, 'lat': t_budget['Q'].lat,
                                   'lon': t_budget['Q'].lon})
 
-    fig = plt.figure(figsize=(12.44, 7))
+    fig = plt.figure(figsize=(11.5, 7))
     plt.subplots_adjust(wspace=0.05, hspace=0.4)
     lev_t = np.array([-.5, -.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4, .5])
 
@@ -458,23 +473,27 @@ if __name__ == '__main__':
                 reg_K_qdiv = futures['qdiv'].result()
                 reg_K_tcc = futures['tcc'].result()
 
-        contourfs = pic(fig, picloc, uvz['lat'], uvz['lon'], reg_K_u, reg_K_v, reg_K_z, reg_K_t2m)
+        contourfs, ax1 = pic(fig, picloc, uvz['lat'], uvz['lon'], reg_K_u, reg_K_v, reg_K_z, reg_K_t2m)
         if i == 1:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
+            plot_text(ax1, 132, 40, 'A', 12, 'blue')
+            contourfs2, ax2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
                               np.array([[-4, -2], [2, 4]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025*10e2,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               62, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
                               ['#a35a49', '#4c7952'], f'(c) MLR-type 500$\omega$&TCC')
         elif i == 2:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
+            plot_text(ax1, 120, 35, 'A', 12, 'blue')
+            contourfs2, ax2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
                               np.array([[-4, -2], [2, 4]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025*10e2,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
                               61, ['red', 'blue'], True, cmaps.MPL_PuOr_r[11+15:56]+ cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr_r[64:106-15],
                                ['#a35a49', '#4c7952'], f'(f) AR-type 500$\omega$&TCC')
         elif i == 3:
-            contourfs2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
+            plot_text(ax1, 125, 38, 'A', 12, 'blue')
+            plot_text(ax1, 117.5, 24, 'C', 12, 'red')
+            contourfs2, ax2 = pic2(fig, picloc+3, tcc['lat'], tcc['lon'], w['lat'], w['lon'], qdiv['lat'], qdiv['lon'], reg_K_tcc*np.array([100, 1])[:,np.newaxis,np.newaxis], np.array(reg_K_w)*np.array([10e2, 1])[:,np.newaxis,np.newaxis], reg_K_qdiv,
                               np.array([[-4, -2], [2, 4]]),
                               np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025*10e2,
                               np.array([[-.0003, -.0001], [.0001, .0003]]),
@@ -485,14 +504,14 @@ if __name__ == '__main__':
     cbar_ax = fig.add_axes([0.915, 0.39, 0.01, 0.21]) # [left, bottom, width, height]
     cbar = fig.colorbar(contourfs, cax=cbar_ax, orientation='vertical', drawedges=True)
     cbar.locator = ticker.FixedLocator(lev_t)
-    cbar.set_ticklabels([str(i) for i in lev_t])
+    cbar.set_ticklabels(['-0.50', '-0.40', '-0.30', '-0.20', '-0.10', '-0.05', ' 0.05', ' 0.10', ' 0.20', ' 0.30', ' 0.40', ' 0.50'])
     cbar.ax.tick_params(labelsize=10, length=0)
 
     lev_w = np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.025*10e2
     cbar_ax1 = fig.add_axes([0.915, 0.105, 0.01, 0.21])  # [left, bottom, width, height]
     cbar1 = fig.colorbar(contourfs2, cax=cbar_ax1, orientation='vertical', drawedges=True)
     cbar1.locator = ticker.FixedLocator(lev_w)
-    cbar1.set_ticklabels(['-1.25', '-1', '-0.75', '-0.5', '-0.25', '0.25', '0.5', '0.75', '1', '1.25'])
+    cbar1.set_ticklabels(['-1.25', '-1.00', '-0.75', '-0.5', '-0.25', ' 0.25', ' 0.50', ' 0.75', ' 1.00', ' 1.25'])
     # cbar1.set_label('×10$^{-2}$', fontsize=10, loc='bottom')
     cbar1.ax.tick_params(labelsize=10, length=0)
 
