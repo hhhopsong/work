@@ -8,27 +8,35 @@ https://github.com/hhhopsong/work/blob/master/Meteorological/toolbar/curved_quiv
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-
+# 数据处理三方库
 import xarray as xr
-from matplotlib.patches import PathPatch
 from scipy.interpolate import RegularGridInterpolator
 import numpy as np
-import cartopy.crs as ccrs
-import tqdm as tq
-import warnings
-from func_timeout import func_set_timeout, FunctionTimedOut
-import cartopy.feature as cfeature
 
+
+# 绘图三方库
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 import matplotlib
-from matplotlib import _api, cm, patches
-from matplotlib.streamplot import TerminateTrajectory
 import matplotlib.colors as mcolors
 import matplotlib.collections as mcollections
 import matplotlib.transforms as mtransforms
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
-
+from matplotlib import _api, cm, patches
+from matplotlib.streamplot import TerminateTrajectory
+from matplotlib.patches import PathPatch
 from matplotlib.path import Path
+
+# 辅助三方库
+import tqdm as tq
+import warnings
+
+# 加速计算三方库
+from func_timeout import func_set_timeout, FunctionTimedOut
+from numba import njit, prange
+import math
+
 
 
 class VHead(patches.ArrowStyle._Base):
@@ -93,9 +101,6 @@ class VHead(patches.ArrowStyle._Base):
 
         # 返回新的路径和是否可填充的标志
         return Path(all_verts, all_codes), False
-
-
-# 2. 注册我们的样式
 patches.ArrowStyle.register("v", VHead)
 
 
@@ -123,6 +128,83 @@ def lontransform(data, lon_name='lon', type='180->360'):
         return data.reindex({lon_name: np.sort(data[lon_name])})
     else:
         raise ValueError('type must be 180->360 or 360->180')
+
+@njit(fastmath=True)
+def _haversine(lat1, lon1, lat2, lon2):
+    R = 6371000.0
+    rad = math.pi / 180.0
+    dlat = (lat2 - lat1) * rad
+    dlon = ((lon2 - lon1 + 180.0) % 360.0 - 180.0) * rad
+    a = math.sin(dlat * 0.5) ** 2 + math.cos(lat1 * rad) * math.cos(lat2 * rad) * math.sin(dlon * 0.5) ** 2
+    return 2.0 * R * math.asin(math.sqrt(a))
+
+
+# 四邻域反距离加权（基于球面距离）
+@njit(fastmath=True, parallel=True)
+def _geo_idw_four(field2d, lat_src, lon_src, Yq, Xq, power=1.0, eps=1e-9):
+    # 计算各点所在的网格单元索引
+    nlat = lat_src.size
+    nlon = lon_src.size
+    out = np.empty(Yq.size, dtype=np.float64)
+
+    # 展平只为简化并行循环；返回时再 reshape
+    y = Yq.ravel()
+    x = Xq.ravel()
+
+    for k in prange(y.size):
+        yy = y[k]
+        xx = x[k]
+
+        # 二分查找所在单元
+        i = np.searchsorted(lat_src, yy) - 1
+        j = np.searchsorted(lon_src, xx) - 1
+        if i < 0: i = 0
+        if j < 0: j = 0
+        if i > nlat - 2: i = nlat - 2
+        if j > nlon - 2: j = nlon - 2
+
+        i0 = i
+        i1 = i + 1
+        j0 = j
+        j1 = j + 1
+
+        lat00 = lat_src[i0]; lon00 = lon_src[j0]
+        lat10 = lat_src[i1]; lon10 = lon_src[j0]
+        lat01 = lat_src[i0]; lon01 = lon_src[j1]
+        lat11 = lat_src[i1]; lon11 = lon_src[j1]
+
+        d00 = _haversine_scalar(yy, xx, lat00, lon00)
+        d10 = _haversine_scalar(yy, xx, lat10, lon10)
+        d01 = _haversine_scalar(yy, xx, lat01, lon01)
+        d11 = _haversine_scalar(yy, xx, lat11, lon11)
+
+        # 精确落在格点上（阈值按米计）
+        if d00 < 1e-6:
+            out[k] = field2d[i0, j0]
+            continue
+        if d10 < 1e-6:
+            out[k] = field2d[i1, j0]
+            continue
+        if d01 < 1e-6:
+            out[k] = field2d[i0, j1]
+            continue
+        if d11 < 1e-6:
+            out[k] = field2d[i1, j1]
+            continue
+
+        w00 = 1.0 / ((d00 + eps) ** power)
+        w10 = 1.0 / ((d10 + eps) ** power)
+        w01 = 1.0 / ((d01 + eps) ** power)
+        w11 = 1.0 / ((d11 + eps) ** power)
+
+        num = (w00 * field2d[i0, j0] +
+               w10 * field2d[i1, j0] +
+               w01 * field2d[i0, j1] +
+               w11 * field2d[i1, j1])
+        den = w00 + w10 + w01 + w11
+        out[k] = num / den
+
+    return out.reshape(Yq.shape)
 
 
 def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1.0):
@@ -152,7 +234,7 @@ class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='v', transform=None, zorder=None, start_points='interleaved', scale=1., masked=True, regrid=30,
                  regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180., alpha=1.,
-                 thinning=[1, 'random'], MinDistance=[0, 1]):
+                 thinning=['0%', 'min'], MinDistance=[0, 1]):
         """绘制矢量曲线.
 
             *x*, *y* : 1d arrays
@@ -223,9 +305,10 @@ class Curlyquiver:
                           objects representing arrows half-way along stream
                           lines.
 
-                    此容器将来可能会更改，以允许更改线条和箭头的颜色图、alpha等，但这些更改应该会向下兼容。
-                *scale* : float
-                    矢量的最大长度。
+                *unit* : float
+                    矢量的单位长度
+                *nanmax* : float
+                    矢量的最大长度
         """
 
         self.axes = ax
@@ -264,7 +347,7 @@ class Curlyquiver:
                         self.mode, self.NanMax, self.center_lon, self.thinning, self.MinDistance, self.alpha)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
-            width_shrink=1., height_shrink=1., edgecolor='k', arrowsize=None, linewidth=None,color=None):
+            width_shrink=1., height_shrink=1., edgecolor='k', arrowsize=None, linewidth=None, color=None):
         '''
         曲线矢量图例
         :param fig: 画布总底图
@@ -290,11 +373,12 @@ class Curlyquiver:
                      height_shrink=height_shrink, arrowsize=arrowsize, edgecolor=edgecolor)
 
 
-def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5, color='black',
-               cmap=None, norm=None, arrowsize=.5, arrowstyle='vCurlyquiver',
-               transform=None, zorder=None, start_points= 'interleaved',
-               scale=100., masked=True, regrid=30, regrid_reso=2.5, integration_direction='both',
-               mode='loose', nanmax=None, center_lon=180., thinning=[1, 'random'], MinDistance=[0.1, 0.5], alpha=1.):
+def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
+               cmap=None,      norm=None,    arrowsize=.5,    arrowstyle='v',
+               transform=None, zorder=None,  start_points= 'interleaved',
+               scale=100.,     masked=True,  regrid=30,       regrid_reso=2.5, integration_direction='both',
+               mode='loose',   nanmax=None,  center_lon=180., thinning=[1, 'random'],   MinDistance=[0.1, 0.5],
+               alpha=1.,       latlon_zoom='True'):
     """绘制矢量曲线"""
 
     # 填充nan值为0
