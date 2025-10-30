@@ -25,9 +25,11 @@ import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 from matplotlib import _api, cm, patches
 from matplotlib.streamplot import TerminateTrajectory
-from matplotlib.patches import PathPatch
+from matplotlib.patches import PathPatch, ArrowStyle
 from matplotlib.path import Path
-
+from shapely.geometry import LineString
+from shapely.prepared import prep
+from operator import itemgetter
 # 辅助三方库
 import tqdm as tq
 import warnings
@@ -35,8 +37,6 @@ import warnings
 # 加速计算三方库
 from func_timeout import func_set_timeout, FunctionTimedOut
 from numba import njit, prange
-import math
-
 
 
 class VHead(patches.ArrowStyle._Base):
@@ -101,7 +101,7 @@ class VHead(patches.ArrowStyle._Base):
 
         # 返回新的路径和是否可填充的标志
         return Path(all_verts, all_codes), False
-patches.ArrowStyle.register("v", VHead)
+ArrowStyle._style_list["v"] = VHead
 
 
 def lontransform(data, lon_name='lon', type='180->360'):
@@ -129,83 +129,6 @@ def lontransform(data, lon_name='lon', type='180->360'):
     else:
         raise ValueError('type must be 180->360 or 360->180')
 
-@njit(fastmath=True)
-def _haversine(lat1, lon1, lat2, lon2):
-    R = 6371000.0
-    rad = math.pi / 180.0
-    dlat = (lat2 - lat1) * rad
-    dlon = ((lon2 - lon1 + 180.0) % 360.0 - 180.0) * rad
-    a = math.sin(dlat * 0.5) ** 2 + math.cos(lat1 * rad) * math.cos(lat2 * rad) * math.sin(dlon * 0.5) ** 2
-    return 2.0 * R * math.asin(math.sqrt(a))
-
-
-# 四邻域反距离加权（基于球面距离）
-@njit(fastmath=True, parallel=True)
-def _geo_idw_four(field2d, lat_src, lon_src, Yq, Xq, power=1.0, eps=1e-9):
-    # 计算各点所在的网格单元索引
-    nlat = lat_src.size
-    nlon = lon_src.size
-    out = np.empty(Yq.size, dtype=np.float64)
-
-    # 展平只为简化并行循环；返回时再 reshape
-    y = Yq.ravel()
-    x = Xq.ravel()
-
-    for k in prange(y.size):
-        yy = y[k]
-        xx = x[k]
-
-        # 二分查找所在单元
-        i = np.searchsorted(lat_src, yy) - 1
-        j = np.searchsorted(lon_src, xx) - 1
-        if i < 0: i = 0
-        if j < 0: j = 0
-        if i > nlat - 2: i = nlat - 2
-        if j > nlon - 2: j = nlon - 2
-
-        i0 = i
-        i1 = i + 1
-        j0 = j
-        j1 = j + 1
-
-        lat00 = lat_src[i0]; lon00 = lon_src[j0]
-        lat10 = lat_src[i1]; lon10 = lon_src[j0]
-        lat01 = lat_src[i0]; lon01 = lon_src[j1]
-        lat11 = lat_src[i1]; lon11 = lon_src[j1]
-
-        d00 = _haversine_scalar(yy, xx, lat00, lon00)
-        d10 = _haversine_scalar(yy, xx, lat10, lon10)
-        d01 = _haversine_scalar(yy, xx, lat01, lon01)
-        d11 = _haversine_scalar(yy, xx, lat11, lon11)
-
-        # 精确落在格点上（阈值按米计）
-        if d00 < 1e-6:
-            out[k] = field2d[i0, j0]
-            continue
-        if d10 < 1e-6:
-            out[k] = field2d[i1, j0]
-            continue
-        if d01 < 1e-6:
-            out[k] = field2d[i0, j1]
-            continue
-        if d11 < 1e-6:
-            out[k] = field2d[i1, j1]
-            continue
-
-        w00 = 1.0 / ((d00 + eps) ** power)
-        w10 = 1.0 / ((d10 + eps) ** power)
-        w01 = 1.0 / ((d01 + eps) ** power)
-        w11 = 1.0 / ((d11 + eps) ** power)
-
-        num = (w00 * field2d[i0, j0] +
-               w10 * field2d[i1, j0] +
-               w01 * field2d[i0, j1] +
-               w11 * field2d[i1, j1])
-        den = w00 + w10 + w01 + w11
-        out[k] = num / den
-
-    return out.reshape(Yq.shape)
-
 
 def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1.0):
     '''
@@ -232,8 +155,8 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
 
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
-                 arrowstyle='v', transform=None, zorder=None, start_points='interleaved', scale=1., masked=True, regrid=30,
-                 regrid_reso=2.5, integration_direction='both', mode='loose', nanmax=None, center_lon=180., alpha=1.,
+                 arrowstyle='v', transform=None, zorder=None, start_points='interleaved', scale=1., masked=False, regrid=30,
+                 regrid_reso=2.5, integration_direction='both', nanmax=None, center_lon=180., alpha=1.,
                  thinning=['0%', 'min'], MinDistance=[0, 1]):
         """绘制矢量曲线.
 
@@ -272,10 +195,6 @@ class Curlyquiver:
                 重新插值网格分辨率
             *integration_direction* : {'forward', 'backward', 'both'}, default: 'both'
                 矢量向前、向后或双向绘制。
-            *mode* : {'loose', 'strict'}, default: 'loose'
-                流线边界绘制模式.
-                'loose': 流线绘制时，线性外拓数据边界(Nan值计为0进行插值).
-                'strict': 流线绘制时，严格裁切数据边界.
             *nanmax* : float
                 风速单位一
             *center_lon* : float
@@ -331,7 +250,6 @@ class Curlyquiver:
         self.regrid = regrid
         self.regrid_reso = regrid_reso
         self.integration_direction = integration_direction
-        self.mode = mode
         self.NanMax = nanmax
         self.center_lon = center_lon
         self.thinning = thinning
@@ -344,7 +262,7 @@ class Curlyquiver:
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
                         self.start_points, self.scale, self.masked, self.regrid, self.regrid_reso, self.integration_direction,
-                        self.mode, self.NanMax, self.center_lon, self.thinning, self.MinDistance, self.alpha)
+                        self.NanMax, self.center_lon, self.thinning, self.MinDistance, self.alpha)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
             width_shrink=1., height_shrink=1., edgecolor='k', arrowsize=None, linewidth=None, color=None):
@@ -376,8 +294,8 @@ class Curlyquiver:
 def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
                cmap=None,      norm=None,    arrowsize=.5,    arrowstyle='v',
                transform=None, zorder=None,  start_points= 'interleaved',
-               scale=100.,     masked=True,  regrid=30,       regrid_reso=2.5, integration_direction='both',
-               mode='loose',   nanmax=None,  center_lon=180., thinning=[1, 'random'],   MinDistance=[0.1, 0.5],
+               scale=100.,     masked=False,  regrid=30,       regrid_reso=2.5, integration_direction='both',
+               nanmax=None,    center_lon=180.,               thinning=[1, 'random'],   MinDistance=[0.1, 0.5],
                alpha=1.,       latlon_zoom='True'):
     """绘制矢量曲线"""
 
@@ -631,7 +549,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
 	
     resolution = 47666666e-8 # 分辨率(最小可分辨度为47666666e-8)
     minlength = .9*resolution
-    integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction, mode=mode, axes_scale=[is_x_log, is_y_log])
+    integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction, axes_scale=[is_x_log, is_y_log])
     trajectories = []
     edges = []
 
@@ -734,7 +652,6 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
             traj_length.append(D)
 
     # 稀疏化
-    from operator import itemgetter
     combined = list(zip(traj_length, trajectories, edges))
     combined.sort(key=itemgetter(0), reverse=True)  # 按第 0 个元素（traj_length）降序
     traj_length, trajectories, edges = map(list, zip(*combined))
@@ -784,24 +701,49 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
         distance_limit_tlen = []
         distance_limit_traj = []
         distance_limit_edges = []
-        for i in range(len(trajectories)):
-            if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
-                continue
-            if i == 0:
-                distance_limit_tlen.append(traj_length[i])
-                distance_limit_traj.append(trajectories[i])
-                distance_limit_edges.append(edges[i])
-            else:
-                add_signl = True
-                for i_in in range(len(distance_limit_traj)):
-                    too_close_percent = traj_overlap(trajectories[i], distance_limit_traj[i_in], MinDistance[0])[0]
-                    if too_close_percent >= MinDistance[1]:
-                        add_signl = False
-                        break
-                if add_signl:
+        try:
+            dictance_matrix = traj_overlap_all(trajectories, MinDistance[0])
+            distance_limit_index = []
+            for i in tq.trange(len(trajectories), desc='极速降重中', colour='blue', unit='lines', total=len(trajectories)):
+                if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
+                    continue
+                if i == 0:
                     distance_limit_tlen.append(traj_length[i])
                     distance_limit_traj.append(trajectories[i])
                     distance_limit_edges.append(edges[i])
+                    distance_limit_index.append(i)
+                else:
+                    add_signl = True
+                    for i_in in distance_limit_index:
+                        too_close_percent = dictance_matrix[i, i_in]
+                        if too_close_percent >= MinDistance[1]:
+                            add_signl = False
+                            break
+                    if add_signl:
+                        distance_limit_tlen.append(traj_length[i])
+                        distance_limit_traj.append(trajectories[i])
+                        distance_limit_edges.append(edges[i])
+                        distance_limit_index.append(i)
+        except:
+            warnings.warn("加速计算失败,请耐心等候...")
+            for i in tq.trange(len(trajectories), desc='降重中', colour='green', unit='lines', total=len(trajectories)):
+                if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
+                    continue
+                if i == 0:
+                    distance_limit_tlen.append(traj_length[i])
+                    distance_limit_traj.append(trajectories[i])
+                    distance_limit_edges.append(edges[i])
+                else:
+                    add_signl = True
+                    for i_in in range(len(distance_limit_traj)):
+                        too_close_percent = traj_overlap(trajectories[i], distance_limit_traj[i_in], MinDistance[0])[0]
+                        if too_close_percent >= MinDistance[1]:
+                            add_signl = False
+                            break
+                    if add_signl:
+                        distance_limit_tlen.append(traj_length[i])
+                        distance_limit_traj.append(trajectories[i])
+                        distance_limit_edges.append(edges[i])
         traj_length, trajectories, edges = distance_limit_tlen, distance_limit_traj, distance_limit_edges
 
 
@@ -859,12 +801,12 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
         arrow_kw['mutation_scale'] = 10 * arrow_sizes
 
         if isinstance(linewidth, np.ndarray):
-            line_widths = interpgrid(linewidth, tgx, tgy, masked=masked, mode=mode)[:-1]
+            line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
             line_kw['linewidth'].extend(line_widths)
             arrow_kw['linewidth'] = line_widths[n]
 
         if use_multicolor_lines:
-            color_values = interpgrid(color, tgx, tgy, masked=masked, mode=mode)[:-1]
+            color_values = interpgrid(color, tgx, tgy, masked=masked)[:-1]
             line_colors.append(color_values)
             arrow_kw['color'] = cmap(norm(color_values[n]))
         
@@ -1126,7 +1068,7 @@ class StreamMask(object):
 
 # Integrator definitions
 #========================
-def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True, mode='loose', axes_scale=[False, False]):
+def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True, axes_scale=[False, False]):
     axes_scale = axes_scale
 
     # rescale velocity onto grid-coordinates for integrations.
@@ -1141,12 +1083,12 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         speed = speed / 2.
 
     def forward_time(xi, yi):
-        ds_dt = interpgrid(speed, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale)
+        ds_dt = interpgrid(speed, xi, yi, masked=masked, axes_scale=axes_scale)
         if ds_dt == 0:
             raise TerminateTrajectory()
         dt_ds = 1. / ds_dt
-        ui = interpgrid(u, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale)
-        vi = interpgrid(v, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale)
+        ui = interpgrid(u, xi, yi, masked=masked, axes_scale=axes_scale)
+        vi = interpgrid(v, xi, yi, masked=masked, axes_scale=axes_scale)
         return ui * dt_ds, vi * dt_ds
 
     def backward_time(xi, yi):
@@ -1192,7 +1134,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
 
     return integrate
 
-def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='loose', axes_scale=[False, False]):
+def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, axes_scale=[False, False]):
     """2nd-order Runge-Kutta algorithm with adaptive step size.
 
     This method is also referred to as the improved Euler's method, or Heun's
@@ -1241,7 +1183,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
     while dmap.grid.within_grid(xi, yi):
         xf_traj.append(xi)
         yf_traj.append(yi)
-        m_total.append(interpgrid(magnitude, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale))
+        m_total.append(interpgrid(magnitude, xi, yi, masked=masked, axes_scale=axes_scale))
         try:
             k1x, k1y = f(xi, yi)
             k2x, k2y = f(xi + ds * k1x,
@@ -1277,7 +1219,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
             if (stotal + ds) > resolution*np.mean(m_total):
                 s_remaining = resolution*np.mean(m_total) - stotal
                 fraction = s_remaining / ds
-                if (fraction-1) < -1:
+                if fraction < 0:
                     break  # 防止出现负值导致负步长
                 # 按比例缩放最后一步的位移
                 xi += dx2 * (fraction-1)
@@ -1290,7 +1232,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, mode='l
                 # 将这个精确的终点加入轨迹
                 xf_traj.append(xi)
                 yf_traj.append(yi)
-                m_total.append(interpgrid(magnitude, xi, yi, masked=masked, mode=mode, axes_scale=axes_scale))
+                m_total.append(interpgrid(magnitude, xi, yi, masked=masked, axes_scale=axes_scale))
                 break
 
             dmap.update_trajectory(xi, yi)
@@ -1332,66 +1274,89 @@ def _euler_step(xf_traj, yf_traj, dmap, f):
 # 实用功能
 # ========================
 #####################插值过于宽松，增加一般模式，引入nan值，不将nan值看作0#####################
-def interpgrid(a, xi, yi, masked=True, mode='loose', axes_scale=[False, False]):
+def interpgrid(a, xi, yi, masked=True, axes_scale=[False, False]):
     """Fast 2D, linear interpolation on an integer grid/整数网格上的快速二维线性插值"""
 
-    Ny, Nx = np.shape(a)
-    if isinstance(xi, np.ndarray):
-        x = xi.astype(int)
-        y = yi.astype(int)
-        # Check that xn, yn don't exceed max index
-        xn = np.clip(x + 1, 0, Nx - 1)
-        yn = np.clip(y + 1, 0, Ny - 1)
-    else:
-        x = int(xi)
-        y = int(yi)
-        # conditional is faster than clipping for integers
-        if x == (Nx - 1):
-            xn = x
-        else:
-            xn = x + 1
-        if y == (Ny - 1):
-            yn = y
-        else:
-            yn = y + 1
+    # Ny, Nx = np.shape(a)
+    # if isinstance(xi, np.ndarray):
+    #     x = xi.astype(int)
+    #     y = yi.astype(int)
+    #     # Check that xn, yn don't exceed max index
+    #     xn = np.clip(x + 1, 0, Nx - 1)
+    #     yn = np.clip(y + 1, 0, Ny - 1)
+    # else:
+    #     x = int(xi)
+    #     y = int(yi)
+    #     # conditional is faster than clipping for integers
+    #     if x == (Nx - 1):
+    #         xn = x
+    #     else:
+    #         xn = x + 1
+    #     if y == (Ny - 1):
+    #         yn = y
+    #     else:
+    #         yn = y + 1
+    #
+    # a00 = a[y, x]
+    # a01 = a[y, xn]
+    # a10 = a[yn, x]
+    # a11 = a[yn, xn]
+    # xt = xi - x if not axes_scale[0] else 10 ** xi - 10 ** x
+    # yt = yi - y if not axes_scale[1] else 10 ** yi - 10 ** y
+    #
+    # a0 = a00 * (1 - xt) + a01 * xt
+    # a1 = a10 * (1 - xt) + a11 * xt
+    # ai = a0 * (1 - yt) + a1 * yt
 
-    a00 = a[y, x]
-    a01 = a[y, xn]
-    a10 = a[yn, x]
-    a11 = a[yn, xn]
-    xt = xi - x if not axes_scale[0] else 10 ** xi - 10 ** x
-    yt = yi - y if not axes_scale[1] else 10 ** yi - 10 ** y
-    if mode == 'loose':
-        a0 = a00 * (1 - xt) + a01 * xt
-        a1 = a10 * (1 - xt) + a11 * xt
-        ai = a0 * (1 - yt) + a1 * yt
-    elif mode == 'strict':
-        zeros = np.where(np.array([a00, a01, a10, a11]) == 0.0)[0]
-        if len(zeros) >= 2:
-            ai = 0.0
-        elif len(zeros) == 1:
-            distance1 = np.sqrt((x - xi) ** 2 + (y - yi) ** 2)
-            distance2 = np.sqrt((xn - xi) ** 2 + (y - yi) ** 2)
-            distance3 = np.sqrt((x - xi) ** 2 + (yn - yi) ** 2)
-            distance4 = np.sqrt((xn - xi) ** 2 + (yn - yi) ** 2)
-            distances = np.array([distance1, distance2, distance3, distance4])
-            if np.argmin(distances) == zeros[0]:
-                ai = 0.0
-            else:
-                a0 = a00 * (1 - xt) + a01 * xt
-                a1 = a10 * (1 - xt) + a11 * xt
-                ai = a0 * (1 - yt) + a1 * yt
-        else:
-            a0 = a00 * (1 - xt) + a01 * xt
-            a1 = a10 * (1 - xt) + a11 * xt
-            ai = a0 * (1 - yt) + a1 * yt
-
+    xi = np.asarray(xi, dtype=np.float64)
+    yi = np.asarray(yi, dtype=np.float64)
+    ai = interpgrid_numba_kernel(a.astype(np.float64, copy=False),
+                                   xi, yi, axes_scale[0], axes_scale[1])
     if not isinstance(xi, np.ndarray):
         if np.ma.is_masked(ai) and (not masked):
             raise TerminateTrajectory
 
     return ai
 
+@njit(fastmath=True, cache=True, parallel=True)
+def interpgrid_numba_kernel(a, xi, yi, xlog=False, ylog=False):
+    Ny, Nx = a.shape
+    out = np.empty_like(xi, dtype=np.float64)
+
+    for i in prange(xi.size):
+        xf = xi.flat[i]
+        yf = yi.flat[i]
+
+        x = int(np.floor(xf));  y = int(np.floor(yf))
+        if x < 0: x = 0
+        if y < 0: y = 0
+        if x > Nx-1: x = Nx-1
+        if y > Ny-1: y = Ny-1
+
+        xn = x if x == Nx-1 else x+1
+        yn = y if y == Ny-1 else y+1
+
+        # 局部权重（可选 log10 轴）
+        if xlog:
+            denomx = (10.0**xn - 10.0**x)
+            xt = (10.0**xf - 10.0**x) / (denomx if denomx != 0.0 else 1e-20)
+        else:
+            xt = xf - x
+        if ylog:
+            denomy = (10.0**yn - 10.0**y)
+            yt = (10.0**yf - 10.0**y) / (denomy if denomy != 0.0 else 1e-20)
+        else:
+            yt = yf - y
+
+        a00 = a[y,  x]
+        a01 = a[y,  xn]
+        a10 = a[yn, x]
+        a11 = a[yn, xn]
+
+        a0 = a00 * (1.0 - xt) + a01 * xt
+        a1 = a10 * (1.0 - xt) + a11 * xt
+        out.flat[i] = a0 * (1.0 - yt) + a1 * yt
+    return out
 
 def _gen_starting_points(x,y,grains):
     
@@ -1423,8 +1388,7 @@ def distance(x, y):
 
     return np.sqrt(dx**2 + dy**2).sum()
 
-def traj_overlap(traj1, traj2, threshold=0.01):
-    from scipy.spatial import cKDTree
+def traj_overlap(traj1, traj2, threshold=0.01, simplify=None):
     """
     检查两条轨迹是否重叠
     :param traj1: 第一条轨迹，格式为 (x, y)
@@ -1433,34 +1397,248 @@ def traj_overlap(traj1, traj2, threshold=0.01):
     :return:  返回两条轨迹重叠部分占两条轨迹长度的各自百分比，如 (p1, p2)
     """
 
-    # 将轨迹转换为Numpy数组
     points1 = np.column_stack(traj1)
     points2 = np.column_stack(traj2)
 
+    if points1.size == 0 or points2.size == 0:
+        return 0.0, 0.0
     if np.isnan(points1).any() or np.isnan(points2).any():
         warnings.warn("Trajectory contains NaN values.")
-        return 1, 1
+        return 1.0, 1.0
     elif np.isinf(points1).any() or np.isinf(points2).any():
         warnings.warn("Trajectory contains Inf values.")
-        return 1, 1
+        return 1.0, 1.0
 
-    # 构建KD树用于快速邻近搜索
-    tree1 = cKDTree(points1)
-    tree2 = cKDTree(points2)
+    # power by GPT5 (shapely speed up)
+    # 用折线-缓冲区法计算两条轨迹的重叠比例（长度占比），返回 (p1, p2)。
+    # 依赖 shapely>=2.0（内置 PyGEOS，速度快）
+    def to_xy(traj):
+        arr = np.asarray(traj)
+        if arr.ndim == 1:
+            raise ValueError("traj must be ((x_seq),(y_seq)) or shape (N,2).")
+        if arr.shape[0] == 2 and arr.shape[1] != 2:
+            arr = np.column_stack(arr)  # (2,N)->(N,2)
+        elif arr.shape[1] != 2:
+            arr = np.column_stack(arr)
+        return np.asarray(arr, dtype=float)
 
-    # 找出轨迹1中与轨迹2的点距离小于threshold的点
-    overlap1 = tree1.query_ball_tree(tree2, threshold)
-    count1 = sum(map(bool, overlap1))
+    # ---------- bbox 下界距离早退 ----------
+    min1 = points1.min(axis=0); max1 = points1.max(axis=0)  # [x_min, y_min], [x_max, y_max]
+    min2 = points2.min(axis=0); max2 = points2.max(axis=0)
+    # 对每个轴：若两个区间相离，取正间隙；若重叠，取 0
+    gapx = max(0.0, max(min2[0] - max1[0], min1[0] - max2[0]))
+    gapy = max(0.0, max(min2[1] - max1[1], min1[1] - max2[1]))
+    # bbox 间最小欧氏距离的平方
+    if (gapx * gapx + gapy * gapy) > (threshold * threshold):
+        return 0.0, 0.0
 
-    # 找出轨迹2中与轨迹1的点距离小于threshold的点
-    overlap2 = tree2.query_ball_tree(tree1, threshold)
-    count2 = sum(map(bool, overlap2))
+    # 构造折线
+    ls1 = LineString(points1)
+    ls2 = LineString(points2)
+    # 可选：先做几何简化（不改变拓扑），能显著减少段数
+    if simplify and simplify > 0:
+        ls1 = ls1.simplify(simplify, preserve_topology=True)
+        ls2 = ls2.simplify(simplify, preserve_topology=True)
+    if ls1.is_empty or ls2.is_empty:
+        return 0.0, 0.0
+    # Hitbox
+    buf1 = prep(ls1.buffer(threshold, cap_style=2, join_style=2))
+    buf2 = prep(ls2.buffer(threshold, cap_style=2, join_style=2))
+    # 重叠长度
+    inter1_len = ls1.intersection(buf2.context).length
+    inter2_len = ls2.intersection(buf1.context).length
+    len1 = ls1.length if ls1.length > 0 else 1.0
+    len2 = ls2.length if ls2.length > 0 else 1.0
+    return inter1_len / len1, inter2_len / len2
 
-    # 计算百分比
-    percent1 = count1 / len(points1) if len(points1) > 0 else 0
-    percent2 = count2 / len(points2) if len(points2) > 0 else 0
 
-    return percent1, percent2
+def traj_overlap_all(trajs, threshold=0.01, simplify=None, numpy_force=False):
+    """
+    计算一组轨迹两两的重叠长度占比（方向性），一次性返回 N×N 矩阵。
+    P[i, j] = len( LineString(i) ∩ buffer(LineString(j), threshold) ) / len(LineString(i))
+
+    参数
+    ----
+    trajs : list/array
+        轨迹列表，每条可为 (x_seq, y_seq) 或 shape (Mi, 2) 的数组。
+    threshold : float
+        认为“重叠”的距离阈值，用作缓冲区半径。
+    simplify : float or None
+        几何简化，以损失精度为代价，但能显著减少线段数并提速。
+    numpy_force : True or False
+        强制使用纯numpy库进行计算，可避免使用GPU加速带来的报错，但代价是计算速度可能成倍降低。
+    ----
+    P : np.ndarray, shape (N, N), dtype=float
+        方向性占比矩阵。P[i, j] 表示轨迹 i 落在轨迹 j 缓冲区内的长度占比。
+        对角线为 1.0；无候选（bbox 早退过滤）时为 0.0。
+    """
+    # ---------- 工具：统一为 (Ni, 2) 的 float 数组 ----------
+    def to_xy(traj):
+        arr = np.asarray(traj)
+        if arr.ndim == 1:
+            raise ValueError("Each traj must be ((x_seq),(y_seq)) or shape (N,2).")
+        if arr.shape[0] == 2 and arr.shape[1] != 2:
+            arr = np.column_stack(arr)  # (2,N)->(N,2)
+        elif arr.shape[1] != 2:
+            arr = np.column_stack(arr)
+        return np.asarray(arr, dtype=float)
+
+    backend = "numpy"
+    xp = np
+    cupy_available = False
+    torch_available = False
+    # 检查 CuPy (NVIDIA GPU)
+    try:
+        import cupy as cp
+        if cp.cuda.runtime.getDeviceCount() > 0:
+            xp = cp
+            backend = "cupy" if backend_force else "numpy"
+            cupy_available = True
+    except Exception:
+        pass
+
+    # 检查 PyTorch (Apple M 或 AMD)
+    if not cupy_available:
+        try:
+            import torch
+            torch_available = True
+            if torch.backends.mps.is_available():  # Apple M 系列
+                backend = "torch" if backend_force else "numpy"
+            elif torch.cuda.is_available():  # NVIDIA 或 AMD ROCm
+                backend = "torch" if backend_force else "numpy"
+                warnings.warn("检测到支持cuda的GPU, 但CuPy库未安装. ")
+        except Exception:
+            pass
+
+
+    # ---------- 预处理：空/NaN/Inf ----------
+    coords = []
+    for k, tr in enumerate(trajs):
+        c = to_xy(tr)
+        if c.size == 0:
+            coords.append(c)
+            continue
+        if np.isnan(c).any():
+            warnings.warn(f"Trajectory {k} contains NaN; treating as fully overlapping with itself.")
+        if np.isinf(c).any():
+            warnings.warn(f"Trajectory {k} contains Inf; treating as fully overlapping with itself.")
+        coords.append(c)
+
+    N = len(coords)
+    if N == 0:
+        return np.zeros((0, 0), dtype=float)
+
+    # ---------- Shapely 几何体 + 长度 ----------
+    lines = []
+    lengths = np.empty(N, dtype=float)
+    for i, c in enumerate(coords):
+        if c.size == 0:
+            ls = LineString()
+        else:
+            ls = LineString(c)
+            if simplify and simplify > 0:
+                ls = ls.simplify(simplify, preserve_topology=True)
+        lines.append(ls)
+        lengths[i] = ls.length if not ls.is_empty and ls.length > 0 else 1.0  # 防 0
+
+    # ---------- bbox 早退（向量化/可选 GPU） ----------
+    mins = np.array([np.min(c, axis=0) if c.size else np.array([np.inf, np.inf]) for c in coords])
+    maxs = np.array([np.max(c, axis=0) if c.size else np.array([-np.inf, -np.inf]) for c in coords])
+
+    thr2 = float(threshold) * float(threshold)
+
+    def pairwise_bbox_gap2_np(mins, maxs):
+        # gapx_ij = max(0, max(mins[j,0]-maxs[i,0], mins[i,0]-maxs[j,0]))
+        # 通过广播计算 (N,N)
+        minx = mins[:, 0][:, None]
+        maxx = maxs[:, 0][:, None]
+        miny = mins[:, 1][:, None]
+        maxy = maxs[:, 1][:, None]
+
+        gapx = np.maximum(0.0, np.maximum(minx.T - maxx, minx - maxx.T))
+        gapy = np.maximum(0.0, np.maximum(miny.T - maxy, miny - maxy.T))
+        return gapx * gapx + gapy * gapy  # (N,N)
+
+    if backend == "cupy":
+        try:
+            import cupy as cp
+            mins_cu = cp.asarray(mins, dtype=cp.float64)
+            maxs_cu = cp.asarray(maxs, dtype=cp.float64)
+            minx = mins_cu[:, 0][:, None]
+            maxx = maxs_cu[:, 0][:, None]
+            miny = mins_cu[:, 1][:, None]
+            maxy = maxs_cu[:, 1][:, None]
+            gapx = cp.maximum(0.0, cp.maximum(minx.T - maxx, minx - maxx.T))
+            gapy = cp.maximum(0.0, cp.maximum(miny.T - maxy, miny - maxy.T))
+            d2 = (gapx * gapx + gapy * gapy).get()
+        except Exception:
+            warnings.warn("CuPy加速失败，切换为numpy张量加速")
+            d2 = pairwise_bbox_gap2_np(mins, maxs)
+    elif backend == "torch":
+        try:
+            import torch
+            device = torch.device("cuda" if torch.cuda.is_available() else "mps")
+            mins_t = torch.tensor(mins, dtype=torch.float64, device=device)
+            maxs_t = torch.tensor(maxs, dtype=torch.float64, device=device)
+            minx = mins_t[:, 0].unsqueeze(1)
+            maxx = maxs_t[:, 0].unsqueeze(1)
+            miny = mins_t[:, 1].unsqueeze(1)
+            maxy = maxs_t[:, 1].unsqueeze(1)
+            gapx = torch.maximum(torch.zeros(1, device=device, dtype=torch.float64),
+                                 torch.maximum(minx.T - maxx, minx - maxx.T))
+            gapy = torch.maximum(torch.zeros(1, device=device, dtype=torch.float64),
+                                 torch.maximum(miny.T - maxy, miny - maxy.T))
+            d2 = (gapx * gapx + gapy * gapy).cpu().numpy()
+        except Exception:
+            warnings.warn("pytorch加速失败，切换为numpy张量加速")
+            d2 = pairwise_bbox_gap2_np(mins, maxs)
+    else:
+        d2 = pairwise_bbox_gap2_np(mins, maxs)
+
+    candidate = d2 <= thr2  # (N,N)
+    # 若某条为空几何体，则与别人都不可作为候选
+    empty_mask = np.array([ls.is_empty for ls in lines], dtype=bool)
+    candidate[empty_mask, :] = False
+    candidate[:, empty_mask] = False
+
+    # 对角线置 True（自重叠定义为 1.0）
+    np.fill_diagonal(candidate, True)
+
+    # ---------- 预构建缓冲区与 prepared geometry（针对列 j） ----------
+    bufs = [None] * N
+    preps = [None] * N
+    for j, ls in enumerate(lines):
+        if ls.is_empty:
+            bufs[j] = None
+            preps[j] = None
+            continue
+        bufj = ls.buffer(threshold, cap_style=2, join_style=2)
+        bufs[j] = bufj
+        preps[j] = prep(bufj)
+
+    # ---------- 计算定向重叠长度占比 ----------
+    P = np.zeros((N, N), dtype=float)
+    # 自身完全重叠
+    for i in range(N):
+        P[i, i] = 1.0 if not lines[i].is_empty else 0.0
+
+    # 遍历候选对（可以按列或按稀疏索引）
+    idx_i, idx_j = np.where(candidate & (np.eye(N, dtype=bool) == False))
+    # 为了局部性，按 j 分组
+    order = np.argsort(idx_j, kind="mergesort")
+    idx_i = idx_i[order]
+    idx_j = idx_j[order]
+
+    last_j = -1
+    for i, j in zip(idx_i, idx_j):
+        lsi = lines[i]
+        if preps[j] is None:
+            continue
+        # 交集长度：LineString(i) ∩ buffer(LineString(j))
+        inter_len = lsi.intersection(bufs[j]).length
+        P[i, j] = inter_len / lengths[i]
+
+    return P
 
 
 def velovect_key(fig, axes, quiver, shrink=0.15, U=1., angle=0., label='1', color='k', arrowstyle='->', linewidth=.5,
