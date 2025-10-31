@@ -155,7 +155,7 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
 
 class Curlyquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
-                 arrowstyle='v', transform=None, zorder=None, start_points='interleaved', scale=1., masked=False, regrid=30,
+                 arrowstyle='v', transform=None, zorder=None, start_points='interleaved', scale=1., regrid=30,
                  regrid_reso=2.5, integration_direction='both', nanmax=None, center_lon=180., alpha=1.,
                  thinning=['0%', 'min'], MinDistance=[0, 1]):
         """绘制矢量曲线.
@@ -187,8 +187,6 @@ class Curlyquiver:
                 ``zorder`` 属性决定了绘图元素的绘制顺序,数值较大的元素会被绘制在数值较小的元素之上。
             *scale* : float(0-100)
                 矢量的最大长度。
-            *masked* : bool
-                原数据是否为掩码数组
             *regrid* : int(>=2)
                 是否重新插值网格
             *regrid_reso* : float
@@ -246,7 +244,6 @@ class Curlyquiver:
         self.zorder = zorder
         self.start_points = start_points
         self.scale = scale
-        self.masked = masked
         self.regrid = regrid
         self.regrid_reso = regrid_reso
         self.integration_direction = integration_direction
@@ -261,7 +258,7 @@ class Curlyquiver:
     def quiver(self):
         return velovect(self.axes, self.x, self.y, self.U, self.V, self.lon_trunc, self.linewidth, self.color,
                         self.cmap, self.norm, self.arrowsize, self.arrowstyle, self.transform, self.zorder,
-                        self.start_points, self.scale, self.masked, self.regrid, self.regrid_reso, self.integration_direction,
+                        self.start_points, self.scale, self.regrid, self.regrid_reso, self.integration_direction,
                         self.NanMax, self.center_lon, self.thinning, self.MinDistance, self.alpha)
 
     def key(self, fig, U=1., shrink=0.15, angle=0., label='1', lr=1., ud=1., fontproperties={'size': 5},
@@ -294,15 +291,10 @@ class Curlyquiver:
 def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
                cmap=None,      norm=None,    arrowsize=.5,    arrowstyle='v',
                transform=None, zorder=None,  start_points= 'interleaved',
-               scale=100.,     masked=False,  regrid=30,       regrid_reso=2.5, integration_direction='both',
+               scale=100.,     regrid=30,    regrid_reso=2.5, integration_direction='both',
                nanmax=None,    center_lon=180.,               thinning=[1, 'random'],   MinDistance=[0.1, 0.5],
                alpha=1.,       latlon_zoom='True'):
     """绘制矢量曲线"""
-
-    # 填充nan值为0
-    if masked:
-        u = np.where(np.isnan(u), 0, u)
-        v = np.where(np.isnan(v), 0, v)
 
     # 检查y是否升序
     if y[0] > y[-1]:
@@ -801,12 +793,12 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
         arrow_kw['mutation_scale'] = 10 * arrow_sizes
 
         if isinstance(linewidth, np.ndarray):
-            line_widths = interpgrid(linewidth, tgx, tgy, masked=masked)[:-1]
+            line_widths = interpgrid(linewidth, tgx, tgy)[:-1]
             line_kw['linewidth'].extend(line_widths)
             arrow_kw['linewidth'] = line_widths[n]
 
         if use_multicolor_lines:
-            color_values = interpgrid(color, tgx, tgy, masked=masked)[:-1]
+            color_values = interpgrid(color, tgx, tgy)[:-1]
             line_colors.append(color_values)
             arrow_kw['color'] = cmap(norm(color_values[n]))
         
@@ -1068,7 +1060,7 @@ class StreamMask(object):
 
 # Integrator definitions
 #========================
-def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', masked=True, axes_scale=[False, False]):
+def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction='both', axes_scale=[False, False]):
     axes_scale = axes_scale
 
     # rescale velocity onto grid-coordinates for integrations.
@@ -1083,12 +1075,12 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         speed = speed / 2.
 
     def forward_time(xi, yi):
-        ds_dt = interpgrid(speed, xi, yi, masked=masked, axes_scale=axes_scale)
+        ds_dt = interpgrid(speed, xi, yi, axes_scale=axes_scale)
         if ds_dt == 0:
             raise TerminateTrajectory()
         dt_ds = 1. / ds_dt
-        ui = interpgrid(u, xi, yi, masked=masked, axes_scale=axes_scale)
-        vi = interpgrid(v, xi, yi, masked=masked, axes_scale=axes_scale)
+        ui = interpgrid(u, xi, yi, axes_scale=axes_scale)
+        vi = interpgrid(v, xi, yi, axes_scale=axes_scale)
         return ui * dt_ds, vi * dt_ds
 
     def backward_time(xi, yi):
@@ -1106,27 +1098,31 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         resulting trajectory is None if it is shorter than `minlength`.
         """
 
-        stotal, x_traj, y_traj, m_total = 0., [], [], []
+        stotal, x_traj, y_traj, m_total, hit_edge = 0., [], [], [], [False, False]
 
         
         dmap.start_trajectory(x0, y0)
 
         if integration_direction in ['both', 'backward']:
-            stotal_, x_traj_, y_traj_, m_total_, hit_edge = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude, axes_scale=[False, False])
+            stotal_, x_traj_, y_traj_, m_total_, hit_edge_ = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude, axes_scale=[False, False])
             stotal += stotal_
             x_traj += x_traj_[::-1]
             y_traj += y_traj_[::-1]
             m_total += m_total_[::-1]
+            hit_edge[0] = hit_edge_
 
         if integration_direction in ['both', 'forward']:
             dmap.reset_start_point(x0, y0)
-            stotal_, x_traj_, y_traj_, m_total_, hit_edge = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude, axes_scale=[False, False])
+            stotal_, x_traj_, y_traj_, m_total_, hit_edge_ = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude, axes_scale=[False, False])
             stotal += stotal_
             x_traj += x_traj_[1:]
             y_traj += y_traj_[1:]
             m_total += m_total_[1:]
+            hit_edge[1] = hit_edge_
 
-        if len(x_traj)>1:
+        hit_edge = True if hit_edge[0] | hit_edge[1] else False
+
+        if len(x_traj)>1 and not hit_edge:
             return (x_traj, y_traj), hit_edge, m_total, stotal
         else:  # reject short trajectories
             dmap.undo_trajectory()
@@ -1134,7 +1130,7 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
 
     return integrate
 
-def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, axes_scale=[False, False]):
+def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, axes_scale=[False, False]):
     """2nd-order Runge-Kutta algorithm with adaptive step size.
 
     This method is also referred to as the improved Euler's method, or Heun's
@@ -1178,12 +1174,18 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, axes_sc
     yf_traj = []
     m_total = []
     hit_edge = False
+
     axes_scale = axes_scale
     
     while dmap.grid.within_grid(xi, yi):
         xf_traj.append(xi)
         yf_traj.append(yi)
-        m_total.append(interpgrid(magnitude, xi, yi, masked=masked, axes_scale=axes_scale))
+        try:
+            m_total.append(interpgrid(magnitude, xi, yi, axes_scale=axes_scale))
+        except TerminateTrajectory:
+            hit_edge = True
+            break
+
         try:
             k1x, k1y = f(xi, yi)
             k2x, k2y = f(xi + ds * k1x,
@@ -1197,6 +1199,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, axes_sc
             hit_edge = True
             break
         except TerminateTrajectory:
+            hit_edge = True
             break
 
         dx1 = ds * k1x
@@ -1232,7 +1235,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, masked=True, axes_sc
                 # 将这个精确的终点加入轨迹
                 xf_traj.append(xi)
                 yf_traj.append(yi)
-                m_total.append(interpgrid(magnitude, xi, yi, masked=masked, axes_scale=axes_scale))
+                m_total.append(interpgrid(magnitude, xi, yi, axes_scale=axes_scale))
                 break
 
             dmap.update_trajectory(xi, yi)
@@ -1271,92 +1274,61 @@ def _euler_step(xf_traj, yf_traj, dmap, f):
     return ds, xf_traj, yf_traj
 
 
-# 实用功能
-# ========================
-#####################插值过于宽松，增加一般模式，引入nan值，不将nan值看作0#####################
-def interpgrid(a, xi, yi, masked=True, axes_scale=[False, False]):
+def interpgrid(a, xi, yi, axes_scale=[False, False]):
     """Fast 2D, linear interpolation on an integer grid/整数网格上的快速二维线性插值"""
+    # 拆成数据和布尔掩膜
+    if np.ma.isMaskedArray(a):
+        data = a.data.astype(np.float64, copy=False)
+        mask = np.array(a.mask, dtype=np.bool_)  # 确保是布尔 ndarray
+    else:
+        data = np.asarray(a, dtype=np.float64)
+        mask = np.zeros_like(data, dtype=np.bool_)
 
-    # Ny, Nx = np.shape(a)
-    # if isinstance(xi, np.ndarray):
-    #     x = xi.astype(int)
-    #     y = yi.astype(int)
-    #     # Check that xn, yn don't exceed max index
-    #     xn = np.clip(x + 1, 0, Nx - 1)
-    #     yn = np.clip(y + 1, 0, Ny - 1)
-    # else:
-    #     x = int(xi)
-    #     y = int(yi)
-    #     # conditional is faster than clipping for integers
-    #     if x == (Nx - 1):
-    #         xn = x
-    #     else:
-    #         xn = x + 1
-    #     if y == (Ny - 1):
-    #         yn = y
-    #     else:
-    #         yn = y + 1
-    #
-    # a00 = a[y, x]
-    # a01 = a[y, xn]
-    # a10 = a[yn, x]
-    # a11 = a[yn, xn]
-    # xt = xi - x if not axes_scale[0] else 10 ** xi - 10 ** x
-    # yt = yi - y if not axes_scale[1] else 10 ** yi - 10 ** y
-    #
-    # a0 = a00 * (1 - xt) + a01 * xt
-    # a1 = a10 * (1 - xt) + a11 * xt
-    # ai = a0 * (1 - yt) + a1 * yt
+    val, mflag = _bilinear_with_mask(data, mask, float(xi), float(yi), axes_scale[0], axes_scale[1])
+    if mflag & (not isinstance(xi, np.ndarray)):
+        raise TerminateTrajectory
+    return float(val)
 
-    xi = np.asarray(xi, dtype=np.float64)
-    yi = np.asarray(yi, dtype=np.float64)
-    ai = interpgrid_numba_kernel(a.astype(np.float64, copy=False),
-                                   xi, yi, axes_scale[0], axes_scale[1])
-    if not isinstance(xi, np.ndarray):
-        if np.ma.is_masked(ai) and (not masked):
-            raise TerminateTrajectory
 
-    return ai
-
-@njit(fastmath=True, cache=True, parallel=True)
-def interpgrid_numba_kernel(a, xi, yi, xlog=False, ylog=False):
+@njit(fastmath=True, cache=True)
+def _bilinear_with_mask(a, m, xi, yi, xlog, ylog):
     Ny, Nx = a.shape
-    out = np.empty_like(xi, dtype=np.float64)
+    xf = xi
+    yf = yi
 
-    for i in prange(xi.size):
-        xf = xi.flat[i]
-        yf = yi.flat[i]
+    x = int(np.floor(xf))
+    y = int(np.floor(yf))
+    if x < 0: x = 0
+    if y < 0: y = 0
+    if x > Nx - 1: x = Nx - 1
+    if y > Ny - 1: y = Ny - 1
 
-        x = int(np.floor(xf));  y = int(np.floor(yf))
-        if x < 0: x = 0
-        if y < 0: y = 0
-        if x > Nx-1: x = Nx-1
-        if y > Ny-1: y = Ny-1
+    xn = x if x == (Nx - 1) else x + 1
+    yn = y if y == (Ny - 1) else y + 1
 
-        xn = x if x == Nx-1 else x+1
-        yn = y if y == Ny-1 else y+1
+    masked_corner = (m[y, x] or m[y, xn] or m[yn, x] or m[yn, xn])
 
-        # 局部权重（可选 log10 轴）
-        if xlog:
-            denomx = (10.0**xn - 10.0**x)
-            xt = (10.0**xf - 10.0**x) / (denomx if denomx != 0.0 else 1e-20)
-        else:
-            xt = xf - x
-        if ylog:
-            denomy = (10.0**yn - 10.0**y)
-            yt = (10.0**yf - 10.0**y) / (denomy if denomy != 0.0 else 1e-20)
-        else:
-            yt = yf - y
+    if xlog:
+        denomx = (10.0 ** xn - 10.0 ** x)
+        xt = (10.0 ** xf - 10.0 ** x) / (denomx if denomx != 0.0 else 1e-20)
+    else:
+        xt = xf - x
+    if ylog:
+        denomy = (10.0 ** yn - 10.0 ** y)
+        yt = (10.0 ** yf - 10.0 ** y) / (denomy if denomy != 0.0 else 1e-20)
+    else:
+        yt = yf - y
 
-        a00 = a[y,  x]
-        a01 = a[y,  xn]
-        a10 = a[yn, x]
-        a11 = a[yn, xn]
+    a00 = a[y, x]
+    a01 = a[y, xn]
+    a10 = a[yn, x]
+    a11 = a[yn, xn]
 
-        a0 = a00 * (1.0 - xt) + a01 * xt
-        a1 = a10 * (1.0 - xt) + a11 * xt
-        out.flat[i] = a0 * (1.0 - yt) + a1 * yt
-    return out
+    a0 = a00 * (1.0 - xt) + a01 * xt
+    a1 = a10 * (1.0 - xt) + a11 * xt
+    val = a0 * (1.0 - yt) + a1 * yt
+    return val, masked_corner
+
 
 def _gen_starting_points(x,y,grains):
     
@@ -1696,6 +1668,10 @@ if __name__ == '__main__':
 
     U = np.linspace(-1, 1, X.shape[0])[np.newaxis, :] * np.ones(X.shape).T
     V = np.linspace(1, -1, X.shape[1])[:, np.newaxis] * np.ones(X.shape).T
+    speed = np.where((U**2 + V**2)< 0.2, True, False)
+    # 创建掩码UV
+    U = np.ma.array(U, mask=speed)
+    V = np.ma.array(V, mask=speed)
     #####
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100.5))
