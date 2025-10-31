@@ -1273,7 +1273,7 @@ def _euler_step(xf_traj, yf_traj, dmap, f):
     yf_traj.append(yi + cy * ds)
     return ds, xf_traj, yf_traj
 
-
+@njit(fastmath=True, cache=True)
 def interpgrid(a, xi, yi, axes_scale=[False, False]):
     """Fast 2D, linear interpolation on an integer grid/整数网格上的快速二维线性插值"""
     # 拆成数据和布尔掩膜
@@ -1290,7 +1290,7 @@ def interpgrid(a, xi, yi, axes_scale=[False, False]):
     return float(val)
 
 
-@njit(fastmath=True, cache=True)
+@njit("Tuple((f8, b1))(f8[:,::1], b1[:,::1], f8, f8, b1, b1)", fastmath=True, cache=True)
 def _bilinear_with_mask(a, m, xi, yi, xlog, ylog):
     Ny, Nx = a.shape
     xf = xi
