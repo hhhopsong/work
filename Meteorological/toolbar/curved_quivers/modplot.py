@@ -1668,7 +1668,7 @@ if __name__ == '__main__':
 
     U = np.linspace(-1, 1, X.shape[0])[np.newaxis, :] * np.ones(X.shape).T
     V = np.linspace(1, -1, X.shape[1])[:, np.newaxis] * np.ones(X.shape).T
-    speed = np.where((U**2 + V**2)< 0, True, False)
+    speed = np.where((U**2 + V**2)< 0.2, True, False)
     # 创建掩码UV
     U = np.ma.array(U, mask=speed)
     V = np.ma.array(V, mask=speed)
