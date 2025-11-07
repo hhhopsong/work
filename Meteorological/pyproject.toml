@@ -7,7 +7,7 @@ name = "ClimatePy"          # 避免与 PyPI 上潜在重名冲突
 version = "0.1.0beta"
 description = "Some tool function package for Climate project"
 requires-python = ">=3.9"
-license = "BSD 3-Clause"
+license = "BSD-3-Clause"
 authors = [{ name = "Tingyang Song", email = "1057422494@qq.com" }]
 dependencies = [
   "numpy>=1.26",
@@ -34,7 +34,7 @@ dependencies = [
   "geopandas>=0.10",
   "pymannkendall>=1.0",
   "statsmodels>=0.9",
-  "pycwt>=0.10",
+  "pycwt",
 ]
 
 [tool.setuptools]
