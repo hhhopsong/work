@@ -22,15 +22,14 @@ import tqdm as tq
 import time
 import pandas as pd
 
-from toolbar.significance_test import corr_test, r_test
-from toolbar.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
-from toolbar.curved_quivers.modplot import *
-from toolbar.data_read import *
-from toolbar.masked import masked
-from toolbar.corr_reg import corr, regress
-from toolbar.lonlat_transform import transform
+from ClimatePy.significance_test import corr_test, r_test
+from ClimatePy.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
+from ClimatePy.Cquiver import *
+from ClimatePy.data_read import *
+from ClimatePy.masked import masked
+from ClimatePy.corr_reg import corr, regress
+from ClimatePy.lonlat_transform import transform
 
-from DATA_ADDRESS import PYFILE, DATA, P3
 
 
 def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
@@ -110,13 +109,13 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
     latlon_fmt(axes_sub, geoticks['x'], geoticks['y'],  MultipleLocator(geoticks['xminor']),
                MultipleLocator(geoticks['yminor']))
     axes_sub.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.15)
-    axes_sub.add_geometries(Reader(fr'{PYFILE}\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
-    axes_sub.add_geometries(Reader(fr'{PYFILE}\map\地图线路数据\长江\长江.shp').geometries(), ccrs.PlateCarree(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
                        facecolor='none', edgecolor='blue', linewidth=0.2)
-    axes_sub.add_geometries(Reader(fr'{PYFILE}\map\地图线路数据\长江干流_lake\lake_wsg84.shp').geometries(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江干流_lake/lake_wsg84.shp').geometries(),
                        ccrs.PlateCarree(), facecolor='blue', edgecolor='blue', linewidth=0.05)
-    axes_sub.add_geometries(Reader(fr'{PYFILE}\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp').geometries(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
                        ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=10)
     if rec_Set is not None:
         for rec_set in rec_Set:
@@ -315,6 +314,10 @@ plt.rcParams['font.family'] = 'Times New Roman'
 xticks = np.arange(-180, 181, 30)
 yticks = np.arange(-30, 81, 30)
 
+
+PYFILE = '/Volumes/sty/PyFile'
+P3 = '/Volumes/sty/p3'
+DATA = '/Volumes/sty/data'
 # 下列参数的默认值
 # center_lon
 # extent, geoticks
