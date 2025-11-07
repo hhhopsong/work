@@ -153,7 +153,7 @@ def adjust_sub_axes(ax_main, ax_sub, shrink, lr=1.0, ud=1.0, width=1.0, height=1
     ax_sub.set_position(bbox_new)
 
 
-class Curlyquiver:
+class Cquiver:
     def __init__(self, ax, x, y, U, V, lon_trunc=None, linewidth=.5, color='black', cmap=None, norm=None, arrowsize=.5,
                  arrowstyle='v', transform=None, zorder=None, start_points='interleaved', scale=1., regrid=30,
                  regrid_reso=2.5, integration_direction='both', nanmax=None, center_lon=180., alpha=1.,

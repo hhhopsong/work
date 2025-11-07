@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.ticker as ticker
 import cartopy.crs as ccrs
 import scipy.ndimage as ndimage
-from toolbar.curved_quivers.modplot import velovect
+from ..curved_quivers.modplot import velovect
 
 
 def draw_frc():

@@ -11,9 +11,9 @@ from cartopy.util import add_cyclic_point
 from scipy.interpolate import interpolate
 from tqdm import tqdm
 import tqdm as tq
-from LBM.f2py.dsphe import G2W
+from f2py.dsphe import G2W
 from cartopy.util import add_cyclic_point
-from LBM.f2py.dim import NTR, NMDIM, KMAX, NMAX, NVAR, MMAX, LMAX
+from f2py.dim import NTR, NMDIM, KMAX, NMAX, NVAR, MMAX, LMAX
 import torch
 
 
