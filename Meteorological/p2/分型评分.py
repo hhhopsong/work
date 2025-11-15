@@ -8,23 +8,24 @@ import cartopy.crs as ccrs
 import cmaps
 
 from cartopy.io.shapereader import Reader
-from toolbar.filter import MovingAverageFilter
-from toolbar.masked import masked  # 气象工具函数
-from toolbar.K_Mean import K_Mean
-from toolbar.average_filter import nanmean_filter
+from climkit.filter import MovingAverageFilter
+from climkit.masked import masked  # 气象工具函数
+from climkit.K_Mean import K_Mean
+from climkit.average_filter import nanmean_filter
 import scipy
 
 # 数据读取
 data_year = ['1961', '2022']
 # 读取CN05.1逐日最高气温数据
 #CN051_1 = xr.open_dataset(r"E:\data\CN05.1\1961_2021\CN05.1_Tmax_1961_2021_daily_025x025.nc")
-CN051_2 = xr.open_dataset(r"E:\data\CN05.1\2022\CN05.1_Tmax_2022_daily_025x025.nc")
+CN051_2 = xr.open_dataset(r"/volumes/sty/data/CN05.1/2022/CN05.1_Tmax_2022_daily_025x025.nc")
 #CN051 = xr.concat([CN051_1, CN051_2], dim='time')
+PYFILE = r"/volumes/sty/PyFile"
 try:
-    Tmax_5Day_filt = xr.open_dataarray(fr"D:\PyFile\p2\data\Tmax_5Day_filt.nc")
+    Tmax_5Day_filt = xr.open_dataarray(fr"{PYFILE}/p2/data/Tmax_5Day_filt.nc")
 except:
     Tmax = xr.concat([CN051_1, CN051_2], dim='time')
-    Tmax = masked(Tmax, r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp")  # 掩膜处理得长江流域温度
+    Tmax = masked(Tmax, fr"{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp")  # 掩膜处理得长江流域温度
     Tmax = Tmax.sel(time=Tmax['time.month'].isin([6, 7, 8])).groupby('time.year')  # 截取夏季数据
     Tmax_5Day_filt = np.array([[[MovingAverageFilter(iyear[1]['tmax'].data[:, i, j], 'lowpass', [5], np.nan).filted()
                                  for j in range(283)] for i in range(163)] for iyear in tq.tqdm(Tmax)])  # 5天滑动平均
@@ -35,17 +36,17 @@ except:
                                           CN051_2['lat'].data,
                                           CN051_2['lon'].data],
                                   dims=['year', 'day', 'lat', 'lon'], )
-    Tmax_5Day_filt.to_netcdf(fr"D:\PyFile\p2\data\Tmax_5Day_filt.nc")
+    Tmax_5Day_filt.to_netcdf(fr"{PYFILE}/p2/data/Tmax_5Day_filt.nc")
     del Tmax
 T_th = 0.90
 t95 = masked(Tmax_5Day_filt.sel(day=slice('1', '88')),
-             r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").mean(dim=['year', 'day']).quantile(T_th)  # 夏季6-8月的5日滑动平均内 长江中下游流域 分位数
+             fr"{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp").mean(dim=['year', 'day']).quantile(T_th)  # 夏季6-8月的5日滑动平均内 长江中下游流域 分位数
 EHD = Tmax_5Day_filt - t95
 EHD = EHD.where(EHD > 0, 0)  # 极端高温日温度距平
 EHD = EHD.where(EHD == 0, 1)  # 数据二值化处理(1:极端高温, 0:非极端高温)
-EHD = masked(EHD, r"D:\PyFile\map\self\长江_TP\长江_tp.shp")  # 掩膜处理得长江流域EHD温度距平
+EHD = masked(EHD, fr"{PYFILE}/map/self/长江_TP/长江_tp.shp")  # 掩膜处理得长江流域EHD温度距平
 EHD = EHD.sel(day=EHD['day'][30:30+62-4]) # 截取7月3日至8月28日数据
-zone_stations = masked((CN051_2 - CN051_2 + 1).sel(time='2022-01-01'), r"D:\PyFile\map\self\长江_TP\长江_tp.shp").sum()['tmax'].data
+zone_stations = masked((CN051_2 - CN051_2 + 1).sel(time='2022-01-01'), fr"{PYFILE}/map/self/长江_TP/长江_tp.shp").sum()['tmax'].data
 EHDstations_zone = EHD.sum(dim=['lat', 'lon']) / zone_stations  # 长江流域逐日极端高温格点占比
 S_q = 0.9
 S_th = 0.3
@@ -62,7 +63,7 @@ for i in EHD20_time:
         if not np.isnan(j):
             bridge.append(j)
 EHD20_time = np.array(bridge)
-EHD20 = masked(EHD20, r"D:\PyFile\map\self\长江_TP\长江_tp.shp")  # 减去非研究地区
+EHD20 = masked(EHD20, fr"{PYFILE}/map/self/长江_TP/长江_tp.shp")  # 减去非研究地区
 EHD20 = EHD20.data.reshape(-1, 163 * 283)
 EHD20 = pd.DataFrame(EHD20).dropna(axis=0, how='all')
 EHD20_ = EHD20.dropna(axis=1, how='all')
@@ -114,8 +115,8 @@ def plot_test(data, max_clusters=10):
     for spine in ax1.spines.values():
         spine.set_linewidth(1.5)  # 设置边框线宽
     ax1.plot(cluster_range, silhouette_scores, color='r', label='S', zorder=4)
-    ax1.set_xlabel('Number of Clusters', fontsize=12)
-    ax1.set_ylabel('S', color='r', fontsize=12)
+    ax1.set_xlabel('Number of clusters', fontsize=12)
+    ax1.set_ylabel('Silhouette coefficient', color='r', fontsize=12)
     ax1.tick_params(axis='y', colors='r', labelsize=10)
     ax1.tick_params(axis='x', labelsize=10)
     ax1.axvline(x=3, color='lightgreen', linestyle='-', alpha=0.8, linewidth=20)
@@ -144,8 +145,8 @@ def plot_test(data, max_clusters=10):
 
     plt.xticks(np.arange(2, max_clusters + 1, 1))  # 整数x轴刻度
     fig.tight_layout()
-    plt.savefig(fr"D:\PyFile\p2\pic\图3_1.pdf", bbox_inches='tight')
-    plt.savefig(fr"D:\PyFile\p2\pic\图3_1.png", dpi=600, bbox_inches='tight')
+    plt.savefig(fr"{PYFILE}/p2/pic/图3_1.pdf", bbox_inches='tight')
+    plt.savefig(fr"{PYFILE}/p2/pic/图3_1.png", dpi=600, bbox_inches='tight')
     plt.show()
 
 plot_test(EHD20_.to_numpy(), max_clusters=10)
@@ -183,20 +184,20 @@ time = [time[i] for i in sort_index] # 同步调整时间顺序
 
 type_name = ['MLR-type', 'AR-type', 'UR-type']
 for cluster in range(K_s):
-    extent_CN = [88, 124, 22, 38]  # 中国大陆经度范围，纬度范围
+    extent_CN = [90, 122.5, 23.8, 38]  # 中国大陆经度范围，纬度范围
     ax = fig.add_subplot(2, K_s, cluster + 1, projection=ccrs.PlateCarree())
     # 统一加粗所有四个边框
     for spine in ax.spines.values():
         spine.set_linewidth(1.5)  # 设置边框线宽
     ax.set_title(f"({abc_index[cluster]}) {type_name[cluster]}", loc='left', fontsize=14)
     ax.add_geometries(Reader(
-        r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
+        fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
                       ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
-    ax.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江\长江.shp').geometries(), ccrs.PlateCarree(),
+    ax.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='blue', linewidth=0.6)
-    ax.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp').geometries(),
+    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(),
                     ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
-    ax.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江干流_lake\lake_wsg84.shp').geometries(),
+    ax.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江干流_lake/lake_wsg84.shp').geometries(),
                        ccrs.PlateCarree(), facecolor='blue', edgecolor='blue', linewidth=0.2, alpha=0.5)
     ax.set_extent(extent_CN)
     # 刻度线设置
@@ -264,7 +265,7 @@ Tavg_weight = xr.Dataset({'W': (['type', 'lat', 'lon'], Tavg_weight)},
                        coords={'type': [i for i in range(1, K_s + 1)],
                                'lat': CN051_2['lat'].data,
                                'lon': CN051_2['lon'].data})
-Tavg_weight.to_netcdf(fr"D:\PyFile\p2\data\Tavg_weight.nc")
+Tavg_weight.to_netcdf(fr"{PYFILE}/p2/data/Tavg_weight.nc")
 
 Time_type = np.zeros((62, K_s))
 for i in range(K_s):
@@ -274,7 +275,7 @@ for i in range(K_s):
 Time_type = xr.Dataset({'K': (['year', 'type'], Time_type)},
                        coords={'year': [i for i in range(1961, 2023)], 'type': [i for i in range(1, K_s + 1)]})
 '''try:
-    Time_type.to_netcdf(fr'D:\PyFile\p2\data\Time_type_AverFiltAll{T_th}%_{S_th}%_{K_s}.nc')
+    Time_type.to_netcdf(fr'{PYFILE}/p2/data/Time_type_AverFiltAll{T_th}%_{S_th}%_{K_s}.nc')
 except:
     pass'''
 
@@ -282,7 +283,7 @@ import seaborn as sns
 from scipy import stats
 
 # 加载数据集
-data = xr.open_dataset(fr'D:\PyFile\p2\data\Time_type_AverFiltAll{T_th}%_{S_th}%_{K_s}.nc')
+data = xr.open_dataset(fr'{PYFILE}/p2/data/Time_type_AverFiltAll{T_th}%_{S_th}%_{K_s}.nc')
 data = Time_type
 
 # 将数据集转换为 Pandas DataFrame 以便更容易操作
@@ -307,7 +308,7 @@ for spine in ax1.spines.values():
 # 绘制柱状图（单色表示每年的总天数）
 bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='Total')
 ax1.legend(fontsize=10, loc='upper left', bbox_to_anchor=(0.28, 0.985), edgecolor='none', ncol=1)
-ax1.set_title('(d) Seasonal occurrences of BWHT', loc='left', fontsize=14)  # 设置标题
+ax1.set_title('(d) Interannual Occurrences of BWHT', loc='left', fontsize=14)  # 设置标题
 ax1.set_xlim(1960, 2023)
 ax1.set_xlabel('Year', fontsize=12)  # 设置 x 轴标签
 ax1.set_ylim(0, 63)
@@ -396,6 +397,6 @@ fig.subplots_adjust(hspace=0.01)
 plt.tight_layout()
 
 # 显示图表
-plt.savefig(fr"D:\PyFile\p2\pic\图3.pdf", bbox_inches='tight')
-plt.savefig(fr"D:\PyFile\p2\pic\图3.png", dpi=600, bbox_inches='tight')
+plt.savefig(fr"{PYFILE}/p2/pic/图3.pdf", bbox_inches='tight')
+plt.savefig(fr"{PYFILE}/p2/pic/图3.png", dpi=600, bbox_inches='tight')
 plt.show()

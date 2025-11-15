@@ -7,12 +7,13 @@ from matplotlib.path import Path
 
 from scipy.stats import linregress
 
-from toolbar.masked import masked
-from toolbar.significance_test import r_test
+from climkit.masked import masked
+from climkit.significance_test import r_test
 
 import tqdm as tq
 
-corr = np.load(r"D:\PyFile\p2\data\corr.npy")
+PYFILE = r"/volumes/sty/PyFile"
+corr = np.load(fr"{PYFILE}/p2/data/corr.npy")
 
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib import colors, ticker
@@ -25,7 +26,7 @@ plt.rcParams['font.family'] = 'Times New Roman'
 
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ax.set_title("Correlation among different thresholds", fontsize=14, loc='left')
+ax.set_title("Correlations among different thresholds", fontsize=14, loc='left')
 levels = [0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 0.95, 1]
 norm = BoundaryNorm(levels, cmaps.sunshine_9lev.N)
 contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], cmap=cmaps.sunshine_9lev, levels=[0, .2, .4, .6, .7, .8, .9, .95, 1], extend='both', norm=norm)
@@ -56,7 +57,7 @@ ax.axvline(0.3, color='g', linestyle='-', linewidth=1)
 # 设置y=31.76的线
 ax.axhline(31.76, color='b', linestyle='-', linewidth=1)
 # 设置(0.3, 31.76)的点
-ax.scatter(0.3, 31.76, color='k', s=15, zorder=2)
+ax.scatter(0.3, 31.76, color='#202020', s=130, zorder=2, marker=(5, 1), alpha=0.85, edgecolors='none')
 # 设置x轴
 ax.set_xlabel("EHCI", fontsize=14)
 ax.set_xlim(0.1, 0.9)
@@ -92,5 +93,6 @@ cb1.dividers.set_color('black') # 将colorbar内间隔线调为黑色
 cb1.ax.tick_params(length=0, labelsize=10)  # length为刻度线的长度
 cb1.locator = ticker.FixedLocator(np.array([0, .2, .4, .6, .7, .8, .9, .95, 1]))
 cb1.set_ticklabels([" 0   ", " 0.2", " 0.4", " 0.6", " 0.7", " 0.8 ", " 0.9", " 0.95", " 1 "])
-plt.savefig(r"D:\PyFile\p2\pic\corr.png", dpi=600, bbox_inches='tight')
+plt.savefig(fr"{PYFILE}/p2/pic/corr.pdf", bbox_inches='tight')
+plt.savefig(fr"{PYFILE}/p2/pic/corr.png", dpi=600, bbox_inches='tight')
 plt.show()
