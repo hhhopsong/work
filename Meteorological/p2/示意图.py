@@ -20,13 +20,13 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib import colors
 from scipy.ndimage import filters
 
-from toolbar.K_Mean import K_Mean
-from toolbar.masked import masked
-from toolbar.significance_test import corr_test
-from toolbar.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
-from toolbar.curved_quivers.modplot import *
-from toolbar.data_read import *
-from toolbar.significance_test import r_test
+from climkit.K_Mean import K_Mean
+from climkit.masked import masked
+from climkit.significance_test import corr_test
+from climkit.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
+from climkit.Cquiver import *
+from climkit.data_read import *
+from climkit.significance_test import r_test
 
 def corr(time_series, data):
     # 计算相关系数
@@ -72,13 +72,15 @@ def regress(time_series, data):
     correlation_map = correlation.reshape(data.shape[1:])
     return regression_map, correlation_map
 
-K_type = xr.open_dataset(r"D:/PyFile/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
-Z = xr.open_dataset(r"D:/PyFile/p2/data/Z.nc").sel(level=[100, 150, 200, 500, 850])
-U = xr.open_dataset(r"D:/PyFile/p2/data/U.nc").sel(level=[100, 150, 200, 500, 850])
-V = xr.open_dataset(r"D:/PyFile/p2/data/V.nc").sel(level=[100, 150, 200, 500, 850])
-T = xr.open_dataset(r"D:/PyFile/p2/data/T.nc").sel(level=[100, 150, 200, 500, 850])
-Pre = xr.open_dataset(r"D:/PyFile/p2/data/pre.nc")
-Sst = xr.open_dataset(r"D:/PyFile/p2/data/sst.nc")
+PYFILE = r"/volumes/sty/PyFile"
+DATA = r"/volumes/sty/data"
+K_type = xr.open_dataset(f"{PYFILE}/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
+Z = xr.open_dataset(f"{PYFILE}/p2/data/Z.nc").sel(level=[100, 150, 200, 500, 850])
+U = xr.open_dataset(f"{PYFILE}/p2/data/U.nc").sel(level=[100, 150, 200, 500, 850])
+V = xr.open_dataset(f"{PYFILE}/p2/data/V.nc").sel(level=[100, 150, 200, 500, 850])
+T = xr.open_dataset(f"{PYFILE}/p2/data/T.nc").sel(level=[100, 150, 200, 500, 850])
+Pre = xr.open_dataset(f"{PYFILE}/p2/data/pre.nc")
+Sst = xr.open_dataset(f"{PYFILE}/p2/data/sst.nc")
 # 计算相关系数
 corr_z = np.zeros((2, len(K_type['type']), len(Z['level']), len(Z['lat']), len(Z['lon'])))
 reg_z = np.zeros((len(K_type['type']), len(Z['level']), len(Z['lat']), len(Z['lon'])))
@@ -174,18 +176,18 @@ U['u'].sel(level=[150, 200, 500]).mean('year').data
 data_year = ['1961', '2022']
 # 读取CN05.1逐日最高气温数据
 #CN051_1 = xr.open_dataset(r"E:\data\CN05.1\1961_2021\CN05.1_Tmax_1961_2021_daily_025x025.nc")
-CN051_2 = xr.open_dataset(r"E:\data\CN05.1\2022\CN05.1_Tmax_2022_daily_025x025.nc")
+CN051_2 = xr.open_dataset(f"{DATA}/CN05.1/2022/CN05.1_Tmax_2022_daily_025x025.nc")
 #CN051 = xr.concat([CN051_1, CN051_2], dim='time')
-Tmax_5Day_filt = xr.open_dataarray(fr"D:\PyFile\p2\data\Tmax_5Day_filt.nc")
+Tmax_5Day_filt = xr.open_dataarray(f"{PYFILE}/p2/data/Tmax_5Day_filt.nc")
 T_th = 0.90
 t95 = masked(Tmax_5Day_filt.sel(day=slice('1', '88')),
-             r"D:\PyFile\map\地图边界数据\长江区1：25万界线数据集（2002年）\长江区.shp").mean(dim=['year', 'day']).quantile(T_th)  # 夏季6-8月的5日滑动平均内 长江中下游流域 分位数
+             f"{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp").mean(dim=['year', 'day']).quantile(T_th)  # 夏季6-8月的5日滑动平均内 长江中下游流域 分位数
 EHD = Tmax_5Day_filt - t95
 EHD = EHD.where(EHD > 0, 0)  # 极端高温日温度距平
 EHD = EHD.where(EHD == 0, 1)  # 数据二值化处理(1:极端高温, 0:非极端高温)
-EHD = masked(EHD, r"D:\PyFile\map\self\长江_TP\长江_tp.shp")  # 掩膜处理得长江流域EHD温度距平
+EHD = masked(EHD, f"{PYFILE}/map/self/长江_TP/长江_tp.shp")  # 掩膜处理得长江流域EHD温度距平
 EHD = EHD.sel(day=EHD['day'][30:30+62-4]) # 截取7月3日至8月28日数据
-zone_stations = masked((CN051_2 - CN051_2 + 1).sel(time='2022-01-01'), r"D:\PyFile\map\self\长江_TP\长江_tp.shp").sum()['tmax'].data
+zone_stations = masked((CN051_2 - CN051_2 + 1).sel(time='2022-01-01'), f"{PYFILE}/map/self/长江_TP/长江_tp.shp").sum()['tmax'].data
 EHDstations_zone = EHD.sum(dim=['lat', 'lon']) / zone_stations  # 长江流域逐日极端高温格点占比
 S_q = 0.9
 S_th = 0.3
@@ -202,7 +204,7 @@ for i in EHD20_time:
         if not np.isnan(j):
             bridge.append(j)
 EHD20_time = np.array(bridge)
-EHD20 = masked(EHD20, r"D:\PyFile\map\self\长江_TP\长江_tp.shp")  # 减去非研究地区
+EHD20 = masked(EHD20, f"{PYFILE}/map/self/长江_TP/长江_tp.shp")  # 减去非研究地区
 EHD20 = EHD20.data.reshape(-1, 163 * 283)
 EHD20 = pd.DataFrame(EHD20).dropna(axis=0, how='all')
 EHD20_ = EHD20.dropna(axis=1, how='all')
@@ -240,10 +242,11 @@ gs = gridspec.GridSpec(3, 1)
 
 xticks1 = np.arange(-180, 180, 10)
 yticks1 = np.arange(-30, 81, 30)
-ax1 = fig.add_subplot(gs[0], projection=ccrs.PlateCarree(central_longitude=180-70))
-ax1.set_title(f"a) MLR Type", fontsize=10, loc='left')
+c_lon = 180-70-40
+ax1 = fig.add_subplot(gs[0], projection=ccrs.PlateCarree(central_longitude=c_lon))
+ax1.set_title(f"(a) MLR-type", fontsize=10, loc='left')
 # ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.25)
-ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
+ax1.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                    facecolor='none', edgecolor='black', linewidth=.5)
 ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
 ax1.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
@@ -278,10 +281,10 @@ sst = ax1.contourf(lon, corr_sst['lat'], reg_sst_,
                    cmap=cmaps.GMT_polar[2:10 - 2] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10 + 2:-2], levels=lev_sst,
                    extend='both', transform=ccrs.PlateCarree(central_longitude=0), alpha=0.75)
 
-ax2 = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180-70))
-ax2.set_title(f"b) AR Type", fontsize=10, loc='left')
+ax2 = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=c_lon))
+ax2.set_title(f"(b) AR-type", fontsize=10, loc='left')
 # ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.25)
-ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+ax2.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
 ax2.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
 ax2.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
 latlon_fmt(ax2, xticks1, yticks1, MultipleLocator(60), MultipleLocator(10), MultipleLocator(30), MultipleLocator(10))
@@ -303,9 +306,9 @@ lev_sst = np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4])
 reg_sst_ = np.where((np.abs(reg_sst_) < 0.05), np.nan, reg_sst_)
 sst = ax2.contourf(lon, corr_sst['lat'], reg_sst_, cmap=cmaps.GMT_polar[2:10-2] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10+2:-2], levels=lev_sst, extend='both', transform=ccrs.PlateCarree(central_longitude=0), alpha=0.75)
 
-ax3 = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=110))
-ax3.set_title(f"c) UR Type", fontsize=10, loc='left')
-ax3.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+ax3 = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=c_lon))
+ax3.set_title(f"(c) UR-type", fontsize=10, loc='left')
+ax3.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
 ax3.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
 ax3.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree(central_longitude=0))
 latlon_fmt(ax3, xticks1, yticks1, MultipleLocator(60), MultipleLocator(10), MultipleLocator(30), MultipleLocator(10))
@@ -328,5 +331,5 @@ lev_sst = np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4])
 reg_sst_ = np.where((np.abs(reg_sst_) < 0.05), np.nan, reg_sst_)
 sst = ax3.contourf(lon, corr_sst['lat'], reg_sst_, cmap=cmaps.GMT_polar[2:10-2] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10+2:-2], levels=lev_sst, extend='both', transform=ccrs.PlateCarree(central_longitude=0), alpha=0.75)
 
-plt.savefig(f'D:/PyFile/p2/pic/示意图.pdf', bbox_inches='tight')
+plt.savefig(f'{PYFILE}/p2/pic/示意图_origin.pdf', bbox_inches='tight')
 plt.show()
