@@ -691,7 +691,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
         try:
             dictance_matrix = traj_overlap_all(trajectories, MinDistance[0])
             distance_limit_index = []
-            for i in tq.trange(len(trajectories), desc='极速降重中', colour='blue', unit='lines', total=len(trajectories)):
+            for i in tq.trange(len(trajectories), desc='快速降重中', colour='blue', unit='lines', total=len(trajectories)):
                 if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
                     continue
                 if i == 0:

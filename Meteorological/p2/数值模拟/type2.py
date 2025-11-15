@@ -12,7 +12,7 @@ from cartopy.io.shapereader import Reader
 import geopandas as gpd
 
 
-from toolbar.curved_quivers.modplot import Curlyquiver
+from climkit.Cquiver import Curlyquiver
 
 
 def plot_text(ax, x, y, title, size, color):
@@ -29,15 +29,18 @@ def plot_text(ax, x, y, title, size, color):
 
 
 def draw_frc():
+    PYFILE = r"/volumes/sty/PyFile"
+    DATA = r"/volumes/sty/data"
+    
     fig = plt.figure(figsize=(12, 6))
     plt.subplots_adjust(wspace=0)
     # 字体为新罗马
     plt.rcParams['font.family'] = 'Times New Roman'
-    frc_nc_p = xr.open_dataset(r'D:\PyFile\p2\lbm\type2_apre_frc_p.nc').interp(
+    frc_nc_p = xr.open_dataset(f'{PYFILE}/p2/lbm/type2_apre_frc_p.nc').interp(
         lon=np.arange(0, 360, .25),
         lat=np.arange(-90, 90.25, .25),
         kwargs={"fill_value": "extrapolate"}) * 86400
-    lbm = xr.open_dataset(r'D:\PyFile\p2\lbm\type2_apre.nc')
+    lbm = xr.open_dataset(f'{PYFILE}/p2/lbm/type2_apre.nc')
     u = lbm['u'][19:25].mean('time')
     v = lbm['v'][19:25].mean('time')
     t = lbm['t'][19:25].mean('time')
@@ -50,10 +53,10 @@ def draw_frc():
     # 图1
     lev = 200
     ax1_ = fig.add_subplot(331, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax1_.set_title('(a) Exp_NT    200hPa UV&FRC', fontsize=10, loc='left')
+    ax1_.set_title('(a) Exp_SNT    200hPa UV', fontsize=10, loc='left')
     ax1_.set_aspect('auto')
     ax1_.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax1_.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax1_.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax1_.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     var = 'v'
@@ -72,15 +75,15 @@ def draw_frc():
                         levels=lev_range, cmap=cmaps.MPL_PuOr_r[22:64]+cmaps.MPL_PiYG_r[64:-22], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind200 = Curlyquiver(ax1_, lon_UV, lat, U, V, arrowsize=.8, scale=scale, regrid=13, linewidth=.25, nanmax=10,
                         color="k", center_lon=c_lon_1, thinning=['15%', 'min'], MinDistance=[0.5, 0.1])
-    wind200.key(fig, U=1.5, label='1.5 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+    wind200.key(fig, U=1.5, label='1.5 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
     # 图2
     lev = 500
     extent1 = extent1
     ax2_ = fig.add_subplot(334, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax2_.set_title('(b) Exp_NT    500hPa UV&FRC', fontsize=10, loc='left')
+    ax2_.set_title('(b) Exp_SNT    500hPa UV', fontsize=10, loc='left')
     ax2_.set_aspect('auto')
     ax2_.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax2_.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax2_.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax2_.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
@@ -93,18 +96,18 @@ def draw_frc():
     var_contr = ax2_.contourf(lon_fill_white, frc_nc_p[var]['lat'], np.where((frc_fill_white >= zero_mask) | (frc_fill_white <= -zero_mask), frc_fill_white, np.nan),
                         levels=lev_range, cmap=cmaps.MPL_PuOr_r[22:64]+cmaps.MPL_PiYG_r[64:-22], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind500 = Curlyquiver(ax2_, lon_UV, lat, U, V, arrowsize=.8, scale=scale*2/3, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                           color="k", center_lon=c_lon_1, thinning=['15%', 'min'], MinDistance=[0.5, 0.1])
-    wind500.key(fig, U=1, label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+                           color="k", center_lon=c_lon_1, thinning=['10%', 'min'], MinDistance=[0.5, 0.1])
+    wind500.key(fig, U=1, label='1 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
 
 
     # 图1
     lev = 850
     extent1 = extent1
     ax4_ = fig.add_subplot(337, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax4_.set_title('(c) Exp_NT    850hPa UV&FRC', fontsize=10, loc='left')
+    ax4_.set_title('(c) Exp_SNT    850hPa UV', fontsize=10, loc='left')
     ax4_.set_aspect('auto')
     ax4_.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax4_.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax4_.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax4_.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
@@ -118,9 +121,9 @@ def draw_frc():
                         levels=lev_range, cmap=cmaps.MPL_PuOr_r[22:64]+cmaps.MPL_PiYG_r[64:-22], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4_, lon_UV, lat, U, V, arrowsize=.8, scale=scale/2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
-                           color="k", center_lon=c_lon_1, thinning=['15%', 'min'], MinDistance=[0.5, 0.1])
-    wind850.key(fig, U=.75, label='0.75 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
-    DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
+                           color="k", center_lon=c_lon_1, thinning=['0%', 'min'], MinDistance=[0.5, 0.1])
+    wind850.key(fig, U=.75, label='0.75 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+    DBATP = fr"{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp"
     provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
     ax4_.add_feature(provinces, lw=0.5, zorder=2)
 
@@ -180,11 +183,11 @@ def draw_frc():
 
     axa, axb, axc = ax1_, ax2_, ax4_
 
-    frc_nc_p = xr.open_dataset(r'D:\PyFile\p2\lbm\type2_ppre_frc_p.nc').interp(
+    frc_nc_p = xr.open_dataset(f'{PYFILE}/p2/lbm/type2_ppre_frc_p.nc').interp(
         lon=np.arange(0, 360, .25),
         lat=np.arange(-90, 90.25, .25),
         kwargs={"fill_value": "extrapolate"}) * 86400
-    lbm = xr.open_dataset(r'D:\PyFile\p2\lbm\type2_ppre.nc')
+    lbm = xr.open_dataset(f'{PYFILE}/p2/lbm/type2_ppre.nc')
     u = lbm['u'][19:25].mean('time')
     v = lbm['v'][19:25].mean('time')
     t = lbm['t'][19:25].mean('time')
@@ -195,10 +198,10 @@ def draw_frc():
     # 图1
     lev = 200
     ax1 = fig.add_subplot(332, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax1.set_title('(d) Exp_TPS    200hPa UV&FRC', fontsize=10, loc='left')
+    ax1.set_title('(d) Exp_TPS    200hPa UV', fontsize=10, loc='left')
     ax1.set_aspect('auto')
     ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax1.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     var = 't'
@@ -216,15 +219,15 @@ def draw_frc():
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.8, scale=scale, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                         color="k", center_lon=c_lon_1, thinning=['30%', 'min'], MinDistance=[0.5, 0.1])
-    wind200.key(fig, U=1.5, label='1.5 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+    wind200.key(fig, U=1.5, label='1.5 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
     # 图2
     lev = 500
     extent1 = extent1
     ax2 = fig.add_subplot(335, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax2.set_title('(e) Exp_TPS    500hPa UV&FRC', fontsize=10, loc='left')
+    ax2.set_title('(e) Exp_TPS    500hPa UV', fontsize=10, loc='left')
     ax2.set_aspect('auto')
     ax2.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax2.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax2.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
@@ -239,16 +242,16 @@ def draw_frc():
                         levels=lev_range, cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.8, scale=scale*2/3, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                            color="k", center_lon=c_lon_1, thinning=['15%', 'min'], MinDistance=[0.5, 0.1])
-    wind500.key(fig, U=1, label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+    wind500.key(fig, U=1, label='1 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
 
     # 图1
     lev = 850
     extent1 = extent1
     ax4 = fig.add_subplot(338, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax4.set_title('(f) Exp_TPS    850hPa UV&FRC', fontsize=10, loc='left')
+    ax4.set_title('(f) Exp_TPS    850hPa UV', fontsize=10, loc='left')
     ax4.set_aspect('auto')
     ax4.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax4.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax4.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
@@ -264,8 +267,8 @@ def draw_frc():
     #z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.8, scale=scale/2, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                            color="k", center_lon=c_lon_1, thinning=['35%', 'min'], MinDistance=[0.5, 0.1])
-    wind850.key(fig, U=0.75, label='0.75 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
-    DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
+    wind850.key(fig, U=0.75, label='0.75 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+    DBATP = fr"{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp"
     provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
     ax4.add_feature(provinces, lw=0.5, zorder=2)
 
@@ -327,11 +330,11 @@ def draw_frc():
 
     axd, axe, axf = ax1, ax2, ax4
 
-    frc_nc_p = xr.open_dataset(r'D:\PyFile\p2\lbm\type2_frc_p.nc').interp(
+    frc_nc_p = xr.open_dataset(f'{PYFILE}/p2/lbm/type2_frc_p.nc').interp(
         lon=np.arange(0, 360, .25),
         lat=np.arange(-90, 90.25, .25),
         kwargs={"fill_value": "extrapolate"}) * 86400
-    lbm = xr.open_dataset(r'D:\PyFile\p2\lbm\type2_all.nc')
+    lbm = xr.open_dataset(f'{PYFILE}/p2/lbm/type2_all.nc')
     u = lbm['u'][19:25].mean('time')
     v = lbm['v'][19:25].mean('time')
     t = lbm['t'][19:25].mean('time')
@@ -342,10 +345,10 @@ def draw_frc():
     # 图1
     lev = 200
     ax1 = fig.add_subplot(333, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax1.set_title('(g) Exp_NT+TPS    200hPa UV&FRC', fontsize=10, loc='left')
+    ax1.set_title('(g) Exp_SNT+TPS    200hPa UV', fontsize=10, loc='left')
     ax1.set_aspect('auto')
     ax1.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax1.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax1.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax1.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     var = 't'
@@ -377,15 +380,15 @@ def draw_frc():
                              transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind200 = Curlyquiver(ax1, lon_UV, lat, U, V, arrowsize=.8, scale=scale, regrid=13, linewidth=.25, nanmax=wind200.nanmax,
                           color="k", center_lon=c_lon_1, thinning=['15%', 'min'], MinDistance=[0.5, 0.1])
-    wind200.key(fig, U=1.5, label='1.5 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+    wind200.key(fig, U=1.5, label='1.5 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
     # 图2
     lev = 500
     extent1 = extent1
     ax2 = fig.add_subplot(336, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax2.set_title('(h) Exp_NT+TPS    500hPa UV&FRC', fontsize=10, loc='left')
+    ax2.set_title('(h) Exp_SNT+TPS    500hPa UV', fontsize=10, loc='left')
     ax2.set_aspect('auto')
     ax2.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax2.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax2.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax2.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
@@ -410,17 +413,17 @@ def draw_frc():
                              cmap=cmaps.MPL_PuOr_r[22:64]+cmaps.MPL_PiYG_r[64:-22],
                              transform=ccrs.PlateCarree(central_longitude=0), extend='both')
     wind500 = Curlyquiver(ax2, lon_UV, lat, U, V, arrowsize=.8, scale=scale*2/3, regrid=13, linewidth=.25,
-                          nanmax=wind200.nanmax, color="k", center_lon=c_lon_1, thinning=['15%', 'min'], MinDistance=[0.5, 0.1])
-    wind500.key(fig, U=1, label='1 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+                          nanmax=wind200.nanmax, color="k", center_lon=c_lon_1, thinning=['10%', 'min'], MinDistance=[0.5, 0.1])
+    wind500.key(fig, U=1, label='1 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
 
     # 图1
     lev = 850
     extent1 = extent1
     ax4 = fig.add_subplot(339, projection=ccrs.PlateCarree(central_longitude=c_lon_1))
-    ax4.set_title('(i) Exp_NT+TPS    850hPa UV&FRC', fontsize=10, loc='left')
+    ax4.set_title('(i) Exp_SNT+TPS    850hPa UV', fontsize=10, loc='left')
     ax4.set_aspect('auto')
     ax4.add_feature(cfeature.LAND.with_scale('110m'), color='lightgray', lw=0.05)
-    ax4.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
+    ax4.add_geometries(Reader(f'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),facecolor='none', edgecolor='black', linewidth=.5)
     ax4.set_extent(extent1, crs=ccrs.PlateCarree())
     # 强迫
     frc_fill_white, lon_fill_white = add_cyclic(frc_nc_p[var].sel(lev=lev, time=0), frc_nc_p[var]['lon'])
@@ -447,9 +450,9 @@ def draw_frc():
     # z850 = ax4.contour(lon_Z, lat, Z, levels=4, colors='black', transform=ccrs.PlateCarree(central_longitude=0), linewidths=0.4)
     wind850 = Curlyquiver(ax4, lon_UV, lat, U, V, arrowsize=.8, scale=scale/2, regrid=13, linewidth=.25,
                           nanmax=wind200.nanmax,
-                          color="k", center_lon=c_lon_1, thinning=['15%', 'min'], MinDistance=[0.5, 0.1])
-    wind850.key(fig, U=.75, label='0.75 m/s', ud=7.8, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
-    DBATP = r"D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp"
+                          color="k", center_lon=c_lon_1, thinning=['10%', 'min'], MinDistance=[0.5, 0.1])
+    wind850.key(fig, U=.75, label='0.75 m/s', ud=7.9, edgecolor='none', arrowsize=.5, linewidth=.5, fontproperties={'size': 8})
+    DBATP = fr"{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp"
     provinces = cfeature.ShapelyFeature(Reader(DBATP).geometries(), crs=ccrs.PlateCarree(), facecolor='gray', alpha=1)
     ax4.add_feature(provinces, lw=0.5, zorder=2)
 
@@ -536,40 +539,42 @@ def draw_frc():
     plot_text(axa, -28, 55, 'C', 12, 'red')
     plot_text(axa,25, 58, 'A', 12, 'blue')
     plot_text(axa, 70, 55, 'C', 12, 'red')
-    plot_text(axa, 125, 45, 'A', 12, 'blue')
+    plot_text(axa, 82, 36, 'A', 12, 'blue')
 
     plot_text(axb, -59, 43, 'A', 12, 'blue')
     plot_text(axb, -28, 55, 'C', 12, 'red')
     plot_text(axb, 25, 58, 'A', 12, 'blue')
     plot_text(axb, 70, 51, 'C', 12, 'red')
-    plot_text(axb, 125, 45, 'A', 12, 'blue')
+    plot_text(axb, 89, 33, 'A', 12, 'blue')
 
     plot_text(axc, -53, 43, 'A', 12, 'blue')
     plot_text(axc, -28, 55, 'C', 12, 'red')
     plot_text(axc, 24, 58, 'A', 12, 'blue')
-    plot_text(axc, 110, 50, 'C', 12, 'red')
-    plot_text(axc, 132, 37, 'A', 12, 'blue')
+    plot_text(axc, 70, 48, 'C', 12, 'red')
+    plot_text(axc, 100, 37, 'A', 12, 'blue')
     ############################
     plot_text(axg, -70, 42, 'A', 12, 'blue')
     plot_text(axg, -28, 55, 'C', 12, 'red')
     plot_text(axg,26, 58, 'A', 12, 'blue')
     plot_text(axg, 70, 55, 'C', 12, 'red')
-    plot_text(axg, 132, 45, 'A', 12, 'blue')
+    plot_text(axg, 83, 36, 'A', 12, 'blue')
+    plot_text(axg, 135, 45, 'A', 12, 'blue')
 
     plot_text(axh, -68, 43, 'A', 12, 'blue')
     plot_text(axh, -28, 55, 'C', 12, 'red')
     plot_text(axh, 25, 58, 'A', 12, 'blue')
     plot_text(axh, 70, 55, 'C', 12, 'red')
+    plot_text(axh, 89, 33, 'A', 12, 'blue')
     plot_text(axh, 140, 45, 'A', 12, 'blue')
 
     plot_text(axi, -60, 43, 'A', 12, 'blue')
     plot_text(axi, -28, 55, 'C', 12, 'red')
     plot_text(axi, 22, 58, 'A', 12, 'blue')
-    plot_text(axi, 110, 50, 'C', 12, 'red')
+    plot_text(axi, 80, 50, 'C', 12, 'red')
     plot_text(axi, 150, 30, 'A', 12, 'blue')
 
-    plt.savefig(r'D:\PyFile\p2\pic\Output_对流实验_type2_single.pdf', bbox_inches='tight')
-    plt.savefig(r'D:\PyFile\p2\pic\Output_对流实验_type2_single.png', bbox_inches='tight', dpi=600)
+    plt.savefig(f'{PYFILE}/p2/pic/Output_对流实验_type2_single.pdf', bbox_inches='tight')
+    plt.savefig(f'{PYFILE}/p2/pic/Output_对流实验_type2_single.png', bbox_inches='tight', dpi=600)
     plt.show()
 
 
