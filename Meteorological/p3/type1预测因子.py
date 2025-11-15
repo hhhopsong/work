@@ -22,13 +22,14 @@ import tqdm as tq
 import time
 import pandas as pd
 
-from toolbar.significance_test import corr_test, r_test
-from toolbar.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
-from toolbar.curved_quivers.modplot import *
-from toolbar.data_read import *
-from toolbar.masked import masked
-from toolbar.corr_reg import corr, regress
-from toolbar.lonlat_transform import transform
+from ClimatePy.significance_test import corr_test, r_test
+from ClimatePy.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
+from ClimatePy.Cquiver import *
+from ClimatePy.data_read import *
+from ClimatePy.masked import masked
+from ClimatePy.corr_reg import corr, regress
+from ClimatePy.lonlat_transform import transform
+
 
 
 def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
@@ -108,13 +109,13 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
     latlon_fmt(axes_sub, geoticks['x'], geoticks['y'],  MultipleLocator(geoticks['xminor']),
                MultipleLocator(geoticks['yminor']))
     axes_sub.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.15)
-    axes_sub.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
-    axes_sub.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江\长江.shp').geometries(), ccrs.PlateCarree(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
                        facecolor='none', edgecolor='blue', linewidth=0.2)
-    axes_sub.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江干流_lake\lake_wsg84.shp').geometries(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江干流_lake/lake_wsg84.shp').geometries(),
                        ccrs.PlateCarree(), facecolor='blue', edgecolor='blue', linewidth=0.05)
-    axes_sub.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp').geometries(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
                        ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=10)
     if rec_Set is not None:
         for rec_set in rec_Set:
@@ -313,6 +314,10 @@ plt.rcParams['font.family'] = 'Times New Roman'
 xticks = np.arange(-180, 181, 30)
 yticks = np.arange(-30, 81, 30)
 
+
+PYFILE = '/Volumes/sty/PyFile'
+P3 = '/Volumes/sty/p3'
+DATA = '/Volumes/sty/data'
 # 下列参数的默认值
 # center_lon
 # extent, geoticks
@@ -363,13 +368,13 @@ default_wind_2_key_set = {'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr
 # 矩形框设置, 可为False
 default_rec_Set = [{'point': [105, 120, 20, 30], 'color': 'blue', 'ls': '--', 'lw': 0.5}]
 
-typesTimeSer = xr.open_dataset(r"D:/PyFile/p3/time_ser/typesTimeSer.nc")
+typesTimeSer = xr.open_dataset(fr"{PYFILE}/p3/time_ser/typesTimeSer.nc")
 # 2mT
-t2m = era5_land("E:/data/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
+t2m = era5_land(fr"{DATA}/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
 # SLP
-slp = era5_s("E:/data/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
+slp = era5_s(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
 # sst
-sst = ersst("E:/data/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
+sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
 # %%
 # 计算
 TR_time = [1961, 2000]  # 训练时间段
@@ -738,4 +743,4 @@ ax_predict.text(0.5, 0.88, func, transform=ax_predict.transAxes,
         bbox=dict(boxstyle='round,pad=0.5', fc='none', ec='none', alpha=0.6),
         zorder=10)
 
-plt.savefig('D:/PyFile/p3/pic/type1_前期因子.pdf', bbox_inches='tight')
+plt.savefig(fr'{PYFILE}/p3/pic/type1_前期因子.pdf', bbox_inches='tight')

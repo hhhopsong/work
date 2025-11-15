@@ -8,9 +8,10 @@
 /.vscode
 *xml
 *png
-/toolbar/paos.colorado.edu
+/climkit/paos.colorado.edu
 /p2/map
 /考试/地流作业/wave.gif
 /考试/地流作业/wave_g.gif
-/toolbar/curved_quivers/test.pdf
-/test/hzk.pdf
+/climkit/curved_quivers/*pdf
+/test/
+/climkit.egg-info/

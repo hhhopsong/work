@@ -7,24 +7,21 @@ from sklearn import metrics
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.preprocessing import StandardScaler
 
-# 用于评估K均值聚类初始化方法的基准测试函数。
+# K均值聚类初始化方法的评分。
 def bench_k_means(kmeans, name, data, labels):
     """
     参数
     ----------
-    kmeans : KMeans实例对象
-        已经设置初始化方法的KMeans实例对象。
+    kmeans : KMeans对象
     name : str
-        策略的名称，将用于在表格中显示结果。
     data : 形状为(n_samples, n_features)的数组
         用于聚类的数据。
     labels : 形状为(n_samples,)的ndarray
-        用于计算聚类指标的真实标签。
     """
-    t0 = time()  # 记录开始时间
-    estimator = make_pipeline(StandardScaler(), kmeans).fit(data)  # 创建管道，并拟合数据
-    fit_time = time() - t0  # 计算拟合时间
-    results = [name, fit_time, estimator[-1].inertia_]  # 初始化结果列表，包括名称、拟合时间、聚类不确定性度量
+    t0 = time()
+    estimator = make_pipeline(StandardScaler(), kmeans).fit(data)
+    fit_time = time() - t0
+    results = [name, fit_time, estimator[-1].inertia_]
 
     # 定义聚类评估指标
     clustering_metrics = [
@@ -150,10 +147,10 @@ def K_Mean(data, n_clusters=3):
 
         # 存储结果
         cluster_results[cluster] = {
-            "indices": cluster_indices,                # 属于该聚类的样本索引
+            "indices": cluster_indices,                # 某聚类的样本索引
             "mean_distribution": mean_distribution,    # 该类的平均分布图
-            "shape": mean_distribution.shape,          # 保留原始分布图形状
-            "labels": labels                           # 每个样本的聚类标签
+            "shape": mean_distribution.shape,          # 原始分布图的形状
+            "labels": labels                           # 逐样本所属的聚类
         }
 
     # 按聚类标签分类原始分布图
@@ -178,4 +175,4 @@ def K_Mean(data, n_clusters=3):
 if __name__ == '__main__':
     data = np.random.rand(100, 2)
     plot_test(data)
-    K_Mean(data, 3)
+    result = K_Mean(data, 3)

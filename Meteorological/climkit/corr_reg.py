@@ -63,4 +63,4 @@ def cort(time_series, data):
     return cort_map
 
 if __name__ == '__main__':
-    print('Successfully import toolbar.corr_reg!')
+    print('Successfully import climkit.corr_reg!')

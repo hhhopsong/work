@@ -1,4 +1,4 @@
-from toolbar.significance_test import corr_test
+from significance_test import corr_test
 import numpy as np
 import xarray as xr
 

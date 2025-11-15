@@ -1,10 +1,5 @@
 """
-2D 向量场的流线型矢量绘图。
-作者
-hopsong
-
-Github项目地址
-https://github.com/hhhopsong/work/blob/master/Meteorological/toolbar/curved_quivers/modplot.py
+2D 向量场的流线型矢量绘图
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -36,7 +31,7 @@ import warnings
 
 # 加速计算三方库
 from func_timeout import func_set_timeout, FunctionTimedOut
-from numba import njit, prange
+from numba import njit
 
 
 class VHead(patches.ArrowStyle._Base):
