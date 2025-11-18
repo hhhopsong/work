@@ -830,14 +830,12 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
                 # 使用视觉一致的坐标创建箭头
                 p = patches.FancyArrowPatch(
                     arrow_head_visual, arrow_tail_visual, transform=transform, **arrow_kw)
+        # 在非碰壁情况下绘制箭头
+            p.set_alpha(alpha)
+            axes.add_patch(p)
+            arrows.append(p)
         else:
             continue
-        
-        # ds = np.sqrt((arrow_tail[0]-arrow_head[0])**2+(arrow_tail[1]-arrow_head[1])**2)
-        # if ds<1e-15: continue  # 移除极小的箭头
-        p.set_alpha(alpha)
-        axes.add_patch(p)
-        arrows.append(p)
 
     if alpha>=.999:
         lc = mcollections.LineCollection(
@@ -1670,7 +1668,7 @@ if __name__ == '__main__':
     #####
     fig = matplotlib.pyplot.figure(figsize=(10, 5))
     ax1 = fig.add_subplot(121, projection=ccrs.PlateCarree(100.5))
-    ax1.set_extent([-50, 130, -80, 80], crs=ccrs.PlateCarree())
+    ax1.set_extent([-180, 180, -80, 80], crs=ccrs.PlateCarree())
     a1 = Curlyquiver(ax1, x, y, U, V, regrid=20, scale=10, color='k', linewidth=0.8, arrowsize=1, center_lon=100.5, MinDistance=[0.1, 0.1], arrowstyle='v', thinning=['0%', 'min'], alpha=0.6, zorder=100)
     ax1.contourf(x, y, U, levels=[-1, 0, 1], cmap=plt.cm.PuOr_r, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5, zorder=10)
     ax1.contourf(x, y, V, levels=[-1, 0, 1], cmap=plt.cm.RdBu, transform=ccrs.PlateCarree(0), extend='both',alpha=0.5, zorder=10)
@@ -1681,5 +1679,5 @@ if __name__ == '__main__':
     for artist in ax1.get_children():
         # 强制开启裁剪
         artist.set_clip_on(True)
-    plt.savefig('test.pdf', bbox_inches='tight')
+    plt.savefig('/Volumes/sty/code/work/Meteorological/p3/test.pdf', bbox_inches='tight')
     plt.show()

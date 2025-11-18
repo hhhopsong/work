@@ -13,10 +13,10 @@ from matplotlib import ticker
 from matplotlib.ticker import MultipleLocator
 from scipy import ndimage
 
-from toolbar.curved_quivers.modplot import *
-from toolbar.masked import masked
-from toolbar.significance_test import r_test
-from toolbar.lonlat_transform import *
+from climkit.Cquiver import *
+from climkit.masked import masked
+from climkit.significance_test import r_test
+from climkit.lonlat_transform import *
 
 from matplotlib import ticker
 from metpy.calc import vertical_velocity
@@ -30,6 +30,8 @@ plt.rcParams['font.family'] = 'Times New Roman'
 
 nanmax = None
 type_name = ['', 'MLR-type 500UVZ&T2M', 'AR-type 500UVZ&T2M', 'UR-type 500UVZ&T2M']
+PYFILE = r"/volumes/sty/PyFile"
+DATA = r"/volumes/sty/data"
 
 def plot_text(ax, x, y, title, size, color):
     ax.text(x, y, title,
@@ -82,9 +84,9 @@ def pic(fig, pic_loc, lat, lon, corr_u, corr_v, corr_z, corr_t2m):
     Cq.key(fig, U=1, label='1 m/s', color='k', fontproperties={'size': 8})
     nanmax = Cq.nanmax
     ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
-    ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
+    ax.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
-    ax.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
+    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
                       ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
 
     # 刻度线设置
@@ -161,9 +163,9 @@ def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, lat_pat, lon_pat, contour_1, cont
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
 
     ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
-    ax.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
+    ax.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
-    ax.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary2500m_长江流域\TPBoundary2500m_长江流域.shp').geometries(),
+    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
                       ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
 
     # 刻度线设置
@@ -218,12 +220,12 @@ def regress(time_series, data):
     return regression_map, correlation_map
 
 if __name__ == '__main__':
-    K_type = xr.open_dataset(r"D:\PyFile\p2\data\Time_type_AverFiltAll0.9%_0.3%_3.nc")
+    K_type = xr.open_dataset(fr"{PYFILE}/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc")
 
     try:
-        uvz = xr.open_dataset(r"D:\PyFile\p2\data\uvz_78.nc")
+        uvz = xr.open_dataset(fr"{PYFILE}/p2/data/uvz_78.nc")
     except:
-        uvz = xr.open_dataset(r"E:\data\ERA5\ERA5_pressLev\era5_pressLev.nc").sel(
+        uvz = xr.open_dataset(fr"{DATA}/ERA5/ERA5_pressLev/era5_pressLev.nc").sel(
             date=slice('1961-01-01', '2023-12-31'),
             pressure_level=[200, 300, 400, 500, 600, 700, 850],
             latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])
@@ -237,14 +239,14 @@ if __name__ == '__main__':
                                  'lon': uvz['longitude'].data})
         uvz = uvz.sel(time=slice('1961-01-01', '2022-12-31'))
         uvz = uvz.sel(time=uvz['time.month'].isin([7, 8])).groupby('time.year').mean('time')
-        uvz.to_netcdf(r"D:\PyFile\p2\data\uvz_78.nc")
+        uvz.to_netcdf(fr"{PYFILE}/p2/data/uvz_78.nc")
     uvz = uvz.sel(p=500).transpose('year', 'lat', 'lon')  # 500hPa
     uvz_clim = uvz.mean('year')
 
     try:
-        t2m = xr.open_dataset(r"D:\PyFile\p2\data\t2m_78.nc")
+        t2m = xr.open_dataset(fr"{PYFILE}/p2/data/t2m_78.nc")
     except:
-        t2m = xr.open_dataset(r"E:\data\ERA5\ERA5_singleLev\ERA5_sgLEv.nc")['t2m']
+        t2m = xr.open_dataset(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc")['t2m']
         t2m = t2m.sel(date=slice('1961-01-01', '2023-12-31'))
         t2m = xr.Dataset(
                 {'t2m': (['time', 'lat', 'lon'],t2m.data)},
@@ -253,21 +255,21 @@ if __name__ == '__main__':
                                  'lon': t2m['longitude'].data})
         t2m = t2m.sel(time=slice('1961-01-01', '2022-12-31'))
         t2m = t2m.sel(time=t2m['time.month'].isin([7, 8])).groupby('time.year').mean('time')
-        t2m.to_netcdf(r"D:\PyFile\p2\data\t2m_78.nc")
+        t2m.to_netcdf(fr"{PYFILE}/p2/data/t2m_78.nc")
     t2m = t2m.transpose('year', 'lat', 'lon')
     t2m_clim = t2m.mean('year')
 
 
-    w = xr.open_dataset(r"D:/PyFile/p2/data/W.nc")
+    w = xr.open_dataset(fr"{PYFILE}/p2/data/W.nc")
     w = w.sel(level=500).transpose('year', 'lat', 'lon')  # 500hPa
     w_clim = w.mean('year')
 
     try:
-        qdiv = xr.open_dataset(r"D:\PyFile\p2\data\qdiv_all_78.nc")
+        qdiv = xr.open_dataset(fr"{PYFILE}\p2\data\qdiv_all_78.nc")
     except:
-        U = xr.open_dataset(r"D:/PyFile/p2/data/U.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000])
-        V = xr.open_dataset(r"D:/PyFile/p2/data/V.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000])
-        Q = xr.open_dataset(r"D:/PyFile/p2/data/Q.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000])
+        U = xr.open_dataset(fr"{PYFILE}/p2/data/U.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000])
+        V = xr.open_dataset(fr"{PYFILE}/p2/data/V.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000])
+        Q = xr.open_dataset(fr"{PYFILE}/p2/data/Q.nc").sel(level=[100, 150, 200, 300, 400, 500, 600, 700, 850, 900, 1000])
         U = transform(U['u'], lon_name='lon', type='180->360')
         V = transform(V['v'], lon_name='lon', type='180->360')
         Q = transform(Q['q'], lon_name='lon', type='180->360')
@@ -290,17 +292,17 @@ if __name__ == '__main__':
             coords={'year': Qu['year'],
                     'lat': Qu['lat'],
                     'lon': Qu['lon']})
-        qdiv.to_netcdf(r"D:\PyFile\p2\data\qdiv_all_78.nc")
+        qdiv.to_netcdf(fr"{PYFILE}/p2/data/qdiv_all_78.nc")
     qdiv = qdiv.transpose('year', 'lat', 'lon')  # 500hPa
 
-    tcc = xr.open_dataset(r"D:\PyFile\p2\data\TCC.nc")
+    tcc = xr.open_dataset(fr"{PYFILE}/p2/data/TCC.nc")
     tcc = tcc.transpose('year', 'lat', 'lon')  # 500hPa
     tcc_clim = tcc.mean('year')
 
     q = qdiv['qdiv'].data
 
     time = [1961, 2022]
-    t_budget = xr.open_dataset(r'E:\data\ERA5\ERA5_pressLev\single_var\t_budget_1961_2022.nc').sel(
+    t_budget = xr.open_dataset(fr'{DATA}/ERA5/ERA5_pressLev/single_var/t_budget_1961_2022.nc').sel(
         time=slice(str(time[0]) + '-01', str(time[1]) + '-12'))
     dTdt_78 = t_budget['dTdt'].sel(time=t_budget['time.month'].isin([6, 7])).groupby('time.year').mean('time')
     adv_T_78 = t_budget['adv_T'].sel(time=t_budget['time.month'].isin([7, 8])).groupby('time.year').mean('time')
@@ -349,11 +351,11 @@ if __name__ == '__main__':
     # 柱状图
     for KType in range(1, 4):
         if KType == 3:
-            reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\WYTR\长江_tp.shp")
+            reg_map_ = masked(reg_map, fr"{PYFILE}/map/self/WYTR/长江_tp.shp")
         elif KType == 1:
-            reg_map_ = masked(reg_map, r"D:\CODES\Python\Meteorological\p2\map\EYTR\长江_tp.shp")
+            reg_map_ = masked(reg_map, fr"{PYFILE}/map/self/EYTR/长江_tp.shp")
         elif KType == 2:
-            reg_map_ = masked(reg_map, r'D:\PyFile\map\self\长江_TP\长江_tp.shp')
+            reg_map_ = masked(reg_map, fr'{PYFILE}/map/self/长江_TP/长江_tp.shp')
         reg_ = reg_map_.sel(type=KType, level=p_lev)
 
         adv_X_dTdt = np.nanmean(reg_['adv_T']) * 86400 * 31
@@ -381,7 +383,7 @@ if __name__ == '__main__':
         ax.set_xticks(range(3))
         ax.set_xticklabels([r'$-(\mathbf{V} \cdot \nabla T)^{\prime}$',
                             r'$(\omega \sigma)^{\prime}$',
-                            r'${\dot{Q}}^{\prime}$'], fontsize=12)
+                            r'${Q}^{\prime}$'], fontsize=12)
 
         # 设置y轴范围
         ymax = 3
@@ -511,7 +513,7 @@ if __name__ == '__main__':
     cbar_ax1 = fig.add_axes([0.915, 0.105, 0.01, 0.21])  # [left, bottom, width, height]
     cbar1 = fig.colorbar(contourfs2, cax=cbar_ax1, orientation='vertical', drawedges=True)
     cbar1.locator = ticker.FixedLocator(lev_w)
-    cbar1.set_ticklabels(['-1.25', '-1.00', '-0.75', '-0.5', '-0.25', ' 0.25', ' 0.50', ' 0.75', ' 1.00', ' 1.25'])
+    cbar1.set_ticklabels(['-1.25', '-1.00', '-0.75', '-0.50', '-0.25', ' 0.25', ' 0.50', ' 0.75', ' 1.00', ' 1.25'])
     # cbar1.set_label('×10$^{-2}$', fontsize=10, loc='bottom')
     cbar1.ax.tick_params(labelsize=10, length=0)
 
@@ -521,6 +523,6 @@ if __name__ == '__main__':
             # 强制开启裁剪
             artist.set_clip_on(True)
 
-    plt.savefig(r"D:\PyFile\p2\pic\图4.pdf", bbox_inches='tight')
-    plt.savefig(r"D:\PyFile\p2\pic\图4.png", bbox_inches='tight', dpi=600)
+    plt.savefig(fr"{PYFILE}/p2/pic/图4.pdf", bbox_inches='tight')
+    plt.savefig(fr"{PYFILE}/p2/pic/图4.png", bbox_inches='tight', dpi=600)
     plt.show()

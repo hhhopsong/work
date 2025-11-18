@@ -22,13 +22,13 @@ import tqdm as tq
 import time
 import pandas as pd
 
-from toolbar.significance_test import corr_test, r_test
-from toolbar.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
-from toolbar.curved_quivers.modplot import *
-from toolbar.data_read import *
-from toolbar.masked import masked
-from toolbar.corr_reg import corr, regress
-from toolbar.lonlat_transform import transform
+from climkit.significance_test import corr_test, r_test
+from climkit.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
+from climkit.Cquiver import *
+from climkit.data_read import *
+from climkit.masked import masked
+from climkit.corr_reg import corr, regress
+from climkit.lonlat_transform import transform
 
 
 def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
@@ -107,14 +107,14 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
     axes_sub.set_title(title, fontsize=8*fontsize_times, loc='left')
     latlon_fmt(axes_sub, geoticks['x'], geoticks['y'],  MultipleLocator(geoticks['xminor']),
                MultipleLocator(geoticks['yminor']))
-    axes_sub.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.15)
-    axes_sub.add_geometries(Reader(r'D:\PyFile\map\self\长江_TP\长江_tp.shp').geometries(), ccrs.PlateCarree(),
+    axes_sub.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.7, color='#757575', alpha=0.75)
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                       facecolor='none', edgecolor='black', linewidth=.5)
-    axes_sub.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江\长江.shp').geometries(), ccrs.PlateCarree(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
                        facecolor='none', edgecolor='blue', linewidth=0.2)
-    axes_sub.add_geometries(Reader(r'D:\PyFile\map\地图线路数据\长江干流_lake\lake_wsg84.shp').geometries(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江干流_lake/lake_wsg84.shp').geometries(),
                        ccrs.PlateCarree(), facecolor='blue', edgecolor='blue', linewidth=0.05)
-    axes_sub.add_geometries(Reader(r'D:\PyFile\map\地图边界数据\青藏高原边界数据总集\TPBoundary_2500m\TPBoundary_2500m.shp').geometries(),
+    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
                        ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=10)
     if rec_Set is not None:
         for rec_set in rec_Set:
@@ -290,7 +290,7 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
     # 阴影2色标
     if shading2_signal:
         ax_colorbar2 = inset_axes(axes_sub, width="3%", height="100%", loc='lower left', bbox_to_anchor=(1.13, 0., 1, 1),
-                             bbox_transform=axes_sub.transAxes, borderpad=0)
+                             bbox_transform=axes_sub.transAxes, borderpad=0) if shading_signal else inset_axes(axes_sub, width="3%", height="100%", loc='lower left', bbox_to_anchor=(1.03, 0., 1, 1), bbox_transform=axes_sub.transAxes, borderpad=0)
         cb2 = plt.colorbar(shading2_draw, cax=ax_colorbar2, orientation='vertical', drawedges=True)
         cb2.outline.set_edgecolor('black')  # 将colorbar边框调为黑色
         cb2.dividers.set_color('black') # 将colorbar内间隔线调为黑色
@@ -308,8 +308,12 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
     print(f"子图 '{title}' 绘制完成, 耗时: {duration:.2f}秒")
     return 0
 
-# 字体为新罗马
-plt.rcParams['font.family'] = 'Times New Roman'
+
+PYFILE = '/Volumes/sty/PyFile'
+DATA = '/Volumes/sty/data'
+
+plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
+plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
 xticks = np.arange(-180, 181, 30)
 yticks = np.arange(-30, 81, 30)
 
@@ -363,13 +367,13 @@ default_wind_2_key_set = {'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr
 # 矩形框设置, 可为False
 default_rec_Set = [{'point': [105, 120, 20, 30], 'color': 'blue', 'ls': '--', 'lw': 0.5}]
 
-typesTimeSer = xr.open_dataset(r"D:/PyFile/p3/time_ser/typesTimeSer.nc")
+typesTimeSer = xr.open_dataset(fr"{PYFILE}/p3/time_ser/typesTimeSer.nc")
 # 2mT
-t2m = era5_land("E:/data/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
+t2m = era5_land(f"{DATA}/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
 # SLP
-slp = era5_s("E:/data/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
+slp = era5_s(f"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
 # sst
-sst = ersst("E:/data/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
+sst = ersst(f"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
 # %%
 # 计算
 TR_time = [1961, 2000]  # 训练时间段
@@ -475,17 +479,18 @@ fig.subplots_adjust(hspace=0.35)
 gs = gridspec.GridSpec(5, 1)  # 设置子图的高度比例
 # 绘制子图
 ax = fig.add_subplot(gs[0], projection=ccrs.PlateCarree(central_longitude=180-70))
-sub_pic(fig, ax, title=f'a) MeanAprMay_SLP&2mT&SST', extent=[-180, 180, -50, 80],
+sub_pic(fig, ax, title=f'(a) 4&5_mean_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
-        shading=t2mCorr, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.5, shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-        shading_corr=t2mCorr, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw=False,
+        shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.5, shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+        shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw=False,
         shading2=sstCorr, shading2_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*0.5, shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
         shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw2=False,
-        contour=slpCorr, contour_levels=np.array([[-50, -20], [20, 50]])*.005, contour_cmap=default_contour_cmap, contour_corr=slpCorr, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+        contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*.005, contour_cmap=default_contour_cmap,
+        contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
         wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set,
         wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set,
-        rec_Set=[{'point': [X1_zone[2], X1_zone[3], X1_zone[0], X1_zone[1]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': .8},
-                 {'point': [X1_2_zone[2], X1_2_zone[3], X1_2_zone[0], X1_2_zone[1]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': .8}])
+        rec_Set=[{'point': [X1_zone[2], X1_zone[3], X1_zone[0], X1_zone[1]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
+                 {'point': [X1_2_zone[2], X1_2_zone[3], X1_2_zone[0], X1_2_zone[1]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}])
 
 
 ############################################################################################### X2
@@ -522,7 +527,7 @@ sstCorr = xr.DataArray(sstCorr, coords=[sst_imonth['lat'], sst_imonth['lon']],
                       dims=['lat', 'lon'], name='sst_corr')
 
 
-X2_zone = [50, -10, 360-175, 360-120]  # sst纬度范围
+X2_zone = [20, -10, 360-175, 360-120]  # sst纬度范围
 sstWeight2 = sstCorr.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3]))
 X2_train = sst_imonth.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3])) * np.where(np.abs(sstWeight2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), sstWeight2, np.nan)
 X2_train = X2_train.mean(['lat', 'lon'])
@@ -592,17 +597,18 @@ X2_2_rollingCorr = s1_pd.rolling(window=11).corr(s2_pd)
 # 绘制子图
 ax = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180-70))
 
-sub_pic(fig, ax, title=f'b) AprMayDiffNovDec_SLP&2mT&SST', extent=[-180, 180, -50, 80],
+sub_pic(fig, ax, title=f'(b) 4&5_diff_11&12_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
-        shading=t2mCorr, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.5, shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-        shading_corr=t2mCorr, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1-1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw=False,
+        shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.5, shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+        shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1-1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw=False,
         shading2=sstCorr, shading2_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*0.5, shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
         shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1-1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw2=False,
-        contour=slpCorr, contour_levels=np.array([[-50, -20], [20, 50]])*0.005, contour_cmap=default_contour_cmap, contour_corr=slpCorr, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+        contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.005, contour_cmap=default_contour_cmap,
+        contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
         wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set,
         wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set,
-        rec_Set=[{'point': [X2_zone[2], X2_zone[3], X2_zone[0], X2_zone[1]], 'color': 'blue', 'ls': (0, (1, 1)), 'lw': .8},
-                 {'point': [X2_2_zone[2], X2_2_zone[3], X2_2_zone[0], X2_2_zone[1]], 'color': 'purple', 'ls': (0, (1, 1)), 'lw': .8}])
+        rec_Set=[{'point': [X2_zone[2], X2_zone[3], X2_zone[0], X2_zone[1]], 'color': 'blue', 'ls': (0, (1, 1)), 'lw': 1.6},
+                 {'point': [X2_2_zone[2], X2_2_zone[3], X2_2_zone[0], X2_2_zone[1]], 'color': 'purple', 'ls': (0, (1, 1)), 'lw': 1.6}])
 ############################################################################################### X3
 # t2m_imonth_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
 # slp_imonth_0 = slp.sel(time=slp['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
@@ -708,16 +714,17 @@ X3_rollingCorr = s1_pd.rolling(window=11).corr(s2_pd)
 
 # 绘制子图
 ax = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=180-70))
-sub_pic(fig, ax, title=f'c) MeanFebMar_SLP&2mT&SST', extent=[-180, 180, -50, 80],
+sub_pic(fig, ax, title=f'(c) 2&3_mean_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
-        shading=t2mCorr, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.5, shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-        shading_corr=t2mCorr, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw=False,
+        shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*.5, shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+        shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw=False,
         shading2=sstCorr, shading2_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*0.5, shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
         shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}, edgedraw2=False,
-        contour=slpCorr, contour_levels=np.array([[-50, -20], [20, 50]])*0.005, contour_cmap=default_contour_cmap, contour_corr=slpCorr, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+        contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.005, contour_cmap=default_contour_cmap,
+        contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
         wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set,
         wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set,
-        rec_Set=[{'point': [X3_zone[2], X3_zone[3], X3_zone[0], X3_zone[1]], 'color': 'darkgreen', 'ls': (0, (1, 1)), 'lw': .8}])
+        rec_Set=[{'point': [X3_zone[2], X3_zone[3], X3_zone[0], X3_zone[1]], 'color': 'darkgreen', 'ls': (0, (1, 1)), 'lw': 1.6}])
 
 
 ax_rollingCorr = fig.add_subplot(gs[3])
@@ -776,10 +783,11 @@ ax_predict.text(0.92, 0.80, f'{tcc_text}\n{mse_text}', transform=ax_predict.tran
         zorder=10)
 
 # 打印回归方程
-func = f"Days = {coef_X1:.2f} * X2 + {coef_X2:.2f} * X5"
+func = f"Days = {coef_X1:.2f} * X4 + {coef_X2:.2f} * X2"
 ax_predict.text(0.5, 0.88, func, transform=ax_predict.transAxes,
         ha='center', va='bottom', fontsize=8,
         bbox=dict(boxstyle='round,pad=0.5', fc='none', ec='none', alpha=0.6),
         zorder=10)
 
-plt.savefig('D:/PyFile/p3/pic/type3_前期因子.pdf', bbox_inches='tight')
+plt.savefig(f'{PYFILE}/p3/pic/type3_前期因子.pdf', bbox_inches='tight')
+plt.savefig(f'{PYFILE}/p3/pic/type3_前期因子.png', dpi=600, bbox_inches='tight')
