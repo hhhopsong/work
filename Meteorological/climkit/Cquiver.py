@@ -22,7 +22,6 @@ from matplotlib import _api, cm, patches
 from matplotlib.streamplot import TerminateTrajectory
 from matplotlib.patches import PathPatch, ArrowStyle
 from matplotlib.path import Path
-from shapely.constructive import boundary
 from shapely.geometry import LineString
 from shapely.prepared import prep
 from operator import itemgetter
