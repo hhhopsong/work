@@ -22,6 +22,7 @@ from matplotlib import _api, cm, patches
 from matplotlib.streamplot import TerminateTrajectory
 from matplotlib.patches import PathPatch, ArrowStyle
 from matplotlib.path import Path
+from shapely.constructive import boundary
 from shapely.geometry import LineString
 from shapely.prepared import prep
 from operator import itemgetter
@@ -539,6 +540,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
     integrate = get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_direction=integration_direction, axes_scale=[is_x_log, is_y_log])
     trajectories = []
     edges = []
+    boundarys = []
 
     ## 生成绘制网格
     if is_x_log:
@@ -631,17 +633,18 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
         except FunctionTimedOut:
             print(f"({xg}, {yg})流线绘制超时，已自动跳过该流线.")
             continue
-        t = integrate_[0:2] if integrate_[0][0] is not None else None
+        t = integrate_ if integrate_[0][0] is not None else None
         if t is not None:
             trajectories.append(t[0])
             edges.append(t[1])
+            boundarys.append(t[4])
             D = distance(t[0][0], t[0][1]) if ~np.isnan(distance(t[0][0], t[0][1])) else 0
             traj_length.append(D)
 
     # 稀疏化
-    combined = list(zip(traj_length, trajectories, edges))
+    combined = list(zip(traj_length, trajectories, edges, boundarys))
     combined.sort(key=itemgetter(0), reverse=True)  # 按第 0 个元素（traj_length）降序
-    traj_length, trajectories, edges = map(list, zip(*combined))
+    traj_length, trajectories, edges, boundarys = map(list, zip(*combined))
 
     # 稀疏化
     if thinning[0] != 1:
@@ -683,11 +686,13 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
         trajectories = trajectories[index0:index1]
         edges = edges[index0:index1]
         traj_length = traj_length[index0:index1]
+        boundarys = boundarys[index0:index1]
 
     if MinDistance[0] > 0 and MinDistance[1] < 1:
         distance_limit_tlen = []
         distance_limit_traj = []
         distance_limit_edges = []
+        distance_limit_boundarys = []
         try:
             dictance_matrix = traj_overlap_all(trajectories, MinDistance[0])
             distance_limit_index = []
@@ -698,6 +703,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
                     distance_limit_tlen.append(traj_length[i])
                     distance_limit_traj.append(trajectories[i])
                     distance_limit_edges.append(edges[i])
+                    distance_limit_boundarys.append(boundarys[i])
                     distance_limit_index.append(i)
                 else:
                     add_signl = True
@@ -710,6 +716,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
                         distance_limit_tlen.append(traj_length[i])
                         distance_limit_traj.append(trajectories[i])
                         distance_limit_edges.append(edges[i])
+                        distance_limit_boundarys.append(boundarys[i])
                         distance_limit_index.append(i)
         except:
             warnings.warn("加速计算失败,请耐心等候...")
@@ -720,6 +727,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
                     distance_limit_tlen.append(traj_length[i])
                     distance_limit_traj.append(trajectories[i])
                     distance_limit_edges.append(edges[i])
+                    distance_limit_boundarys.append(boundarys[i])
                 else:
                     add_signl = True
                     for i_in in range(len(distance_limit_traj)):
@@ -731,7 +739,8 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
                         distance_limit_tlen.append(traj_length[i])
                         distance_limit_traj.append(trajectories[i])
                         distance_limit_edges.append(edges[i])
-        traj_length, trajectories, edges = distance_limit_tlen, distance_limit_traj, distance_limit_edges
+                        distance_limit_boundarys.append(boundarys[i])
+        traj_length, trajectories, edges, boundarys = distance_limit_tlen, distance_limit_traj, distance_limit_edges, distance_limit_boundarys
 
 
     # 单位
@@ -752,7 +761,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
     streamlines = []
     arrows = []
     t_len_max = np.nanmax(traj_length)
-    for t_len, t, edge in zip(traj_length, trajectories, edges):
+    for t_len, t, edge, boundary in zip(traj_length, trajectories, edges, boundarys):
         tgx = np.array(t[0])
         tgy = np.array(t[1])
 		
@@ -797,7 +806,7 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
             line_colors.append(color_values)
             arrow_kw['color'] = cmap(norm(color_values[n]))
         
-        if not edge:
+        if (not edge) and (not boundary):
             if MAP:
                 p = patches.FancyArrowPatch(
                     arrow_head, arrow_tail, transform=transform, **arrow_kw)
@@ -1091,35 +1100,38 @@ def get_integrator(u, v, dmap, minlength, resolution, magnitude, integration_dir
         resulting trajectory is None if it is shorter than `minlength`.
         """
 
-        stotal, x_traj, y_traj, m_total, hit_edge = 0., [], [], [], [False, False]
+        stotal, x_traj, y_traj, m_total, hit_edge, hit_boundary = 0., [], [], [], [False, False], [False, False]
 
         
         dmap.start_trajectory(x0, y0)
 
         if integration_direction in ['both', 'backward']:
-            stotal_, x_traj_, y_traj_, m_total_, hit_edge_ = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude, axes_scale=[False, False])
+            stotal_, x_traj_, y_traj_, m_total_, hit_edge_, hit_boundary_ = _integrate_rk12(x0, y0, dmap, backward_time, resolution, magnitude, axes_scale=[False, False])
             stotal += stotal_
             x_traj += x_traj_[::-1]
             y_traj += y_traj_[::-1]
             m_total += m_total_[::-1]
             hit_edge[0] = hit_edge_
+            hit_boundary[0] = hit_boundary
 
         if integration_direction in ['both', 'forward']:
             dmap.reset_start_point(x0, y0)
-            stotal_, x_traj_, y_traj_, m_total_, hit_edge_ = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude, axes_scale=[False, False])
+            stotal_, x_traj_, y_traj_, m_total_, hit_edge_, hit_boundary_ = _integrate_rk12(x0, y0, dmap, forward_time, resolution, magnitude, axes_scale=[False, False])
             stotal += stotal_
             x_traj += x_traj_[1:]
             y_traj += y_traj_[1:]
             m_total += m_total_[1:]
             hit_edge[1] = hit_edge_
+            hit_boundary[1] = hit_boundary_
 
+        hit_boundary = True if hit_boundary[1] else False
         hit_edge = True if hit_edge[0] | hit_edge[1] else False
 
         if len(x_traj)>1 and not hit_edge:
-            return (x_traj, y_traj), hit_edge, m_total, stotal
+            return (x_traj, y_traj), hit_edge, m_total, stotal, hit_boundary
         else:  # reject short trajectories
             dmap.undo_trajectory()
-            return (None, None), hit_edge, m_total, stotal
+            return (None, None), hit_edge, m_total, stotal, hit_boundary
 
     return integrate
 
@@ -1167,6 +1179,7 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, axes_scale=[False, F
     yf_traj = []
     m_total = []
     hit_edge = False
+    hit_boundary = False
 
     axes_scale = axes_scale
     
@@ -1209,9 +1222,6 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, axes_scale=[False, F
             xi += dx2
             yi += dy2
             
-            if not dmap.grid.within_grid(xi, yi):
-                hit_edge=False
-            
             if (stotal + ds) > resolution*np.mean(m_total):
                 s_remaining = resolution*np.mean(m_total) - stotal
                 fraction = s_remaining / ds
@@ -1221,8 +1231,6 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, axes_scale=[False, F
                 xi += dx2 * (fraction-1)
                 yi += dy2 * (fraction-1)
                 dmap.update_trajectory(xi, yi)
-                if not dmap.grid.within_grid(xi, yi):
-                    hit_edge = False
                 # 将总长度精确地更新到目标值
                 stotal += s_remaining
                 # 将这个精确的终点加入轨迹
@@ -1240,7 +1248,10 @@ def _integrate_rk12(x0, y0, dmap, f, resolution, magnitude, axes_scale=[False, F
         else:
             ds = min(maxds, 0.85 * ds * (maxerror / error) ** 0.5)
 
-    return stotal, xf_traj, yf_traj, m_total, hit_edge
+    if not dmap.grid.within_grid(xi, yi):
+        hit_boundary = True  # 碰到数据边界
+
+    return stotal, xf_traj, yf_traj, m_total, hit_edge, hit_boundary
 
 
 def _euler_step(xf_traj, yf_traj, dmap, f):
@@ -1457,7 +1468,7 @@ def traj_overlap_all(trajs, threshold=0.01, simplify=None, numpy_force=False):
         import cupy as cp
         if cp.cuda.runtime.getDeviceCount() > 0:
             xp = cp
-            backend = "cupy" if backend_force else "numpy"
+            backend = "cupy" if not numpy_force else "numpy"
             cupy_available = True
     except Exception:
         pass
@@ -1468,9 +1479,9 @@ def traj_overlap_all(trajs, threshold=0.01, simplify=None, numpy_force=False):
             import torch
             torch_available = True
             if torch.backends.mps.is_available():  # Apple M 系列
-                backend = "torch" if backend_force else "numpy"
+                backend = "torch" if not numpy_force else "numpy"
             elif torch.cuda.is_available():  # NVIDIA 或 AMD ROCm
-                backend = "torch" if backend_force else "numpy"
+                backend = "torch" if not numpy_force else "numpy"
                 warnings.warn("检测到支持cuda的GPU, 但CuPy库未安装. ")
         except Exception:
             pass
