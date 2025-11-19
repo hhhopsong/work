@@ -26,7 +26,7 @@ from shapely.geometry import LineString
 from shapely.prepared import prep
 from operator import itemgetter
 # 辅助三方库
-import tqdm as tq
+from alive_progress import alive_bar
 import warnings
 
 # 加速计算三方库
@@ -623,22 +623,24 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
         return integrate(xg, yg)
 
     traj_length = []
-    for xs, ys in tq.tqdm(sp2, desc='路径积分', colour='green', unit='points', total=len(sp2)):
-        xg, yg = dmap.data2grid(xs, ys)
-        xg = np.clip(xg, 0, grid.nx - 1)
-        yg = np.clip(yg, 0, grid.ny - 1)
-        try:
-            integrate_ = integrate_timelimit(xg, yg)
-        except FunctionTimedOut:
-            print(f"({xg}, {yg})流线绘制超时，已自动跳过该流线.")
-            continue
-        t = integrate_ if integrate_[0][0] is not None else None
-        if t is not None:
-            trajectories.append(t[0])
-            edges.append(t[1])
-            boundarys.append(t[4])
-            D = distance(t[0][0], t[0][1]) if ~np.isnan(distance(t[0][0], t[0][1])) else 0
-            traj_length.append(D)
+    with alive_bar(len(sp2), title='路径积分', bar='smooth', spinner='dots', force_tty=True) as bar:
+        for xs, ys in sp2:
+            xg, yg = dmap.data2grid(xs, ys)
+            xg = np.clip(xg, 0, grid.nx - 1)
+            yg = np.clip(yg, 0, grid.ny - 1)
+            try:
+                integrate_ = integrate_timelimit(xg, yg)
+            except FunctionTimedOut:
+                print(f"({xg}, {yg})流线绘制超时，已自动跳过该流线.")
+                continue
+            t = integrate_ if integrate_[0][0] is not None else None
+            if t is not None:
+                trajectories.append(t[0])
+                edges.append(t[1])
+                boundarys.append(t[4])
+                D = distance(t[0][0], t[0][1]) if ~np.isnan(distance(t[0][0], t[0][1])) else 0
+                traj_length.append(D)
+            bar()
 
     # 稀疏化
     combined = list(zip(traj_length, trajectories, edges, boundarys))
@@ -695,50 +697,54 @@ def velovect(axes, x, y, u, v, lon_trunc=0., linewidth=.5,    color='black',
         try:
             dictance_matrix = traj_overlap_all(trajectories, MinDistance[0])
             distance_limit_index = []
-            for i in tq.trange(len(trajectories), desc='快速降重中', colour='blue', unit='lines', total=len(trajectories)):
-                if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
-                    continue
-                if i == 0:
-                    distance_limit_tlen.append(traj_length[i])
-                    distance_limit_traj.append(trajectories[i])
-                    distance_limit_edges.append(edges[i])
-                    distance_limit_boundarys.append(boundarys[i])
-                    distance_limit_index.append(i)
-                else:
-                    add_signl = True
-                    for i_in in distance_limit_index:
-                        too_close_percent = dictance_matrix[i, i_in]
-                        if too_close_percent >= MinDistance[1]:
-                            add_signl = False
-                            break
-                    if add_signl:
+            with alive_bar(len(trajectories), title='疏离化', bar='smooth', spinner='triangles', force_tty=True) as bar:
+                for i in range(len(trajectories)):
+                    if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
+                        continue
+                    if i == 0:
                         distance_limit_tlen.append(traj_length[i])
                         distance_limit_traj.append(trajectories[i])
                         distance_limit_edges.append(edges[i])
                         distance_limit_boundarys.append(boundarys[i])
                         distance_limit_index.append(i)
+                    else:
+                        add_signl = True
+                        for i_in in distance_limit_index:
+                            too_close_percent = dictance_matrix[i, i_in]
+                            if too_close_percent >= MinDistance[1]:
+                                add_signl = False
+                                break
+                        if add_signl:
+                            distance_limit_tlen.append(traj_length[i])
+                            distance_limit_traj.append(trajectories[i])
+                            distance_limit_edges.append(edges[i])
+                            distance_limit_boundarys.append(boundarys[i])
+                            distance_limit_index.append(i)
+                    bar()
         except:
             warnings.warn("加速计算失败,请耐心等候...")
-            for i in tq.trange(len(trajectories), desc='降重中', colour='green', unit='lines', total=len(trajectories)):
-                if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
-                    continue
-                if i == 0:
-                    distance_limit_tlen.append(traj_length[i])
-                    distance_limit_traj.append(trajectories[i])
-                    distance_limit_edges.append(edges[i])
-                    distance_limit_boundarys.append(boundarys[i])
-                else:
-                    add_signl = True
-                    for i_in in range(len(distance_limit_traj)):
-                        too_close_percent = traj_overlap(trajectories[i], distance_limit_traj[i_in], MinDistance[0])[0]
-                        if too_close_percent >= MinDistance[1]:
-                            add_signl = False
-                            break
-                    if add_signl:
+            with alive_bar(len(trajectories), title='疏离化', bar='smooth', spinner='dots', force_tty=True) as bar:
+                for i in range(len(trajectories)):
+                    if np.isnan(traj_length[i]) or np.isinf(traj_length[i]):
+                        continue
+                    if i == 0:
                         distance_limit_tlen.append(traj_length[i])
                         distance_limit_traj.append(trajectories[i])
                         distance_limit_edges.append(edges[i])
                         distance_limit_boundarys.append(boundarys[i])
+                    else:
+                        add_signl = True
+                        for i_in in range(len(distance_limit_traj)):
+                            too_close_percent = traj_overlap(trajectories[i], distance_limit_traj[i_in], MinDistance[0])[0]
+                            if too_close_percent >= MinDistance[1]:
+                                add_signl = False
+                                break
+                        if add_signl:
+                            distance_limit_tlen.append(traj_length[i])
+                            distance_limit_traj.append(trajectories[i])
+                            distance_limit_edges.append(edges[i])
+                            distance_limit_boundarys.append(boundarys[i])
+                    bar()
         traj_length, trajectories, edges, boundarys = distance_limit_tlen, distance_limit_traj, distance_limit_edges, distance_limit_boundarys
 
 
@@ -1689,5 +1695,4 @@ if __name__ == '__main__':
     for artist in ax1.get_children():
         # 强制开启裁剪
         artist.set_clip_on(True)
-    plt.savefig('/Volumes/sty/code/work/Meteorological/p3/test.pdf', bbox_inches='tight')
     plt.show()
