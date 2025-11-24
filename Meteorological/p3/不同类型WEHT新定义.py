@@ -6,7 +6,7 @@ from climkit.masked import masked
 
 
 
-def type_of_WEHT(UP, LOW, ALL, EHCI):
+def type_of_WEHT(EHD):
     """
     不同类型WEHT事件划分
     输入:
@@ -16,30 +16,28 @@ def type_of_WEHT(UP, LOW, ALL, EHCI):
     输出:
         WEHT_type: 不同类型WEHT事件时间序列
     """
-    EHCI = EHCI.where(EHCI > 0.3, np.nan)
-    threshold = 1/5
-    low_up = LOW - UP
-    stations_threshold = ALL * threshold
-    sign = xr.full_like(ALL, fill_value=1, dtype=np.int8) # 正矩阵
+    type_weight = xr.open_dataset(fr"{PYFILE}/p2/data/Tavg_weight.nc")
+    type1 = EHD * ((type_weight.sel(type=1) - type_weight.sel(type=1).mean())/type_weight.sel(type=1).std())
+    type2 = EHD * ((type_weight.sel(type=2) - type_weight.sel(type=2).mean())/type_weight.sel(type=2).std())
+    type3 = EHD * ((type_weight.sel(type=3) - type_weight.sel(type=3).mean())/type_weight.sel(type=3).std())
+    type1, type2, type3 = type1.sum(dim=['lat', 'lon']), type2.sum(dim=['lat', 'lon']), type3.sum(dim=['lat', 'lon'])
+    for iyear in range(len(type1.year)):
+        for day in range(len(type1.day)):
+            if type1.W[iyear, day] > type2.W[iyear, day]:
+                if type3.W[iyear, day] > type1.W[iyear, day]:
+                    type1.W[iyear, day], type2.W[iyear, day], type3.W[iyear, day] = 0, 0, 1
+                else:
+                    type1.W[iyear, day], type2.W[iyear, day], type3.W[iyear, day] = 1, 0, 0
+            else:
+                if type3.W[iyear, day] > type2.W[iyear, day]:
+                    type1.W[iyear, day], type2.W[iyear, day], type3.W[iyear, day] = 0, 0, 1
+                else:
+                    type1.W[iyear, day], type2.W[iyear, day], type3.W[iyear, day] = 0, 1, 0
 
-    low_type = sign.where(low_up > stations_threshold, 0)  # 1:中下游型 赋值为1
-    up_type = -sign.where(low_up < -stations_threshold, 0) # -1:上游型 赋值为-1
-
-    # 0:全流域型 赋值为0
-    WEHT_type = low_type + up_type
-    up_year = (WEHT_type.where(WEHT_type == -1, np.nan) + 2).sum(dim='day')
-    low_year = (WEHT_type.where(WEHT_type == 1, np.nan) + 0).sum(dim='day')
-    all_year = (WEHT_type.where(WEHT_type == 0, np.nan) + 1).sum(dim='day')
-    WEHT_year = np.zeros(WEHT_type.shape[0], dtype=np.int8)
-    for i in range(WEHT_type.shape[0]):
-        if up_year[i] >= low_year[i] and up_year[i] >= all_year[i]:
-            WEHT_year[i] = -1  # 上游型
-        elif low_year[i] >= up_year[i] and low_year[i] >= all_year[i]:
-            WEHT_year[i] = 1   # 中下游型
-        else:
-            WEHT_year[i] = 0   # 全流域型
-    WEHT_year = xr.DataArray(WEHT_year, coords=[WEHT_type.year], dims=['year'])
-    return WEHT_type, WEHT_year
+    type1, type2, type3 = type1.sum(dim=['day']), type2.sum(dim=['day']), type3.sum(dim=['day'])
+    type1, type2, type3 = (type1 - type1.mean())/ type1.std(), (type2 - type2.mean())/ type2.std(), (type3 - type3.mean())/ type3.std() # 标准化
+    WEHT_days = xr.Dataset({'I': (['type', 'year'], [type1.W, type2.W, type3.W])}, coords={'type': [1, 2, 3], 'year': type1.year})
+    return WEHT_days
 
 
 
@@ -61,13 +59,33 @@ CN051_2 = xr.open_dataset(fr"{DATA}/CN05.1/2022/CN05.1_Tmax_2022_daily_025x025.n
 zone_stations = masked((CN051_2 - CN051_2 + 1).sel(time='2022-01-01'), fr"{PYFILE}/map/self/长江_TP/长江_tp.shp").sum()['tmax'].data
 EHD = EHD.sel(day=slice('29', '88'))
 EHCI = EHD.sum(dim=['lat', 'lon']) / zone_stations  # 长江流域逐日极端高温格点占比
-EHT_up_stations  = masked(EHD, fr"{PYFILE}/map/self/WYTR/长江_tp.shp").sum(dim=['lat', 'lon'])  # 长江上游极端高温格点数
-EHT_low_stations = masked(EHD, fr"{PYFILE}/map/self/EYTR/长江_tp.shp").sum(dim=['lat', 'lon'])  # 长江中下游极端高温格点数
-EHT_all_stations = EHT_up_stations + EHT_low_stations  # 长江流域极端高温格点数
 
-Daily_WEHT_type, Yearly_WEHT_type = type_of_WEHT(EHT_up_stations, EHT_low_stations, EHT_all_stations, EHCI)
+EHCI_thes = np.where(EHCI > 0.3, 1, 0)
+# EHT_up_stations  = masked(EHD, fr"{PYFILE}/map/self/WYTR/长江_tp.shp").sum(dim=['lat', 'lon']) * EHCI_thes  # 长江上游极端高温格点数
+# EHT_low_stations = masked(EHD, fr"{PYFILE}/map/self/EYTR/长江_tp.shp").sum(dim=['lat', 'lon']) * EHCI_thes  # 长江中下游极端高温格点数
+# low_type = (EHT_low_stations - EHT_up_stations).sum(dim='day')
+# up_type = (EHT_up_stations - EHT_low_stations).sum(dim='day')
+# low_type = (low_type - low_type.min()) / (low_type.max() - low_type.min()) * 2 - 1
+Daily_WEHT_type = type_of_WEHT(EHD)
 
 
+# xr -1～1 标准化
+
+
+type1_days = xr.open_dataset(fr"{PYFILE}/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc").sel(type=1)['K']
+type1_days = (type1_days - type1_days.min()) / (type1_days.max() - type1_days.min()) * 2 - 1
+type1_days_ = Daily_WEHT_type.sel(type=1)
+type1_days_ = (type1_days_ - type1_days_.min()) / (type1_days_.max() - type1_days_.min()) * 2 - 1
+
+type2_days = xr.open_dataset(fr"{PYFILE}/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc").sel(type=2)['K']
+type2_days = (type2_days - type2_days.min()) / (type2_days.max() - type2_days.min()) * 2 - 1
+type2_days_ = Daily_WEHT_type.sel(type=2)
+type2_days_ = (type2_days_ - type2_days_.min()) / (type2_days_.max() - type2_days_.min()) * 2 - 1
+
+type3_days = xr.open_dataset(fr"{PYFILE}/p2/data/Time_type_AverFiltAll0.9%_0.3%_3.nc").sel(type=3)['K']
+type3_days = (type3_days - type3_days.min()) / (type3_days.max() - type3_days.min()) * 2 - 1
+type3_days_ = Daily_WEHT_type.sel(type=3)
+type3_days_ = (type3_days_ - type3_days_.min()) / (type3_days_.max() - type3_days_.min()) * 2 - 1
 
 plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
 plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
@@ -79,9 +97,15 @@ ax.set_xticklabels(["1961", "1970", "1980", "1990", "2000",  "2010", "2020"], ro
 ax.set_ylim(-1.5, 1.5)
 ax.set_yticks([-1, 0, 1])
 ax.set_yticklabels(["UR-type", "AR-type", "MLR-type"], fontsize=12)
-ax.plot(Yearly_WEHT_type.year, Yearly_WEHT_type, color='k', linestyle='-', linewidth=2.5)
-for t, c in [(-1, 'blue'), (0, 'purple'), (1, 'green')]:
-    sel = Yearly_WEHT_type.where(Yearly_WEHT_type == t)
-    ax.scatter(sel.year, sel, color=c, s=10, marker='o', zorder=3)
+ax.plot([i for i in range(62)], type1_days, color='red', linestyle='-', linewidth=2.5)
+ax.plot([i for i in range(62)], type2_days, color='blue', linestyle='-', linewidth=2.5)
+ax.plot([i for i in range(62)], type3_days, color='green', linestyle='-', linewidth=2.5)
+
+ax.plot([i for i in range(62)], type1_days_.I, color='red', linestyle='-', linewidth=1)
+ax.plot([i for i in range(62)], type2_days_.I, color='blue', linestyle='--', linewidth=1)
+ax.plot([i for i in range(62)], type3_days_.I, color='green', linestyle=':', linewidth=1)
+# for t, c in [(-1, 'blue'), (0, 'purple'), (1, 'green')]:
+#     sel = Yearly_WEHT_type.where(Yearly_WEHT_type == t)
+#     ax.scatter(sel.year, sel, color=c, s=10, marker='o', zorder=3)
 plt.savefig(f'{PYFILE}/p3/pic/不同类型WEHT事件划分.png', dpi=600, bbox_inches='tight')
 plt.show()
