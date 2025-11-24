@@ -42,8 +42,8 @@ def type_of_WEHT(EHD):
 
 
 # 文件路径
-PYFILE = r"/volumes/sty/PyFile"
-DATA = r"/volumes/sty/data"
+PYFILE = r"/volumes/TiPlus7100/PyFile"
+DATA = r"/volumes/TiPlus7100/data"
 
 
 # 数据读取
