@@ -109,3 +109,9 @@ ax.plot([i for i in range(62)], type3_days_.I, color='green', linestyle=':', lin
 #     ax.scatter(sel.year, sel, color=c, s=10, marker='o', zorder=3)
 plt.savefig(f'{PYFILE}/p3/pic/不同类型WEHT事件划分.png', dpi=600, bbox_inches='tight')
 plt.show()
+
+corr_1 = np.corrcoef(type1_days, type1_days_.I)[0, 1]
+corr_2 = np.corrcoef(type2_days, type2_days_.I)[0, 1]
+corr_3 = np.corrcoef(type3_days, type3_days_.I)[0, 1]
+
+print(corr_1, corr_2, corr_3)
