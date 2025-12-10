@@ -309,8 +309,8 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
     return 0
 
 
-PYFILE = '/Volumes/sty/PyFile'
-DATA = '/Volumes/sty/data'
+PYFILE = r"/volumes/TiPlus7100/PyFile"
+DATA = r"/volumes/TiPlus7100/data"
 
 plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
 plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
@@ -367,7 +367,7 @@ default_wind_2_key_set = {'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr
 # 矩形框设置, 可为False
 default_rec_Set = [{'point': [105, 120, 20, 30], 'color': 'blue', 'ls': '--', 'lw': 0.5}]
 
-typesTimeSer = xr.open_dataset(fr"{PYFILE}/p3/time_ser/typesTimeSer.nc")
+typesTimeSer = xr.open_dataset(fr"{PYFILE}/p3/data/逐日WEHT的三类投影指数.nc")
 # 2mT
 t2m = era5_land(f"{DATA}/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
 # SLP
@@ -382,7 +382,7 @@ train_years = pd.to_datetime(np.arange(TR_time[0], TR_time[1]+1), format='%Y')
 pre_years = pd.to_datetime(np.arange(PR_time[0], PR_time[1]+1), format='%Y')
 TYPE = 3
 
-timeSerie = typesTimeSer.sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'),type=TYPE)['K'].data
+timeSerie = typesTimeSer.sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'),type=TYPE)['I'].data
 nor_mean = np.mean(timeSerie)
 nor_std = np.std(timeSerie)
 timeSerie = (timeSerie - np.mean(timeSerie)) / np.std(timeSerie)  # 标准化处理
@@ -430,7 +430,7 @@ X1_2_mean, X1_2_std = X1_2_train.mean(), X1_2_train.std()  # 计算均值和标�
 X1_2_train = (X1_2_train - X1_2_mean) / X1_2_std  # 标准化处理
 X1_2_train = pd.Series(X1_2_train.to_array()[0], index=train_years, name='X1_2_train')
 
-timeSerie_pre = typesTimeSer.sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'),type=TYPE)['K'].data
+timeSerie_pre = typesTimeSer.sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'),type=TYPE)['I'].data
 timeSerie_pre = (timeSerie_pre - nor_mean) / nor_std  # 标准化处理
 TS_pre = pd.Series(timeSerie_pre, index=pre_years, name='TS')
 t2m_imonth_pre = t2m.sel(time=t2m['time.month'].isin([4, 5])).sel(time=slice(f'{PR_time[0]}', f'{PR_time[1]}')).groupby('time.year').mean('time').transpose('year', 'lat', 'lon')
@@ -449,7 +449,7 @@ X1_2_pre = (X1_2_pre - X1_2_mean) / X1_2_std  # 标准化处理
 X1_2_pre = pd.Series(X1_2_pre.to_array()[0], index=pre_years, name='X1_2_train')
 
 # 滑动相关
-timeSerie_all = typesTimeSer.sel(year=slice('1961', '2022'),type=TYPE)['K'].data
+timeSerie_all = typesTimeSer.sel(year=slice('1961', '2022'),type=TYPE)['I'].data
 timeSerie_all = (timeSerie_all - nor_mean) / nor_std  # 标准化处理
 s2_pd = pd.Series(timeSerie_all)
 s2_2_pd = pd.Series(timeSerie_all)
@@ -566,7 +566,7 @@ X2_2_pre = (X2_2_pre - X2_2_mean) / X2_2_std  # 标准化处理
 X2_2_pre = pd.Series(X2_2_pre.to_array()[0], index=pre_years, name='X2_2_train')
 
 # 滑动相关
-timeSerie_all = typesTimeSer.sel(year=slice('1962', '2022'),type=TYPE)['K'].data
+timeSerie_all = typesTimeSer.sel(year=slice('1962', '2022'),type=TYPE)['I'].data
 timeSerie_all = (timeSerie_all - nor_mean) / nor_std  # 标准化处理
 s2_pd = pd.Series(timeSerie_all)
 t2m_imonth_0_all = t2m.sel(time=t2m['time.month'].isin([11, 12])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').shift(year=1).sel(year=slice('1962', '2022'))
@@ -657,7 +657,7 @@ X3_train = (X3_train - X3_mean) / X3_std  # 标准化处理
 X3_train = pd.Series(X3_train.to_array()[0], index=train_years, name='X3_train')
 
 
-timeSerie_pre = typesTimeSer.sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'),type=TYPE)['K'].data
+timeSerie_pre = typesTimeSer.sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'),type=TYPE)['I'].data
 timeSerie_pre = (timeSerie_pre - np.mean(timeSerie_pre)) / np.std(timeSerie_pre)  # 标准化处理
 # t2m_imonth_pre_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
 # slp_imonth_pre_0 = slp.sel(time=slp['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{PR_time[0]}', f'{PR_time[1]}'))
@@ -684,7 +684,7 @@ X3_pre = (X3_pre - X3_mean) / X3_std  # 标准化处理
 X3_pre = pd.Series(X3_pre.to_array()[0], index=pre_years, name='X3_train')
 
 # 滑动相关
-timeSerie_all = typesTimeSer.sel(year=slice('1961', '2022'),type=TYPE)['K'].data
+timeSerie_all = typesTimeSer.sel(year=slice('1961', '2022'),type=TYPE)['I'].data
 s2_pd = pd.Series(timeSerie_all)
 timeSerie_all = (timeSerie_all - np.mean(timeSerie_all)) / np.std(timeSerie_all)  # 标准化处理
 # t2m_imonth_all_0 = t2m.sel(time=t2m['time.month'].isin([1, 2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice('1961', '2022'))

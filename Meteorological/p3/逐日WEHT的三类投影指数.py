@@ -3,6 +3,7 @@ import xarray as xr
 import matplotlib.pyplot as plt
 
 from climkit.masked import masked
+from climkit.significance_test import edof, edof2, r_test
 
 
 
@@ -115,3 +116,7 @@ corr_2 = np.corrcoef(type2_days, type2_days_.I)[0, 1]
 corr_3 = np.corrcoef(type3_days, type3_days_.I)[0, 1]
 
 print(corr_1, corr_2, corr_3)
+print(np.corrcoef([type1_days, type2_days, type3_days, type1_days_.I, type2_days_.I, type3_days_.I])[0:3, 3:6])
+# print(r_test(edof(type1_days, type1_days_.I), 0.05), r_test(edof(type1_days, type1_days_.I), 0.01))
+
+Daily_WEHT_type.to_netcdf(f'{PYFILE}/p3/data/逐日WEHT的三类投影指数.nc')
