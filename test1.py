@@ -212,7 +212,7 @@ u = xr.open_dataset(fr"{PYFILE}/p2/data/U.nc").sel(level=500, year=2022)
 v = xr.open_dataset(fr"{PYFILE}/p2/data/V.nc").sel(level=500, year=2022)
 lon = u['lon']
 lat = v['lat']
-psi, Upsi, Vpsi = velocity_potential(lon, lat, u.u, v.v, 1000, 1e-5) #速度势
+psi, Upsi, Vpsi = stream_function(lon, lat, u.u, v.v, 1000, 1e-5) #速度势
 fig = plt.figure(figsize=(8,6))
 ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=0))
 ax.add_feature(cfeature.COASTLINE.with_scale('50m'), linewidth=0.8)
