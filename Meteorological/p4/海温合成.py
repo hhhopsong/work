@@ -82,6 +82,7 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
     """
     # 屏蔽运行时警告 (主要解决 shapely 和 numpy 的除0/buffer 警告)
     warnings.filterwarnings("ignore", category=RuntimeWarning)
+    spine_lw = 1.2
     def latlon_fmt(ax, xticks1, yticks1, xminorLocator, yminorLocator):
         ax.set_yticks(yticks1)
         ax.set_xticks(xticks1)
@@ -90,11 +91,11 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
         ax.xaxis.set_major_formatter(LongitudeFormatter())
         ax.yaxis.set_minor_locator(yminorLocator)
         ax.xaxis.set_minor_locator(xminorLocator)
-        ax.tick_params(axis='both', which='major', direction='out', length=4, width=.5, color='black', bottom=True,
+        ax.tick_params(axis='both', which='major', direction='out', length=4, width=spine_lw, color='black', bottom=True,
                        left=True)
         ax.tick_params(axis='both', which='minor', direction='out', length=2, width=.2, color='black', bottom=True,
                        left=True)
-        ax.tick_params(axis='both', labelsize=6 * fontsize_times, colors='black')
+        ax.tick_params(axis='both', labelsize=6 * fontsize_times, colors='black')    # 统一加粗所有四个边框
 
     def rec(ax, point, color='blue', ls='--', lw=0.5):
         x1, x2 = point[:2]
@@ -110,17 +111,11 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
     plt.rcParams['hatch.color'] = p_test_drawSet['color']
     axes_sub.set_aspect('auto')
     axes_sub.set_title(title, fontsize=8*fontsize_times, loc='left')
+    for spine in axes_sub.spines.values():
+        spine.set_linewidth(spine_lw)  # 设置边框线宽
     latlon_fmt(axes_sub, geoticks['x'], geoticks['y'],  MultipleLocator(geoticks['xminor']),
                MultipleLocator(geoticks['yminor']))
     axes_sub.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.7, color='#757575', alpha=0.75)
-    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
-    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
-                       facecolor='none', edgecolor='blue', linewidth=0.2)
-    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江干流_lake/lake_wsg84.shp').geometries(),
-                       ccrs.PlateCarree(), facecolor='blue', edgecolor='blue', linewidth=0.05)
-    axes_sub.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
-                       ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=10)
     if rec_Set is not None:
         for rec_set in rec_Set:
             rec(axes_sub, rec_set['point'], rec_set['color'], rec_set['ls'], rec_set['lw'])  # 绘制矩形框
@@ -146,17 +141,9 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
     contour_corr = transform(contour_corr, lon_name='lon', type='360->180') if contour_corr_signal else None
 
     # 裁剪多余数据, 缩减绘制元素
-    if extent[1] == extent[0] + 360:
+    if abs(extent[1] - (extent[0] + 360)) <= 5:
         axes_sub.set_xlim(extent[0], extent[1])
         axes_sub.set_ylim(extent[2], extent[3])
-        shading = shading.salem.roi(corners=((extent[0]+dlon(shading)+1e-5, extent[2]), (extent[1], extent[3]))) if shading_signal else None
-        shading2 = shading2.salem.roi(corners=((extent[0]+dlon(shading2)+1e-5, extent[2]), (extent[1], extent[3]))) if shading2_signal else None
-        contour = contour.salem.roi(corners=((extent[0]+dlon(contour)+1e-5, extent[2]), (extent[1], extent[3]))) if contour_signal else None
-        wind_1 = wind_1.salem.roi(corners=((extent[0]+dlon(wind_1)+1e-5, extent[2]), (extent[1], extent[3]))) if wind_1_signal else None
-        wind_2 = wind_2.salem.roi(corners=((extent[0]+dlon(wind_2)+1e-5, extent[2]), (extent[1], extent[3]))) if wind_2_signal else None
-        shading_corr = shading_corr.salem.roi(corners=((extent[0]+dlon(shading_corr)+1e-5, extent[2]), (extent[1], extent[3]))) if shading_corr_signal else None
-        shading2_corr = shading2_corr.salem.roi(corners=((extent[0]+dlon(shading2_corr)+1e-5, extent[2]), (extent[1], extent[3]))) if shading2_corr_signal else None
-        contour_corr = contour_corr.salem.roi(corners=((extent[0]+dlon(contour_corr)+1e-5, extent[2]), (extent[1], extent[3]))) if contour_corr_signal else None
     else:
         axes_sub.set_extent(extent, crs=ccrs.PlateCarree(central_longitude=0))
         roi_shape = ((extent[0], extent[2]), (extent[1], extent[3]))
@@ -261,10 +248,10 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
                             color=wind_1_set['color'], thinning=wind_1_set['thinning'], nanmax=wind_1_set['nanmax'],
                             MinDistance=wind_1_set['MinDistance'])
         if wind_1_key_set['lr'] is not None:
-            wind1.key(U=wind_1_key_set['U'], label=wind_1_key_set['label'], bbox_to_anchor=bbox_to_anchor_1, loc=loc1,
+            wind1.key(U=wind_1_key_set['U'], label=wind_1_key_set['label'], bbox_to_anchor=bbox_to_anchor_1, loc=loc1, edgewidth=spine_lw,
                       edgecolor=wind_1_key_set['edgecolor'], arrowsize=wind_1_key_set['arrowsize'], linewidth=wind_1_key_set['lw'])
         else:
-            wind1.key(U=wind_1_key_set['U'], label=wind_1_key_set['label'], bbox_to_anchor=bbox_to_anchor_1, loc=loc1,
+            wind1.key(U=wind_1_key_set['U'], label=wind_1_key_set['label'], bbox_to_anchor=bbox_to_anchor_1, loc=loc1, edgewidth=spine_lw,
                       edgecolor=wind_1_key_set['edgecolor'], arrowsize=wind_1_key_set['arrowsize'], linewidth=wind_1_key_set['lw'])
 
     # 风矢量No.2
@@ -274,7 +261,7 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
                             scale=wind_2_set['scale'], linewidth=wind_2_set['lw'], regrid=wind_2_set['regrid'],
                             color=wind_2_set['color'], thinning=wind_2_set['thinning'], nanmax=wind_2_set['nanmax'],
                             MinDistance=wind_2_set['MinDistance'])
-        wind2.key(U=wind_2_key_set['U'], label=wind_2_key_set['label'], bbox_to_anchor=bbox_to_anchor_2, loc=loc2,
+        wind2.key(U=wind_2_key_set['U'], label=wind_2_key_set['label'], bbox_to_anchor=bbox_to_anchor_2, loc=loc2, edgewidth=spine_lw,
                   edgecolor=wind_2_key_set['edgecolor'], arrowsize=wind_2_key_set['arrowsize'], linewidth=wind_2_key_set['lw'])
     # 边框显示为黑色
     axes_sub.grid(False)
@@ -378,41 +365,139 @@ sst_clim = sst.groupby('time.month').mean('time')  # 逐月气候态
 sst_ano = sst.groupby('time.month') - sst_clim  # 逐月距平
 sst_ano = sst_ano.assign_coords(year=sst_ano["time"].dt.year, month=sst_ano["time"].dt.month).set_index(time=["year", "month"]).unstack("time")
 
-# UV 500
+# UV
 uvz = xr.open_dataset(fr"{DATA}/ERA5/ERA5_pressLev/era5_pressLev.nc").sel(
     date=slice('1979-01-01', '2023-12-31'),
-    pressure_level=500,
+    pressure_level=[200, 500, 850],
     latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])
 uvz = xr.Dataset(
-    {'u': (['time', 'lat', 'lon'], uvz['u'].data),
-     'v': (['time', 'lat', 'lon'], uvz['v'].data),
-     'z': (['time', 'lat', 'lon'], uvz['z'].data)},
+    {'u': (['time', 'p', 'lat', 'lon'], uvz['u'].data),
+     'v': (['time', 'p', 'lat', 'lon'], uvz['v'].data),
+     'z': (['time', 'p', 'lat', 'lon'], uvz['z'].data)},
     coords={'time': pd.to_datetime(uvz['date'], format="%Y%m%d"),
+            'p': uvz['pressure_level'].data,
             'lat': uvz['latitude'].data,
             'lon': uvz['longitude'].data})
 uvz = uvz.sel(time=slice('1979-01-01', '2022-12-31'))
-uvz = uvz.transpose('time', 'lat', 'lon')
+uvz = uvz.transpose('time', 'p', 'lat', 'lon')
 uvz_clim = uvz.groupby('time.month').mean('time')  # 逐月气候态
 uvz_ano = uvz.groupby('time.month') - uvz_clim  # 逐月距平
 uvz_ano = uvz_ano.assign_coords(year=uvz_ano["time"].dt.year, month=uvz_ano["time"].dt.month).set_index(time=["year", "month"]).unstack("time")
 
+# PRE
+pre = xr.open_dataset(fr'{DATA}/NOAA/GPCP/precip.mon.mean.nc').sel(time=slice('1979-01-01', '2023-12-31'))
+pre = transform(pre, type='180->360')
+pre = xr.Dataset(
+    {'pre': (['time', 'lat', 'lon'], pre['precip'].data)},
+    coords={'time': pd.to_datetime(pre['time'], format="%Y%m%d"),
+            'lat': pre['lat'].data,
+            'lon': pre['lon'].data})
+pre = pre.sel(time=slice('1979-01-01', '2022-12-31'))
+pre = pre.transpose('time', 'lat', 'lon')
+pre_clim = pre.groupby('time.month').mean('time')  # 逐月气候态
+pre_ano = pre.groupby('time.month') - pre_clim  # 逐月距平
+pre_ano = pre_ano.assign_coords(year=pre_ano["time"].dt.year, month=pre_ano["time"].dt.month).set_index(time=["year", "month"]).unstack("time")
 
-fig = plt.figure(figsize=np.array([17, 6])*0.6)   # 创建画布
+fig = plt.figure(figsize=np.array([17, 6*3])*0.5)   # 创建画布
 proj = ccrs.PlateCarree(central_longitude=110)  # 投影方式
-spec = gridspec.GridSpec(ncols=3, nrows=2, wspace=0.13, hspace=0.3)  # 设置子图比例
+spec = gridspec.GridSpec(ncols=3, nrows=2, wspace=0.16, hspace=0.13)  # 设置子图比例
 plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
 plt.rcParams['axes.edgecolor'] = 'black'
 plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
 
 for i in [5, 6, 7, 8, 9]:
     year = 2015
-    ax = fig.add_subplot(spec[i-5], projection=proj)  # 添加子图
-    # 统一加粗所有四个边框
-    for spine in ax.spines.values():
-        spine.set_linewidth(1.2)  # 设置边框线宽
 
-    ax.set_aspect('auto')  # 设置长宽比
-    sub_pic(ax, title=f'({chr(ord('a')+i-5)}) {i}_500UV&SST', extent=[-180, 180, -30, 80],
+    ax_spec = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=spec[i - 5], wspace=0, hspace=0)
+
+    ax1 = fig.add_subplot(ax_spec[0], projection=proj)  # 添加子图
+    ax1.set_aspect('auto')  # 设置长宽比
+    sub_pic(ax1, title=f'({chr(ord('a')+i-5)}) {i}_200UVZ_500UV&SST_850UV&PRE', extent=[-180, 180, -30, 80],
+            geoticks={'x': [], 'y': yticks, 'xminor': 10, 'yminor': 10},
+            fontsize_times=1.0,
+
+            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+            shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4], cb_draw=True if i==7 else False,
+            shading_corr=None,
+            p_test_drawSet={'N': 2022-1979+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            edgedraw=False,
+
+            shading2=uvz_ano['z'].sel(year=year, month=i, p=200), shading2_levels=[-1200, -1000, -800, -600, -400, -200, 0, 200, 400, 600, 800, 1000, 1200],
+            shading2_cmap=cmaps.sunshine_diff_12lev, cb_draw2=True if i==7 else False,
+            shading2_corr=None,
+            p_test_drawSet2={'N': 2022-1979+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            edgedraw2=False,
+
+            contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
+
+            contour_corr=None, p_test_drawSet_corr={'N': 2022-1979+1, 'alpha': 0.1},
+
+            wind_1=uvz_ano.sel(year=year, month=i, p=200),
+            wind_1_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
+                      'color': 'black', 'thinning': ['20%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.5]},
+            wind_1_key_set={'U': 5, 'label': '5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 5, 'edgecolor': 'black', 'lw': 0.5},
+            bbox_to_anchor_1=None, loc1="lower right",
+
+            wind_2=None,
+            wind_2_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
+                      'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.5]},
+            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 5, 'edgecolor': 'none', 'lw': 0.5},
+            bbox_to_anchor_2=None, loc2="upper right",
+            rec_Set=None)
+    ax1.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
+                      facecolor='none', edgecolor='black', linewidth=.5)
+    ax1.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
+                       facecolor='none', edgecolor='blue', linewidth=0.2)
+    ax1.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
+#————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+    ax2 = fig.add_subplot(ax_spec[1], projection=proj)  # 添加子图
+    ax2.set_aspect('auto')  # 设置长宽比
+    sub_pic(ax2, title=f'', extent=[-180, 180, -30, 80],
+            geoticks={'x': [], 'y': yticks, 'xminor': 10, 'yminor': 10},
+            fontsize_times=1.0,
+
+            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+            shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4],
+            cb_draw=True if i == 7 else False,
+            shading_corr=None,
+            p_test_drawSet={'N': 2022 - 1979 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            edgedraw=False,
+
+            shading2=sst_ano.sel(year=year, month=i).to_array()[0],
+            shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.]) * 2, 2),
+            shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40], cb_draw2=True if i == 7 else False,
+            shading2_corr=None,
+            p_test_drawSet2={'N': 2022 - 1979 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            edgedraw2=False,
+
+            contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
+
+            contour_corr=None, p_test_drawSet_corr={'N': 2022 - 1979 + 1, 'alpha': 0.1},
+
+            wind_1=uvz_ano.sel(year=year, month=i, p=500),
+            wind_1_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
+                        'color': 'black', 'thinning': ['20%', 'min'], 'nanmax': 20 / 3, 'MinDistance': [0.2, 0.5]},
+            wind_1_key_set={'U': 5, 'label': '5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 5, 'edgecolor': 'k',
+                            'lw': 0.5},
+            bbox_to_anchor_1=None, loc1="lower right",
+
+            wind_2=None,
+            wind_2_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
+                        'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.5]},
+            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 5,
+                            'edgecolor': 'none', 'lw': 0.5},
+            bbox_to_anchor_2=None, loc2="upper right",
+            rec_Set=None)
+    ax2.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
+                      facecolor='none', edgecolor='black', linewidth=.5)
+    ax2.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
+                       facecolor='none', edgecolor='blue', linewidth=0.2)
+    ax2.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(),
+                       ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
+#————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+    ax3 = fig.add_subplot(ax_spec[2], projection=proj)  # 添加子图
+    ax3.set_aspect('auto')  # 设置长宽比
+    sub_pic(ax3, title=f'', extent=[-180, 180, -30, 80],
             geoticks={'x': np.arange(-180, 181, 60), 'y': yticks, 'xminor': 10, 'yminor': 10},
             fontsize_times=1.0,
 
@@ -422,8 +507,8 @@ for i in [5, 6, 7, 8, 9]:
             p_test_drawSet={'N': 2022-1979+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw=False,
 
-            shading2=sst_ano.sel(year=year, month=i).to_array()[0], shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.])*2, 2),
-            shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40], cb_draw2=True if i==7 else False,
+            shading2=pre_ano['pre'].sel(year=year, month=i), shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.])*10, 2),
+            shading2_cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], cb_draw2=True if i==7 else False,
             shading2_corr=None,
             p_test_drawSet2={'N': 2022-1979+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw2=False,
@@ -432,10 +517,10 @@ for i in [5, 6, 7, 8, 9]:
 
             contour_corr=None, p_test_drawSet_corr={'N': 2022-1979+1, 'alpha': 0.1},
 
-            wind_1=uvz_ano.sel(year=year, month=i),
-            wind_1_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
+            wind_1=uvz_ano.sel(year=year, month=i, p=850),
+            wind_1_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 10, 'lw': 0.4,
                       'color': 'black', 'thinning': ['20%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.5]},
-            wind_1_key_set={'U': 5, 'label': '5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 5, 'edgecolor': 'none', 'lw': 0.5},
+            wind_1_key_set={'U': 2.5, 'label': '2.5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 2.5, 'edgecolor': 'k', 'lw': 0.5},
             bbox_to_anchor_1=None, loc1="lower right",
 
             wind_2=None,
@@ -444,8 +529,13 @@ for i in [5, 6, 7, 8, 9]:
             wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 5, 'edgecolor': 'none', 'lw': 0.5},
             bbox_to_anchor_2=None, loc2="upper right",
             rec_Set=None)
-
-    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
+    ax3.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
+                      facecolor='none', edgecolor='black', linewidth=.5)
+    ax3.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
+                       facecolor='none', edgecolor='blue', linewidth=0.2)
+    ax3.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
+                       ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=10)
+    ax3.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
 
 plt.savefig(fr'{PYFILE}/p4/pic/图2_{year}.pdf', bbox_inches='tight')
 plt.savefig(fr'{PYFILE}/p4/pic/图2_{year}.png', dpi=600, bbox_inches='tight')

@@ -16,6 +16,8 @@ import cmaps
 from scipy.ndimage import filters
 import xarray as xr
 import numpy as np
+import multiprocessing
+import sys
 import tqdm as tq
 import time
 import pandas as pd
@@ -29,17 +31,67 @@ from climkit.corr_reg import corr, regress
 from climkit.lonlat_transform import transform
 
 
+#—————————————————————————————————————————————————————绘图默认配置————————————————————————————————————————————————————————
+PYFILE = r"/volumes/TiPlus7100/PyFile"
+DATA = r"/volumes/TiPlus7100/data"
+plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey
+plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
+xticks = np.arange(-180, 181, 30)
+yticks = np.arange(-30, 81, 30)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
-            shading, shading_levels, shading_cmap, shading_corr, p_test_drawSet, edgedraw, cb,
-            shading2, shading2_levels, shading2_cmap, shading2_corr, p_test_drawSet2, edgedraw2, cb2,
-            contour, contour_levels, contour_cmap, contour_corr, p_test_drawSet_corr,
-            wind_1, wind_1_set, wind_1_key_set,
-            wind_2, wind_2_set, wind_2_key_set,
+
+
+default_clon = 180
+## 填色图
+default_extent = [-180, 180, -30, 80]  # 子图范围
+default_geoticks = {'x': xticks, 'y': yticks,
+                    'xmajor': 30, 'xminor': 10,
+                    'ymajor': 30, 'yminor': 10}  # 地理坐标刻度
+default_fontsize_times = 1.0  # 字体大小倍数
+default_shading = False # 填色图数据
+default_shading_levels = np.array([-10, -8, -6, -4, -2, 2, 4, 6, 8, 10])
+default_shading_cmap = cmaps.temp_diff_18lev[5:-5]
+default_shading_corr = False
+default_p_test_drawSet = {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'} # 显著性绘制设置, 可为False
+default_edgedraw = False # 填色图边缘绘制
+## 填色图2
+default_extent2 = [-180, 180, -30, 80]  # 子图范围
+default_geoticks2 = {'x': xticks, 'y': yticks,
+                    'xminor': 10, 'yminor': 10}  # 地理坐标刻度
+default_shading2 = False # 填色图数据
+default_shading_levels2 = np.array([-10, -8, -6, -4, -2, 2, 4, 6, 8, 10])
+default_shading_cmap2 = cmaps.temp_diff_18lev[5:-5]
+default_shading_corr2 = False
+default_p_test_drawSet2 = {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'} # 显著性绘制设置, 可为False
+default_edgedraw2 = False # 填色图边缘绘制
+## 等值线
+default_contour = False # 等值线数据
+default_contour_levels = [[-1, -0.5, -0.2], [0.2, 0.5, 1]]
+default_contour_cmap = ['blue', 'red']
+default_contour_corr = False # 等值线相关系数结果
+default_p_test_drawSet_corr = {'N': 60, 'alpha': 0.1} # 显著
+## 风矢量_1
+default_wind_1 = False # 风矢量No.1数据
+default_wind_1_set = {'regrid': 15, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.15,
+                      'color': 'black', 'thinning': ['25%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.1]}
+default_wind_1_key_set = {'U': 1, 'label': '1 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 0.5, 'edgecolor': 'none', 'lw': 0.5}
+## 风矢量_2
+default_wind_2 = False # 风矢量No.2数据
+default_wind_2_set = {'regrid': 12, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
+                      'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.1]}
+default_wind_2_key_set = {'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 0.5, 'edgecolor': 'none', 'lw': 0.5}
+
+
+def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
+            shading, shading_levels, shading_cmap, shading_corr, cb_draw, p_test_drawSet, edgedraw,
+            shading2, shading2_levels, shading2_cmap, shading2_corr, p_test_drawSet2, edgedraw2,
+            contour, contour_levels, contour_cmap, contour_corr, cb_draw2, p_test_drawSet_corr,
+            wind_1, wind_1_set, wind_1_key_set, bbox_to_anchor_1, loc1,
+            wind_2, wind_2_set, wind_2_key_set, bbox_to_anchor_2, loc2,
             rec_Set):
     """
     子图绘制函数
-    :param fig: 图形对象, fig = plt.figure(figsize=(10, 5))
     :param axes_sub: axes对象, Axes = fig.add_subplot(gs[0], projection=ccrs.PlateCarree(central_longitude=180))
     :param title: 子图标题
     :param extent: 子图范围, [xmin, xmax, ymin, ymax], such as [-180, 180, -30, 80]
@@ -49,17 +101,17 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
     :param shading:  xr.DataArray对象, ['lat', 'lon']
     :param shading_levels:  shading级别
     :param shading_cmap:  shading颜色映射
+    :param cb_draw:  是否绘制色标, bool类型
     :param shading_corr:  shading相关系数结果 ['lat', 'lon']
     :param p_test_drawSet:  显著性绘制设置, {N, alpha, lw, color}, such as {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}
     :param edgedraw:  shading是否有边缘绘制, bool类型
-    :param cb: 是否绘制colorbar,bool类型
     :param shading2:  xr.DataArray对象, ['lat', 'lon']
     :param shading2_levels:  shading2级别
     :param shading2_cmap:  shading2颜色映射
+    :param cb_draw2:  是否绘制色标, bool类型
     :param shading2_corr:  shading2相关系数结果 ['lat', 'lon']
     :param p_test_drawSet2:  显著性绘制设置, {N, alpha, lw, color}, such as {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}
     :param edgedraw2:  shading2是否有边缘绘制, bool类型
-    :param cb2: 是否绘制colorbar,bool类型
     :param contour:  xr.DataArray对象, ['lat', 'lon']
     :param contour_levels:  contour级别, [[负等值线], [正等值线]], such as [[-1, -0.5, -0.2], [0.2, 0.5, 1]]
     :param contour_cmap:  contour颜色, [负等值线颜色, 正等值线颜色], such as ['blue', 'red']
@@ -71,13 +123,16 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
                                   'color': 'black', 'thinning': 1, 'nanmax': 1, 'MinDistance': 1}
     :param wind_1_key_set:  风矢量图例设置, {U, label, ud, lr, arrowsize, edgecolor, lw},
                                     such as {'U': 1, 'label': '1 m/s', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 0.5, 'edgecolor': 'none', 'lw': 0.5}
+    :param bbox_to_anchor_1:  风矢量图例位置, [x0, y0, width, height], such as [0.15, 0.15, 0.1, 0.1]
     :param wind_2:  xr.DataArray对象, ['lat', 'lon', 'u', 'v']
     :param wind_2_set:  风矢量设置, 同上
     :param wind_2_key_set:  风矢量图例设置, 同上
+    :param bbox_to_anchor_2:  风矢量图例位置, 同上
     :param rec_Set:  矩形框设置, [{point, color, ls, lw}, such as {'point': [105, 120, 20, 30], 'color': 'blue', 'ls': '--', 'lw': 0.5}, {...}]
     :return:
     """
-
+    # 屏蔽运行时警告 (主要解决 shapely 和 numpy 的除0/buffer 警告)
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
     def latlon_fmt(ax, xticks1, yticks1, xminorLocator, yminorLocator):
         ax.set_yticks(yticks1)
         ax.set_xticks(xticks1)
@@ -122,14 +177,14 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
             rec(axes_sub, rec_set['point'], rec_set['color'], rec_set['ls'], rec_set['lw'])  # 绘制矩形框
 
     # 判断是否绘制
-    shading_signal = True if isinstance(shading, xr.DataArray) else False
-    shading_corr_signal = True if isinstance(shading_corr, xr.DataArray) else False
-    shading2_signal = True if isinstance(shading2, xr.DataArray) else False
-    shading2_corr_signal = True if isinstance(shading2_corr, xr.DataArray) else False
-    contour_signal = True if isinstance(contour, xr.DataArray) else False
-    contour_corr_signal = True if isinstance(contour_corr, xr.DataArray) else False
-    wind_1_signal = True if isinstance(wind_1, xr.DataArray) else False
-    wind_2_signal = True if isinstance(wind_2, xr.DataArray) else False
+    shading_signal = True if isinstance(shading, xr.DataArray) or isinstance(shading, xr.Dataset) else False
+    shading_corr_signal = True if isinstance(shading_corr, xr.DataArray) or isinstance(shading_corr, xr.Dataset) else False
+    shading2_signal = True if isinstance(shading2, xr.DataArray) or isinstance(shading2, xr.Dataset) else False
+    shading2_corr_signal = True if isinstance(shading2_corr, xr.DataArray) or isinstance(shading2_corr, xr.Dataset) else False
+    contour_signal = True if isinstance(contour, xr.DataArray) or isinstance(contour, xr.Dataset) else False
+    contour_corr_signal = True if isinstance(contour_corr, xr.DataArray) or isinstance(contour_corr, xr.Dataset) else False
+    wind_1_signal = True if isinstance(wind_1, xr.DataArray) or isinstance(wind_1, xr.Dataset) else False
+    wind_2_signal = True if isinstance(wind_2, xr.DataArray) or isinstance(wind_2, xr.Dataset) else False
 
     # 经度转换
     shading = transform(shading, lon_name='lon', type='360->180') if shading_signal else None
@@ -167,12 +222,11 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
 
     # 阴影
     if shading_signal:
-        # 去除白线
         shading_data, shading_lon = add_cyclic_point(shading, shading['lon'])
         shading_draw = axes_sub.contourf(shading_lon, shading['lat'], shading_data,
                                                levels=shading_levels,
                                                cmap=shading_cmap,
-                                               extend='both', alpha=.75,
+                                               extend='both', alpha=.75, norm=mcolors.BoundaryNorm(boundaries=shading_levels, ncolors=shading_cmap.N, clip=False),
                                                transform=ccrs.PlateCarree(central_longitude=0))
     else:
         shading_draw = False
@@ -197,7 +251,7 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
         shading2_draw = axes_sub.contourf(shading2_lon, shading2['lat'], shading2_data,
                                                levels=shading2_levels,
                                                cmap=shading2_cmap,
-                                               extend='both', alpha=.75,
+                                               extend='both', alpha=.75, norm=mcolors.BoundaryNorm(boundaries=shading2_levels, ncolors=shading2_cmap.N, clip=False),
                                                transform=ccrs.PlateCarree(central_longitude=0))
     else:
         shading2_draw = False
@@ -252,33 +306,33 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
 
     # 风矢量No.1
     if wind_1_signal:
-        wind1 = Curlyquiver(axes_sub, wind_1['lon'], wind_1['lat'], wind_1['u'], wind_1['v'],
-                            center_lon=wind_1_set['center_lon'], arrowsize=wind_1_set['arrowsize'],
+        wind1 = axes_sub.Curlyquiver(wind_1['lon'], wind_1['lat'], wind_1['u'], wind_1['v'],
+                            arrowsize=wind_1_set['arrowsize'], transform=ccrs.PlateCarree(central_longitude=0),
                             scale=wind_1_set['scale'], linewidth=wind_1_set['lw'], regrid=wind_1_set['regrid'],
                             color=wind_1_set['color'], thinning=wind_1_set['thinning'], nanmax=wind_1_set['nanmax'],
                             MinDistance=wind_1_set['MinDistance'])
         if wind_1_key_set['lr'] is not None:
-            wind1.key(fig, U=wind_1_key_set['U'], label=wind_1_key_set['label'], lr=wind_1_key_set['lr'], ud=wind_1_key_set['ud'],
+            wind1.key(U=wind_1_key_set['U'], label=wind_1_key_set['label'], bbox_to_anchor=bbox_to_anchor_1, loc=loc1,
                       edgecolor=wind_1_key_set['edgecolor'], arrowsize=wind_1_key_set['arrowsize'], linewidth=wind_1_key_set['lw'])
         else:
-            wind1.key(fig, U=wind_1_key_set['U'], label=wind_1_key_set['label'], ud=wind_1_key_set['ud'],
+            wind1.key(U=wind_1_key_set['U'], label=wind_1_key_set['label'], bbox_to_anchor=bbox_to_anchor_1, loc=loc1,
                       edgecolor=wind_1_key_set['edgecolor'], arrowsize=wind_1_key_set['arrowsize'], linewidth=wind_1_key_set['lw'])
 
     # 风矢量No.2
     if wind_2_signal:
-        wind2 = Curlyquiver(axes_sub, wind_2['lon'], wind_2['lat'], wind_2['u'], wind_2['v'],
-                            center_lon=wind_2_set['center_lon'], arrowsize=wind_2_set['arrowsize'],
+        wind2 = axes_sub.Curlyquiver(wind_2['lon'], wind_2['lat'], wind_2['u'], wind_2['v'],
+                            arrowsize=wind_2_set['arrowsize'], transform=ccrs.PlateCarree(central_longitude=0),
                             scale=wind_2_set['scale'], linewidth=wind_2_set['lw'], regrid=wind_2_set['regrid'],
                             color=wind_2_set['color'], thinning=wind_2_set['thinning'], nanmax=wind_2_set['nanmax'],
                             MinDistance=wind_2_set['MinDistance'])
-        wind2.key(fig, U=wind_2_key_set['U'], label=wind_2_key_set['label'], lr=wind_2_key_set['lr'], ud=wind_2_key_set['ud'],
+        wind2.key(U=wind_2_key_set['U'], label=wind_2_key_set['label'], bbox_to_anchor=bbox_to_anchor_2, loc=loc2,
                   edgecolor=wind_2_key_set['edgecolor'], arrowsize=wind_2_key_set['arrowsize'], linewidth=wind_2_key_set['lw'])
     # 边框显示为黑色
     axes_sub.grid(False)
     for spine in axes_sub.spines.values():
         spine.set_edgecolor('black')
     # 色标
-    if shading_signal and cb:
+    if shading_signal and cb_draw:
         ax_colorbar = inset_axes(axes_sub, width="3%", height="100%", loc='lower left', bbox_to_anchor=(1.03, 0., 1, 1),
                                  bbox_transform=axes_sub.transAxes, borderpad=0)
         cb1 = plt.colorbar(shading_draw, cax=ax_colorbar, orientation='vertical', drawedges=True)
@@ -289,7 +343,7 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
         cb1.ax.tick_params(length=0, labelsize=6*fontsize_times)  # length为刻度线的长度
 
     # 阴影2色标
-    if shading2_signal and cb2:
+    if shading2_signal and cb_draw2:
         ax_colorbar2 = inset_axes(axes_sub, width="3%", height="100%", loc='lower left', bbox_to_anchor=(1.13, 0., 1, 1),
                              bbox_transform=axes_sub.transAxes, borderpad=0) if shading_signal else inset_axes(axes_sub, width="3%", height="100%", loc='lower left', bbox_to_anchor=(1.03, 0., 1, 1), bbox_transform=axes_sub.transAxes, borderpad=0)
         cb2 = plt.colorbar(shading2_draw, cax=ax_colorbar2, orientation='vertical', drawedges=True)
@@ -309,136 +363,88 @@ def sub_pic(fig, axes_sub, title, extent, geoticks, fontsize_times,
     print(f"子图 '{title}' 绘制完成, 耗时: {duration:.2f}秒")
     return 0
 
-plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
-plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
-xticks = np.arange(-180, 181, 30)
-yticks = np.arange(-30, 81, 30)
-
-
-PYFILE = r"/volumes/TiPlus7100/PyFile"
-DATA = r"/volumes/TiPlus7100/data"
-# 下列参数的默认值
-# center_lon
-# extent, geoticks
-# shading, shading_levels, shading_cmap, shading_corr, p_test_drawSet, edgedraw
-# contour, contour_levels, contour_cmap
-# wind_1, wind_1_set, wind_1_key_set
-# wind_2, wind_2_set, wind_2_key_set
-# rec_Set
-default_clon = 180
-## 填色图
-default_extent = [-180, 180, -30, 80]  # 子图范围
-default_geoticks = {'x': xticks, 'y': yticks,
-                    'xmajor': 30, 'xminor': 10,
-                    'ymajor': 30, 'yminor': 10}  # 地理坐标刻度
-default_fontsize_times = 1.0  # 字体大小倍数
-default_shading = False # 填色图数据
-default_shading_levels = np.array([-10, -8, -6, -4, -2, 2, 4, 6, 8, 10])
-default_shading_cmap = cmaps.temp_diff_18lev[5:-5]
-default_shading_corr = False
-default_p_test_drawSet = {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'} # 显著性绘制设置, 可为False
-default_edgedraw = False # 填色图边缘绘制
-## 填色图2
-default_extent2 = [-180, 180, -30, 80]  # 子图范围
-default_geoticks2 = {'x': xticks, 'y': yticks,
-                    'xminor': 10, 'yminor': 10}  # 地理坐标刻度
-default_shading2 = False # 填色图数据
-default_shading_levels2 = np.array([-10, -8, -6, -4, -2, 2, 4, 6, 8, 10])
-default_shading_cmap2 = cmaps.temp_diff_18lev[5:-5]
-default_shading_corr2 = False
-default_p_test_drawSet2 = {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'} # 显著性绘制设置, 可为False
-default_edgedraw2 = False # 填色图边缘绘制
-## 等值线
-default_contour = False # 等值线数据
-default_contour_levels = [[-1, -0.5, -0.2], [0.2, 0.5, 1]]
-default_contour_cmap = ['blue', 'red']
-default_contour_corr = False # 等值线相关系数结果
-default_p_test_drawSet_corr = {'N': 60, 'alpha': 0.1} # 显著
-## 风矢量_1
-default_wind_1 = False # 风矢量No.1数据
-default_wind_1_set = {'center_lon': default_clon, 'regrid': 15, 'arrowsize': 0.5, 'scale': 0.5, 'lw': 0.15,
-                      'color': 'black', 'thinning': ['50%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.1]}
-default_wind_1_key_set = {'U': 1, 'label': '1 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 0.5, 'edgecolor': 'none', 'lw': 0.5}
-## 风矢量_2
-default_wind_2 = False # 风矢量No.2数据
-default_wind_2_set = {'center_lon': default_clon, 'regrid': 12, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
-                      'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.1]}
-default_wind_2_key_set = {'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 0.5, 'edgecolor': 'none', 'lw': 0.5}
-# 矩形框设置, 可为False
-default_rec_Set = [{'point': [105, 120, 20, 30], 'color': 'blue', 'ls': '--', 'lw': 0.5}]
-
+TR_time = [1961, 2006]
+TYPE = 2
+sst = ersst(f"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
+#—————————————————————————————————————————————————————预测因子指数————————————————————————————————————————————————————————
 typesTimeSer = xr.open_dataset(fr"{PYFILE}/p3/data/逐日WEHT的三类投影指数.nc")
-# 2mT
-t2m = era5_land(fr"{DATA}/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
-# SLP
-slp = era5_s(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
-# sst
-sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
-# sic
-sic = sic(fr"{DATA}/NOAA/HadISST/HadISST_ice.nc", 1961, 2022)
-# %%
-# 计算
-TYPE = 1
+timeSerie = typesTimeSer.sel(year=slice(f'1961', f'{TR_time[1]}'),type=TYPE)['I'].data
 
-TimeRange = [1962, 2005]  # 时间段
-train_years = pd.to_datetime(np.arange(TimeRange[0], TimeRange[1]+1), format='%Y')
-timeSerie = typesTimeSer.sel(year=slice(f'{TimeRange[0]}', f'{TimeRange[1]}'),type=TYPE)['I'].data
-nor_mean = np.mean(timeSerie)
-nor_std = np.std(timeSerie)
-timeSerie = (timeSerie - np.mean(timeSerie)) / np.std(timeSerie)  # 标准化处理
+#———————————————————因子1——————————————————
+sst_1 = sst.sel(time=sst['time.month'].isin([3, 4])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+X1_zone = [10, -35, 360-135, 360-70]
+sstReg1, sstCorr1 = regress(timeSerie, sst_1['sst'].data), corr(timeSerie, sst_1['sst'].data)
+sstReg1 = xr.DataArray(sstReg1, coords=[sst_1['lat'], sst_1['lon']],
+                      dims=['lat', 'lon'], name='sst_reg')
+sstCorr1 = xr.DataArray(sstCorr1, coords=[sst_1['lat'], sst_1['lon']],
+                      dims=['lat', 'lon'], name='sst_corr')
+sstWeight_1 = sstCorr1.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3]))
+X1 = sst_1.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3])) * np.where(np.abs(sstWeight_1)>r_test(TR_time[1]-TR_time[0]+1, 0.1), sstWeight_1, np.nan)
+X1 = X1.mean(['lat', 'lon'])
+X1_mean, X1_std = X1.mean(), X1.std()  # 均值和标准差
+X1 = (X1 - X1_mean) / X1_std  # 标准化
+#———————————————————因子2——————————————————
+sst_2_0 = sst.sel(time=sst['time.month'].isin([2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+sst_2_1 = sst.sel(time=sst['time.month'].isin([5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+sst_2 = sst_2_1 - sst_2_0
+X2_zone = [-10, -35, 360-180, 360-140]
+sstReg2, sstCorr2 = regress(timeSerie, sst_2['sst'].data), corr(timeSerie, sst_2['sst'].data)
+sstReg2 = xr.DataArray(sstReg2, coords=[sst_2['lat'], sst_2['lon']],
+                      dims=['lat', 'lon'], name='sst_reg')
+sstCorr2 = xr.DataArray(sstCorr2, coords=[sst_2['lat'], sst_2['lon']],
+                      dims=['lat', 'lon'], name='sst_corr')
+sstWeight_2 = sstCorr2.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3]))
+X2 = sst_2.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3])) * np.where(np.abs(sstWeight_2)>r_test(TR_time[1]-TR_time[0]+1, 0.1), sstWeight_2, np.nan)
+X2 = X2.mean(['lat', 'lon'])
+X2_mean, X2_std = X2.mean(), X2.std()  # 均值和标准差
+X2 = (X2 - X2_mean) / X2_std  # 标准化
 
-fig = plt.figure(figsize=(16, 9))
-gs = gridspec.GridSpec(3, 3, wspace=0, hspace=0.25)
-pic_index = 0
-for ii in range(9):
-############################################################################################### X1
-    i = [11, 12, 1, 2, 3, 4, 5, 7, 8][ii]
-    shift_year = 1 if i==11 or i==12 else 0
-    t2m_imonth = t2m.sel(time=t2m['time.month'].isin([i])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').shift(year=shift_year).sel(year=slice(f'{TimeRange[0]}', f'{TimeRange[1]}'))
-    slp_imonth = slp.sel(time=slp['time.month'].isin([i])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').shift(year=shift_year).sel(year=slice(f'{TimeRange[0]}', f'{TimeRange[1]}'))
-    sst_imonth = sst.sel(time=sst['time.month'].isin([i])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').shift(year=shift_year).sel(year=slice(f'{TimeRange[0]}', f'{TimeRange[1]}'))
-    sic_imonth = sic.sel(time=sic['time.month'].isin([i])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').shift(year=shift_year).sel(year=slice(f'{TimeRange[0]}', f'{TimeRange[1]}'))
-
-    t2mReg, t2mCorr = regress(timeSerie, t2m_imonth['t2m'].data), corr(timeSerie, t2m_imonth['t2m'].data)
-    slpReg, slpCorr = regress(timeSerie, slp_imonth['msl'].data), corr(timeSerie, slp_imonth['msl'].data)
-    sstReg, sstCorr = regress(timeSerie, sst_imonth['sst'].data), corr(timeSerie, sst_imonth['sst'].data)
-    sicReg, sicCorr = regress(timeSerie, sic_imonth['sic'].data), corr(timeSerie, sic_imonth['sic'].data)
-
-    t2mReg = xr.DataArray(t2mReg, coords=[t2m_imonth['lat'], t2m_imonth['lon']],
-                          dims=['lat', 'lon'], name='t2m_reg')
-    slpReg = xr.DataArray(slpReg, coords=[slp_imonth['lat'], slp_imonth['lon']],
-                          dims=['lat', 'lon'], name='slp_reg')
-    sstReg = xr.DataArray(sstReg, coords=[sst_imonth['lat'], sst_imonth['lon']],
-                          dims=['lat', 'lon'], name='sst_reg')
-    sicReg = xr.DataArray(sicReg, coords=[sic_imonth['lat'], sic_imonth['lon']],
-                          dims=['lat', 'lon'], name='sic_reg')
-    t2mCorr = xr.DataArray(t2mCorr, coords=[t2m_imonth['lat'], t2m_imonth['lon']],
-                          dims=['lat', 'lon'], name='t2m_corr')
-    slpCorr = xr.DataArray(slpCorr, coords=[slp_imonth['lat'], slp_imonth['lon']],
-                          dims=['lat', 'lon'], name='slp_corr')
-    sstCorr = xr.DataArray(sstCorr, coords=[sst_imonth['lat'], sst_imonth['lon']],
-                          dims=['lat', 'lon'], name='sst_corr')
-    sicCorr = xr.DataArray(sicCorr, coords=[sic_imonth['lat'], sic_imonth['lon']],
-                          dims=['lat', 'lon'], name='sic_corr')
-
-    ax = fig.add_subplot(gs[pic_index], projection=ccrs.PlateCarree(central_longitude=180-70))
-    if ii in [0, 3, 6]:
-        _yticks = yticks
-    else:
-        _yticks = []
-    sub_pic(fig, ax, title=f'({chr(ord('a')+ii)}) Reg {i}_T2m&SST', extent=[-180, 180, -50, 85],
-            geoticks={'x': np.arange(-180, 181, 60), 'y': _yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times*1.5,
-            shading=t2mReg, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-            shading_corr=t2mCorr, p_test_drawSet={'N': TimeRange[1]-TimeRange[0], 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb=False,
-            shading2=sstReg, shading2_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5])*0.5, shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-            shading2_corr=sstCorr, p_test_drawSet2={'N': TimeRange[1]-TimeRange[0], 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb2=False,
-            contour=sicReg, contour_levels=np.array([[-0.05, -0.03, -0.01], [0.01, 0.03, 0.05]]), contour_cmap=default_contour_cmap,
-            contour_corr=sicCorr, p_test_drawSet_corr={'N': TimeRange[1]-TimeRange[0], 'alpha': 0.1},
-            wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set,
-            wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set,
+#————————————————————————————————————————————————————————绘图————————————————————————————————————————————————————————————
+fig = plt.figure(figsize=np.array([12, 5])*0.7)
+fig.subplots_adjust(hspace=0.35)
+gs = gridspec.GridSpec(2, 3)  # 设置子图的高度比例
+# 绘制子图
+for imonth in [6, 7, 8]:
+    i = imonth-6
+    ax1 = fig.add_subplot(gs[i], projection=ccrs.PlateCarree(central_longitude=180-70))
+    X1_sstReg, X1_sstCorr = (regress(X1["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values),
+                             corr(X1["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values))
+    X1_sstReg = xr.DataArray(X1_sstReg, coords=[sst['lat'], sst['lon']],
+                           dims=['lat', 'lon'], name='sst_reg')
+    X1_sstCorr = xr.DataArray(X1_sstCorr, coords=[sst['lat'], sst['lon']],
+                            dims=['lat', 'lon'], name='sst_corr')
+    sub_pic(ax1, title=f'({chr(ord('a')+i)}) Reg_{imonth}_SST onto X1', extent=[-180, 180, -50, 80],
+            geoticks={'x': np.arange(-180, 181, 60), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
+            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+            shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
+            shading2=X1_sstReg, shading2_levels=np.array([-.2, -.16, -.12, -.08, -.04, .04, .08, .12, .16, .2]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+            shading2_corr=X1_sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True if i==2 else False,
+            contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
+            contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+            wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
+            wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
             rec_Set=None)
-    pic_index += 1
 
+    ii = imonth-6+3
+    ax2 = fig.add_subplot(gs[ii], projection=ccrs.PlateCarree(central_longitude=180-70))
+    X2_sstReg, X2_sstCorr = (regress(X2["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values),
+                             corr(X2["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values))
+    X2_sstReg = xr.DataArray(X2_sstReg, coords=[sst['lat'], sst['lon']],
+                           dims=['lat', 'lon'], name='sst_reg')
+    X2_sstCorr = xr.DataArray(X2_sstCorr, coords=[sst['lat'], sst['lon']],
+                            dims=['lat', 'lon'], name='sst_corr')
+    sub_pic(ax2, title=f'({chr(ord('a')+ii)}) Reg_{imonth}_SST onto X2', extent=[-180, 180, -50, 80],
+            geoticks={'x': np.arange(-180, 181, 60), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
+            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+            shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
+            shading2=X2_sstReg, shading2_levels=np.array([-.2, -.16, -.12, -.08, -.04, .04, .08, .12, .16, .2]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+            shading2_corr=X2_sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True if ii==5 else False,
+            contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
+            contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+            wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
+            wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
+            rec_Set=None)
 
-plt.savefig(fr'{PYFILE}/p3/pic/{TimeRange[0]:.0f}-{TimeRange[1]:.0f}类型{TYPE}前期因子发展.pdf', bbox_inches='tight')
-plt.savefig(f'{PYFILE}/p3/pic/{TimeRange[0]:.0f}-{TimeRange[1]:.0f}类型{TYPE}前期因子发展.png', dpi=600, bbox_inches='tight')
+plt.savefig(f'{PYFILE}/p3/pic/type2_因子发展.pdf', bbox_inches='tight')
+plt.savefig(f'{PYFILE}/p3/pic/type2_因子发展.png', dpi=600, bbox_inches='tight')
+print(np.corrcoef(X1['sst'], X2['sst']))
