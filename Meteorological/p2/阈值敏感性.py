@@ -12,7 +12,9 @@ from climkit.significance_test import r_test
 
 import tqdm as tq
 
-PYFILE = r"/volumes/sty/PyFile"
+PYFILE = r"/volumes/TiPlus7100/PyFile"
+DATA = r"/volumes/TiPlus7100/data"
+
 corr = np.load(fr"{PYFILE}/p2/data/corr.npy")
 
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -56,6 +58,8 @@ for spine in ax.spines.values():
 ax.axvline(0.3, color='g', linestyle='-', linewidth=1)
 # 设置y=31.76的线
 ax.axhline(31.76, color='b', linestyle='-', linewidth=1)
+ax.text(0.025, 31.76, "$T_{90th}$---", color='b', va='center', ha='left',
+        fontsize=8)
 # 设置(0.3, 31.76)的点
 ax.scatter(0.3, 31.76, color='#202020', s=130, zorder=2, marker=(5, 1), alpha=0.85, edgecolors='none')
 # 设置x轴
