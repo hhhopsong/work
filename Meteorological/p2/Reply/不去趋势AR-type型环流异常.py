@@ -30,8 +30,8 @@ plt.rcParams['font.family'] = 'Times New Roman'
 
 nanmax = None
 type_name = ['', 'MLR-type 500UVZ&T2M', 'AR-type 500UVZ&T2M', 'UR-type 500UVZ&T2M']
-PYFILE = r"/volumes/sty/PyFile"
-DATA = r"/volumes/sty/data"
+PYFILE = r"/volumes/TiPlus7100/PyFile"
+DATA = r"/volumes/TiPlus7100/data"
 
 def plot_text(ax, x, y, title, size, color):
     ax.text(x, y, title,
@@ -349,7 +349,7 @@ if __name__ == '__main__':
     lev_t = np.array([-.5, -.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4, .5])
 
     # 柱状图
-    for KType in range(1, 4):
+    for KType in range(2, 3):
         if KType == 3:
             reg_map_ = masked(reg_map, fr"{PYFILE}/map/self/WYTR/长江_tp.shp")
         elif KType == 1:
@@ -413,27 +413,6 @@ if __name__ == '__main__':
     for i in K_type['type']:
         picloc = int(333 + i)
         time_ser = K_type.sel(type=i)['K'].data
-        # if i == 2:
-        #     time_ser = time_ser - np.polyval(np.polyfit(range(len(time_ser)), time_ser, 1), range(len(time_ser)))
-        # if i!=2:
-        #     time_ser = (time_ser - time_ser.mean()) / time_ser.std()
-        #     reg_K_u = regress(time_ser, uvz['u'].data)
-        #     reg_K_v = regress(time_ser, uvz['v'].data)
-        #     reg_K_z = regress(time_ser, uvz['z'].data)
-        #     reg_K_t2m = regress(time_ser, t2m['t2m'].data)
-        #     reg_K_w = regress(time_ser, w['w'].data)
-        #     reg_K_qdiv = regress(time_ser, qdiv['qdiv'].data)
-        #     reg_K_tcc = regress(time_ser, tcc['tcc'].data)
-        # else:
-        #     time_ser = time_ser[:-1]
-        #     time_ser = (time_ser - time_ser.mean()) / time_ser.std()
-        #     reg_K_u = regress(time_ser, uvz['u'].sel(year=slice(1961, 2021)).data)
-        #     reg_K_v = regress(time_ser, uvz['v'].sel(year=slice(1961, 2021)).data)
-        #     reg_K_z = regress(time_ser, uvz['z'].sel(year=slice(1961, 2021)).data)
-        #     reg_K_t2m = regress(time_ser, t2m['t2m'].sel(year=slice(1961, 2021)).data)
-        #     reg_K_w = regress(time_ser, w['w'].sel(year=slice(1961, 2021)).data)
-        #     reg_K_qdiv = regress(time_ser, qdiv['qdiv'].sel(year=slice(1961, 2021)).data)
-        #     reg_K_tcc = regress(time_ser, tcc['tcc'].sel(year=slice(1961, 2021)).data)
         from concurrent.futures import ProcessPoolExecutor
         if i != 2:
             time_ser = (time_ser - time_ser.mean()) / time_ser.std()
@@ -455,7 +434,7 @@ if __name__ == '__main__':
                 reg_K_qdiv = futures['qdiv'].result()
                 reg_K_tcc = futures['tcc'].result()
         else:
-            time_ser = time_ser[:-1]
+            time_ser = time_ser[:]
             time_ser = (time_ser - time_ser.mean()) / time_ser.std()
             with ProcessPoolExecutor() as executor:
                 futures = {
@@ -523,6 +502,6 @@ if __name__ == '__main__':
             # 强制开启裁剪
             artist.set_clip_on(True)
 
-    plt.savefig(fr"{PYFILE}/p2/pic/图4.pdf", bbox_inches='tight')
-    plt.savefig(fr"{PYFILE}/p2/pic/图4.png", bbox_inches='tight', dpi=600)
+    plt.savefig(fr"{PYFILE}/p2/pic/reply/fig_r3.pdf", bbox_inches='tight')
+    plt.savefig(fr"{PYFILE}/p2/pic/reply/fig_r3.png", bbox_inches='tight', dpi=600)
     plt.show()
