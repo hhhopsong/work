@@ -111,6 +111,7 @@ pi = e * t2m_78['t2m'].data
 
 # 字体为新罗马
 plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['mathtext.fontset'] = 'stix'
 lev_t = np.array([0., .08, .16, .24, .32, .4, .48, .56])
 
 def pic(fig, lat, lon, corr_u, corr_v, corr_z, corr_t2m, p_test_):

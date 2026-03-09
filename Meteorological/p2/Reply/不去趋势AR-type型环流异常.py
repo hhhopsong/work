@@ -29,6 +29,7 @@ import metpy.constants as constants
 
 # 字体为新罗马
 plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['mathtext.fontset'] = 'stix'
 
 nanmax = None
 type_name = ['', 'MLR-type 500UVZ&T2M', 'AR-type 500UVZ&T2M', 'UR-type 500UVZ&T2M']
@@ -373,7 +374,7 @@ if __name__ == '__main__':
     ax.set_xticks(range(3))
     ax.set_xticklabels([r'$-(\mathbf{V} \cdot \nabla T)^{\prime}$',
                         r'$(\omega \sigma)^{\prime}$',
-                        r'${Q}^{\prime}$'], fontsize=8)
+                        r'${Q}^{\prime}$'], fontsize=10)
 
     # 设置y轴范围
     ymax = 3
@@ -382,7 +383,7 @@ if __name__ == '__main__':
 
     # 仅当 KType == 1 时添加y刻度标签
     ax.set_yticks(np.arange(-3, 4, 1))
-    ax.set_yticklabels(np.arange(-3, 4, 1), fontsize=8)
+    ax.set_yticklabels(np.arange(-3, 4, 1), fontsize=10)
 
     # 添加零线
     ax.axhline(0, color='black', lw=1)
@@ -511,7 +512,7 @@ if __name__ == '__main__':
     for spine in ax2.spines.values():
         spine.set_linewidth(1)  # 设置边框线宽
 
-    ax2.set_title(f"(d) AR-type 500UVZ&SST", fontsize=12, loc='left', y=0.97)
+    ax2.set_title(f"(d) AR-type 500UVZ&SST", fontsize=12, loc='left')
     ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.75, color="#a4a4a4")
     ax2.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                        facecolor='none', edgecolor='black', linewidth=.5)
@@ -564,9 +565,9 @@ if __name__ == '__main__':
     # wind
     wind = ax2.Curlyquiver(corr_u['lon'], corr_u['lat'], corr_u['reg'].sel(level=500),
                            corr_v['reg'].sel(level=500), transform=ccrs.PlateCarree(central_longitude=0),
-                           arrowsize=.8, scale=5, linewidth=0.7, regrid=20, zorder=30,
+                           arrowsize=1., scale=5, linewidth=0.8, regrid=20, zorder=30,
                            color='#454545', thinning=['30%', 'min'], MinDistance=[0.25, 0.5], nanmax=1)
-    wind.key(U=1, label='1 m/s', edgecolor='none', arrowsize=.5, color='k', linewidth=0.5, fontproperties={'size': 8},
+    wind.key(U=1, label='1 m/s', edgecolor='none', arrowsize=1., color='k', linewidth=0.5, fontproperties={'size': 8},
              bbox_to_anchor=(0, 0.185, 1, 1))
 
     # 边框显示为黑色
@@ -582,14 +583,14 @@ if __name__ == '__main__':
     cb2.dividers.set_color('black')  # 将colorbar内间隔线调为黑色
     cb2.locator = ticker.FixedLocator(lev_sst)
     cb2.set_ticklabels([str(f'{lev:.2f}') for lev in lev_sst])
-    cb2.ax.tick_params(length=0, labelsize=6)  # length为刻度线的长度
+    cb2.ax.tick_params(length=0, labelsize=10)  # length为刻度线的长度
 
     ax3 = fig.add_subplot(gs[3], projection=ccrs.PlateCarree(central_longitude=c_lon))
     ax3.set_aspect('auto')
     # 统一加粗所有四个边框
     for spine in ax3.spines.values():
         spine.set_linewidth(1)  # 设置边框线宽
-    ax3.set_title(f"(e) AR-type 850UVZ&PRE", fontsize=12, loc='left', y=0.97)
+    ax3.set_title(f"(e) AR-type 850UVZ&PRE", fontsize=12, loc='left')
     ax3.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.75, color="#a4a4a4")
     ax3.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                        facecolor='none', edgecolor='black', linewidth=.5)
@@ -651,10 +652,10 @@ if __name__ == '__main__':
     # wind
     wind = ax3.Curlyquiver(corr_u['lon'], corr_u['lat'], corr_u['reg'].sel(level=850),
                            corr_v['reg'].sel(level=850), transform=ccrs.PlateCarree(central_longitude=0),
-                           arrowsize=1.2, scale=5, linewidth=0.8, regrid=24, zorder=30,
+                           arrowsize=1.0, scale=5, linewidth=0.8, regrid=20, zorder=30,
                            color='#454545', nanmax=0.5, thinning=['30%', 'min'],
                            MinDistance=[0.25, 0.5])
-    wind.key(U=.5, label='0.5 m/s', edgecolor='none', arrowsize=.5, color='k', linewidth=0.5, fontproperties={'size': 8},
+    wind.key(U=.5, label='0.5 m/s', edgecolor='none', arrowsize=1., color='k', linewidth=0.5, fontproperties={'size': 8},
              bbox_to_anchor=(0, 0.185, 1, 1))
 
     # 框选因子
@@ -685,7 +686,7 @@ if __name__ == '__main__':
     cb3.dividers.set_color('black')  # 将colorbar内间隔线调为黑色
     cb3.locator = ticker.FixedLocator(lev_pre)
     cb3.set_ticklabels([str(f'{lev:.2f}') for lev in lev_pre])
-    cb3.ax.tick_params(length=0, labelsize=6)  # length为刻度线的长度
+    cb3.ax.tick_params(length=0, labelsize=10)  # length为刻度线的长度
 
 
     for ax in fig.axes:
