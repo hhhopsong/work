@@ -16,11 +16,13 @@ import scipy
 
 # 数据读取
 data_year = ['1961', '2022']
+PYFILE = r"/volumes/TiPlus7100/PyFile"
+DATA = r"/volumes/TiPlus7100/data"
 # 读取CN05.1逐日最高气温数据
 #CN051_1 = xr.open_dataset(r"E:\data\CN05.1\1961_2021\CN05.1_Tmax_1961_2021_daily_025x025.nc")
-CN051_2 = xr.open_dataset(r"/volumes/sty/data/CN05.1/2022/CN05.1_Tmax_2022_daily_025x025.nc")
+CN051_2 = xr.open_dataset(fr"/{DATA}/CN05.1/2022/CN05.1_Tmax_2022_daily_025x025.nc")
 #CN051 = xr.concat([CN051_1, CN051_2], dim='time')
-PYFILE = r"/volumes/sty/PyFile"
+
 try:
     Tmax_5Day_filt = xr.open_dataarray(fr"{PYFILE}/p2/data/Tmax_5Day_filt.nc")
 except:
