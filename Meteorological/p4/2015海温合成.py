@@ -351,14 +351,14 @@ PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
 
 # SST
-sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1979, 2022)
-sst = sst.sel(time=slice('1979-01-01', '2022-12-31'))
+sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2023)
+sst = sst.sel(time=slice('1961-01-01', '2023-12-31'))
 sst = xr.Dataset(
     {'sst': (['time', 'lat', 'lon'], sst['sst'].data)},
     coords={'time': pd.to_datetime(sst['time'], format="%Y%m%d"),
             'lat': sst['lat'].data,
             'lon': sst['lon'].data})
-sst = sst.sel(time=slice('1979-01-01', '2022-12-31'))
+sst = sst.sel(time=slice('1961-01-01', '2023-12-31'))
 sst = sst.sel(time=sst['time.month'].isin([5, 6, 7, 8, 9]))
 sst = sst.transpose('time', 'lat', 'lon')
 sst_clim = sst.groupby('time.month').mean('time')  # 逐月气候态
@@ -367,7 +367,7 @@ sst_ano = sst_ano.assign_coords(year=sst_ano["time"].dt.year, month=sst_ano["tim
 
 # UV
 uvz = xr.open_dataset(fr"{DATA}/ERA5/ERA5_pressLev/era5_pressLev.nc").sel(
-    date=slice('1979-01-01', '2023-12-31'),
+    date=slice('1961-01-01', '2024-12-31'),
     pressure_level=[200, 500, 850],
     latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])
 uvz = xr.Dataset(
@@ -378,26 +378,27 @@ uvz = xr.Dataset(
             'p': uvz['pressure_level'].data,
             'lat': uvz['latitude'].data,
             'lon': uvz['longitude'].data})
-uvz = uvz.sel(time=slice('1979-01-01', '2022-12-31'))
+uvz = uvz.sel(time=slice('1961-01-01', '2024-12-31'))
 uvz = uvz.transpose('time', 'p', 'lat', 'lon')
 uvz_clim = uvz.groupby('time.month').mean('time')  # 逐月气候态
 uvz_ano = uvz.groupby('time.month') - uvz_clim  # 逐月距平
 uvz_ano = uvz_ano.assign_coords(year=uvz_ano["time"].dt.year, month=uvz_ano["time"].dt.month).set_index(time=["year", "month"]).unstack("time")
 
 # PRE
-pre = xr.open_dataset(fr'{DATA}/NOAA/GPCP/precip.mon.mean.nc').sel(time=slice('1979-01-01', '2023-12-31'))
+pre = prec(f"{DATA}/NOAA/PREC/precip.mon.anom.nc", 1961, 2023)
 pre = transform(pre, type='180->360')
 pre = xr.Dataset(
-    {'pre': (['time', 'lat', 'lon'], pre['precip'].data)},
+    {'pre': (['time', 'lat', 'lon'], pre['pre'].data)},
     coords={'time': pd.to_datetime(pre['time'], format="%Y%m%d"),
             'lat': pre['lat'].data,
             'lon': pre['lon'].data})
-pre = pre.sel(time=slice('1979-01-01', '2022-12-31'))
+pre = pre.sel(time=slice('1961-01-01', '2023-12-31'))
 pre = pre.transpose('time', 'lat', 'lon')
 pre_clim = pre.groupby('time.month').mean('time')  # 逐月气候态
 pre_ano = pre.groupby('time.month') - pre_clim  # 逐月距平
 pre_ano = pre_ano.assign_coords(year=pre_ano["time"].dt.year, month=pre_ano["time"].dt.month).set_index(time=["year", "month"]).unstack("time")
-
+#%%
+print("######draw######")
 fig = plt.figure(figsize=np.array([17, 6*3])*0.5)   # 创建画布
 proj = ccrs.PlateCarree(central_longitude=110)  # 投影方式
 spec = gridspec.GridSpec(ncols=3, nrows=2, wspace=0.16, hspace=0.13)  # 设置子图比例
@@ -406,7 +407,7 @@ plt.rcParams['axes.edgecolor'] = 'black'
 plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
 
 for i in [5, 6, 7, 8, 9]:
-    year = 2015
+    year = [2015]
 
     ax_spec = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=spec[i - 5], wspace=0, hspace=0)
 
@@ -419,22 +420,22 @@ for i in [5, 6, 7, 8, 9]:
             shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
             shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4], cb_draw=True if i==7 else False,
             shading_corr=None,
-            p_test_drawSet={'N': 2022-1979+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw=False,
 
-            shading2=uvz_ano['z'].sel(year=year, month=i, p=200), shading2_levels=[-1200, -1000, -800, -600, -400, -200, 0, 200, 400, 600, 800, 1000, 1200],
+            shading2=uvz_ano['z'].sel(year=year, month=i, p=200).mean('year'), shading2_levels=[-1500, -1200, -900, -600, -300, -150, 150, 300, 600, 900, 1200, 1500],
             shading2_cmap=cmaps.sunshine_diff_12lev, cb_draw2=True if i==7 else False,
             shading2_corr=None,
-            p_test_drawSet2={'N': 2022-1979+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw2=False,
 
             contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
 
-            contour_corr=None, p_test_drawSet_corr={'N': 2022-1979+1, 'alpha': 0.1},
+            contour_corr=None, p_test_drawSet_corr={'N': 2023-1961+1, 'alpha': 0.1},
 
-            wind_1=uvz_ano.sel(year=year, month=i, p=200),
-            wind_1_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
-                      'color': 'black', 'thinning': ['20%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.5]},
+            wind_1=uvz_ano.sel(year=year, month=i, p=200).mean('year'),
+            wind_1_set={'regrid': 15, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
+                      'color': 'black', 'thinning': ['30%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.5]},
             wind_1_key_set={'U': 5, 'label': '5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 5, 'edgecolor': 'black', 'lw': 0.5},
             bbox_to_anchor_1=None, loc1="lower right",
 
@@ -460,31 +461,31 @@ for i in [5, 6, 7, 8, 9]:
             shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4],
             cb_draw=True if i == 7 else False,
             shading_corr=None,
-            p_test_drawSet={'N': 2022 - 1979 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw=False,
 
-            shading2=sst_ano.sel(year=year, month=i).to_array()[0],
+            shading2=sst_ano.sel(year=year, month=i).mean('year').to_array()[0],
             shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.]) * 2, 2),
             shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40], cb_draw2=True if i == 7 else False,
             shading2_corr=None,
-            p_test_drawSet2={'N': 2022 - 1979 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw2=False,
 
             contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
 
-            contour_corr=None, p_test_drawSet_corr={'N': 2022 - 1979 + 1, 'alpha': 0.1},
+            contour_corr=None, p_test_drawSet_corr={'N': 2023-1961+1, 'alpha': 0.1},
 
-            wind_1=uvz_ano.sel(year=year, month=i, p=500),
-            wind_1_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
+            wind_1=uvz_ano.sel(year=year, month=i, p=500).mean('year'),
+            wind_1_set={'regrid': 15, 'arrowsize': 0.5, 'scale': 10, 'lw': 0.4,
                         'color': 'black', 'thinning': ['20%', 'min'], 'nanmax': 20 / 3, 'MinDistance': [0.2, 0.5]},
-            wind_1_key_set={'U': 5, 'label': '5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 5, 'edgecolor': 'k',
+            wind_1_key_set={'U': 2.5, 'label': '2.5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 2.5, 'edgecolor': 'k',
                             'lw': 0.5},
             bbox_to_anchor_1=None, loc1="lower right",
 
             wind_2=None,
             wind_2_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
                         'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.5]},
-            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 5,
+            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 2.5,
                             'edgecolor': 'none', 'lw': 0.5},
             bbox_to_anchor_2=None, loc2="upper right",
             rec_Set=None)
@@ -504,29 +505,29 @@ for i in [5, 6, 7, 8, 9]:
             shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
             shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4], cb_draw=True if i==7 else False,
             shading_corr=None,
-            p_test_drawSet={'N': 2022-1979+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw=False,
 
-            shading2=pre_ano['pre'].sel(year=year, month=i), shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.])*10, 2),
+            shading2=pre_ano['pre'].sel(year=year, month=i).mean('year'), shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.])*10, 2),
             shading2_cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], cb_draw2=True if i==7 else False,
             shading2_corr=None,
-            p_test_drawSet2={'N': 2022-1979+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw2=False,
 
             contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
 
-            contour_corr=None, p_test_drawSet_corr={'N': 2022-1979+1, 'alpha': 0.1},
+            contour_corr=None, p_test_drawSet_corr={'N': 2023-1961+1, 'alpha': 0.1},
 
-            wind_1=uvz_ano.sel(year=year, month=i, p=850),
-            wind_1_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 10, 'lw': 0.4,
+            wind_1=uvz_ano.sel(year=year, month=i, p=850).mean('year'),
+            wind_1_set={'regrid': 15, 'arrowsize': 0.5, 'scale': 16.66, 'lw': 0.4,
                       'color': 'black', 'thinning': ['20%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.5]},
-            wind_1_key_set={'U': 2.5, 'label': '2.5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 2.5, 'edgecolor': 'k', 'lw': 0.5},
+            wind_1_key_set={'U': 1.5, 'label': '1.5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 1.25, 'edgecolor': 'k', 'lw': 0.5},
             bbox_to_anchor_1=None, loc1="lower right",
 
             wind_2=None,
             wind_2_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
                       'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.5]},
-            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 5, 'edgecolor': 'none', 'lw': 0.5},
+            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 1.25, 'edgecolor': 'none', 'lw': 0.5},
             bbox_to_anchor_2=None, loc2="upper right",
             rec_Set=None)
     ax3.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
