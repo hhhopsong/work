@@ -115,7 +115,108 @@ ACCOUNTS = API_ACCOUNTS = [
         "name": "ArchibaldHillsath@outlook.com",
         "url": "https://cds.climate.copernicus.eu/api",
         "key": "32c310df-8eec-4438-bcb2-009b8b54cd8e",
-    }
+    },
+    {
+        "name": "EmilieMoenef@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "000ad20e-c198-4da6-b565-cce54809c831",
+    },
+    {
+        "name": "DarleneAltenwerthho@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "054bb282-cfd0-40d5-9b00-29973b6cec3d",
+    },
+    {
+        "name": "ArneAltenwerthwhn@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "92f932d6-414f-489a-8205-d7c1f3dd8d16",
+    },
+    {
+        "name": "AlfonsoJacobswc@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "be8ae80f-aad4-4a1d-aeb0-35b3c25ba945",
+    },
+    {
+        "name": "JalonRolfsonal@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "88571325-d938-43ed-be46-570c908c77e6",
+    },
+    {
+        "name": "CordieCasperyc@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "87d2ef9f-fa6a-4d51-826f-84dcf1a30cd3",
+    },
+    {
+        "name": "TravonShieldsosse@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "f237c2e7-66f1-4eb0-ae1f-97575385ef98",
+    },
+    {
+        "name": "MagdalenaSchadenosvy@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "20522dac-bb52-4eed-a28c-d5a2bd44bcc9",
+    },
+    {
+        "name": "MurphyVeumnomjb@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "2d879c75-25cc-433a-a342-27c353217cfe",
+    },
+    {
+        "name": "DaleBotsfordrd@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "b91d5c5c-6803-4159-ba9d-e4e09c9941f2",
+    },
+    {
+        "name": "KevenWolfgjp@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "a99f1166-f709-465b-ac00-0e139108b6ce",
+    },
+    {
+        "name": "ChaseRutherfordrfx@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "8a833e23-2376-455a-9a06-997699e6287e",
+    },
+    {
+        "name": "DerrickBoganvj@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "54a29a40-9007-4b02-ad4c-5766fbe16e1f",
+    },
+    {
+        "name": "JeramyHagenessauij@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "7c4690cb-682a-47ea-8771-b71e86a5b2bf",
+    },
+    {
+        "name": "RyleyWalternf@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "1be5a570-fc32-4f2c-bf53-409e22fb0c23",
+    },
+    {
+        "name": "NicholasGreen9389@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "e3498bd0-ded5-47c2-841e-de9a83110989",
+    },
+    {
+        "name": "KarenWilkerson6715@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "03a55d2e-32f4-4cb5-9a73-b833b041fd87",
+    },
+    {
+        "name": "LuisBryant1509@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "a93421fb-743a-466e-afaf-44592bb3d46c",
+    },
+    {
+        "name": "AdrianCrane2402@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "ee320bd4-45f5-44b2-b458-9656b8b2aee8",
+    },
+    {
+        "name": "RichardHoffman2974@outlook.com",
+        "url": "https://cds.climate.copernicus.eu/api",
+        "key": "595ca59f-272a-4256-ac8b-bd98a66c75ce",
+    },
+
 ]
 
 # Request settings
@@ -279,6 +380,9 @@ def main():
             print(f"{fname} 已存在，跳过")
             continue
 
+        # ============================================================
+        # ========================== 请求参数 =========================
+        # ============================================================
         req = {
             "product_type": "reanalysis",
             "variable": VARS,
