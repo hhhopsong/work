@@ -216,7 +216,6 @@ ACCOUNTS = API_ACCOUNTS = [
         "url": "https://cds.climate.copernicus.eu/api",
         "key": "595ca59f-272a-4256-ac8b-bd98a66c75ce",
     },
-
 ]
 
 # Request settings
