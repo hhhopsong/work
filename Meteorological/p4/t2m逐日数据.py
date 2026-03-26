@@ -1,0 +1,234 @@
+import os
+import numpy as np
+import pandas as pd
+import xarray as xr
+from climkit.masked import masked
+import matplotlib.pyplot as plt
+
+# =========================================================
+# ====================== User settings =====================
+# =========================================================
+
+PYFILE = r"/volumes/TiPlus7100/PyFile"
+DATA = r"/volumes/TiPlus7100/data"
+
+# 合并后的夏季 t2m 数据
+NC_FILE = "/Volumes/TiPlus7100/p4/data/ERA5_daily_t2m_sum.nc"
+
+# 长江流域 shp
+SHP_FILE = fr"{PYFILE}/map/self/长江_TP/长江_tp.shp"
+
+# 输出目录
+OUT_DIR = fr"{PYFILE}/p4/pic/"
+os.makedirs(OUT_DIR, exist_ok=True)
+
+# 输出图片
+OUT_FIG = os.path.join(OUT_DIR, r"图3_t2m逐日实际场_三线")
+
+# 参考气候态年份
+CLIM_START = 1961
+CLIM_END = 2023
+
+# 合成年份
+COMPOSITE_YEARS = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014, 2015]
+
+# 单独分析年份
+TARGET_YEAR = 2015
+
+
+# =========================================================
+# ====================== Helper funcs ======================
+# =========================================================
+
+def detect_main_var(ds: xr.Dataset) -> str:
+    """自动识别主变量名"""
+    preferred = ["t2m", "2m_temperature"]
+    for v in preferred:
+        if v in ds.data_vars:
+            return v
+    if len(ds.data_vars) == 1:
+        return list(ds.data_vars)[0]
+    raise ValueError(f"无法自动识别温度变量，请检查变量名：{list(ds.data_vars)}")
+
+
+def standardize_latlon(ds: xr.Dataset) -> xr.Dataset:
+    """统一经纬度坐标名为 lon/lat"""
+    rename_dict = {}
+    if "longitude" in ds.coords:
+        rename_dict["longitude"] = "lon"
+    if "latitude" in ds.coords:
+        rename_dict["latitude"] = "lat"
+    if rename_dict:
+        ds = ds.rename(rename_dict)
+    if "lon" not in ds.coords or "lat" not in ds.coords:
+        raise ValueError("数据中未找到 lon/lat 或 longitude/latitude 坐标。")
+    return ds
+
+
+def area_weighted_mean(da: xr.DataArray) -> xr.DataArray:
+    """流域平均"""
+    mean_da = da.mean(dim=("lat", "lon"))
+    return mean_da
+
+
+def build_summer_day_index(time_index: pd.DatetimeIndex) -> np.ndarray:
+    """
+    为夏季 6/7/8 月构造统一 day index:
+    6月1日 -> 1
+    ...
+    8月31日 -> 92
+    """
+    month = time_index.month
+    day = time_index.day
+    offsets = np.where(month == 6, 0, np.where(month == 7, 30, 61))
+    return offsets + day
+
+
+def ensure_celsius(da: xr.DataArray) -> xr.DataArray:
+    """如果像 Kelvin，就转成 Celsius"""
+    vmin = float(da.min().values)
+    vmax = float(da.max().values)
+    if vmin > 150 and vmax < 400:
+        print("检测到温度可能为 Kelvin，自动转换为 Celsius。")
+        da = da - 273.15
+        da.attrs["units"] = "degC"
+    return da
+
+
+# =========================================================
+# =========================== Main =========================
+# =========================================================
+
+def main():
+    print("1) 读取 nc 数据...")
+    ds = xr.open_dataset(NC_FILE)
+    ds = standardize_latlon(ds)
+
+    var_name = detect_main_var(ds)
+    print(f"识别到变量名：{var_name}")
+
+    da = ds[var_name]
+
+    if "time" not in da.coords:
+        if "valid_time" in da.coords:
+            da = da.rename({"valid_time": "time"})
+        else:
+            raise ValueError("数据中没有 time 或 valid_time 坐标。")
+
+    # 只保留 1961-2023 夏季
+    da = da.sel(time=slice(f"{CLIM_START}-06-01", f"{CLIM_END}-08-31"))
+
+    # 单位检查
+    da = ensure_celsius(da)
+
+    print("2) 裁剪长江流域...")
+    da_clip = masked(da, SHP_FILE)
+
+    print("3) 计算流域平均...")
+    ts = area_weighted_mean(da_clip)
+
+    # 转 DataFrame
+    df = ts.to_dataframe(name="t2m").reset_index()
+    df["year"] = df["time"].dt.year
+    df["month"] = df["time"].dt.month
+    df["day"] = df["time"].dt.day
+
+    # 只保留夏季
+    df = df[df["month"].isin([6, 7, 8])].copy()
+
+    # 构造夏季日序
+    df["summer_day"] = build_summer_day_index(pd.DatetimeIndex(df["time"]))
+
+    # ================= 1) 1961-2023 气候态实际场 =================
+    print("4) 计算 1961-2023 夏季逐日气候态实际场...")
+    clim_df = (
+        df[(df["year"] >= CLIM_START) & (df["year"] <= CLIM_END)]
+        .groupby("summer_day", as_index=False)["t2m"]
+        .mean()
+        .rename(columns={"t2m": "climatology_actual"})
+    )
+
+    # ================= 2) 合成年份逐日实际场 =================
+    print("5) 计算合成年份逐日实际场...")
+    comp_df = (
+        df[df["year"].isin(COMPOSITE_YEARS)]
+        .groupby("summer_day", as_index=False)["t2m"]
+        .mean()
+        .rename(columns={"t2m": "composite_actual"})
+    )
+
+    # ================= 3) 2015 逐日实际场 =================
+    print(f"6) 计算 {TARGET_YEAR} 年逐日实际场...")
+    y2015_df = (
+        df[df["year"] == TARGET_YEAR][["summer_day", "t2m"]]
+        .groupby("summer_day", as_index=False)
+        .mean()
+        .rename(columns={"t2m": f"{TARGET_YEAR}_actual"})
+    )
+
+    # 横坐标
+    tick_positions = [1, 16, 31, 46, 62, 77, 92]
+    tick_labels = ["Jun-01", "Jun-16", "Jul-01", "Jul-16", "Aug-01", "Aug-16", "Aug-31"]
+
+    # ================= 作图：三根线一张图 =================
+    print("7) 绘图...")
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    ax.plot(
+        clim_df["summer_day"],
+        clim_df["climatology_actual"],
+        linewidth=2.2,
+        label=f"Climatology ({CLIM_START}-{CLIM_END})"
+    )
+
+    ax.plot(
+        comp_df["summer_day"],
+        comp_df["composite_actual"],
+        linewidth=2.2,
+        label="Composite actual"
+    )
+
+    ax.plot(
+        y2015_df["summer_day"],
+        y2015_df[f"{TARGET_YEAR}_actual"],
+        linewidth=2.2,
+        label=f"{TARGET_YEAR} actual"
+    )
+
+    ax.set_xticks(tick_positions)
+    ax.set_xticklabels(tick_labels)
+    ax.set_xlabel("Summer Day")
+    ax.set_ylabel("T2m (degC)")
+    ax.set_title("Yangtze Basin Summer Daily Mean T2m")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend(frameon=False)
+
+    plt.tight_layout()
+    plt.savefig(OUT_FIG + ".png", dpi=600, bbox_inches="tight")
+    plt.savefig(OUT_FIG + ".pdf", bbox_inches="tight")
+    plt.close()
+
+    print(f"绘图完成，已保存：{OUT_FIG}")
+
+    # ================= 导出数据 =================
+    data_out_dir = f"{PYFILE}/p4/data/"
+    os.makedirs(data_out_dir, exist_ok=True)
+
+    clim_out = os.path.join(data_out_dir, "yangtze_t2m_daily_climatology_actual_1961_2023.csv")
+    comp_out = os.path.join(data_out_dir, "yangtze_t2m_composite_actual.csv")
+    y2015_out = os.path.join(data_out_dir, f"yangtze_t2m_{TARGET_YEAR}_actual.csv")
+
+    clim_df.to_csv(clim_out, index=False, encoding="utf-8-sig")
+    comp_df.to_csv(comp_out, index=False, encoding="utf-8-sig")
+    y2015_df.to_csv(y2015_out, index=False, encoding="utf-8-sig")
+
+    print("已导出数据文件：")
+    print(clim_out)
+    print(comp_out)
+    print(y2015_out)
+
+    ds.close()
+
+
+if __name__ == "__main__":
+    main()

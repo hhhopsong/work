@@ -63,7 +63,7 @@ ax.text(0.025, 31.76, "$T_{90th}$---", color='b', va='center', ha='left',
 # 设置(0.3, 31.76)的点
 ax.scatter(0.3, 31.76, color='#202020', s=130, zorder=2, marker=(5, 1), alpha=0.85, edgecolors='none')
 # 设置x轴
-ax.set_xlabel("EHCI", fontsize=14)
+ax.set_xlabel("EHT coverage index", fontsize=14)
 ax.set_xlim(0.1, 0.9)
 ax.set_xticks(np.arange(0.1, 0.901, 0.1))
 ax.set_xticklabels([f"{i*100:.0f}%" for i in np.arange(0.1, 0.901, 0.1)], fontsize=10)

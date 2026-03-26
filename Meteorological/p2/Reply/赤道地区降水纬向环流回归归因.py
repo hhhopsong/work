@@ -117,6 +117,7 @@ K_ = [mid_lower_year, all_year]
 fig = plt.figure(figsize=(8, 4))
 spec = gridspec.GridSpec(ncols=1, nrows=2, wspace=0, hspace=0, height_ratios=[2, 1])  # 设置子图比例
 plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['mathtext.fontset'] = 'stix'
 for i in range(1):
     Z_reg = Z.sel(year=time_series['year'].isin(K_[i])).mean('year').data - Z.mean('year').data
     U_reg = U.sel(year=time_series['year'].isin(K_[i])).mean('year').data - U.mean('year').data

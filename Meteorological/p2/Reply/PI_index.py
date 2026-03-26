@@ -31,6 +31,73 @@ PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
 
 
+def pic(fig, lat, lon, corr_u, corr_v, corr_z, corr_t2m, p_test_):
+    global lev_t, nanmax
+    pic_ind = ['', 'b', 'b', 'b']
+    ax = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180-70))
+    # 统一加粗所有四个边框
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)  # 设置边框线宽
+    ax.set_aspect('auto')
+    ax.set_title(r'(b) UR-type 500UVZ&$\pi$', loc='left', fontsize=12)
+    ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
+
+    da_contour = xr.DataArray(
+        corr_t2m,
+        coords={'lat': pi['lat'].data, 'lon': pi['lon'].data},
+        dims=('lat', 'lon')
+    )
+    roi_shape = ((60, 0), (160, 60))
+    contf = ax.contourf(pi['lon'], pi['lat'], da_contour.salem.roi(corners=roi_shape), cmap=cmaps.CBR_wet[0] + cmaps.GMT_polar[11:-4],
+                        levels=lev_t, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
+    # 显著性打点
+    p_test = np.where(np.abs(p_test_) >= r_test(62), 0, np.nan)
+
+    cont = ax.contour(uvz['lon'], uvz['lat'], corr_z, colors='red', levels=[20, 40, 60], linewidths=0.8, transform=ccrs.PlateCarree(central_longitude=0))
+    cont_ = ax.contour(uvz['lon'], uvz['lat'], corr_z, colors='blue', levels=[-60, -40, -20], linestyles='--', linewidths=0.8,
+                       transform=ccrs.PlateCarree(central_longitude=0))
+    cont.clabel(inline=1, fontsize=4)
+    cont_.clabel(inline=1, fontsize=4)
+    #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
+    Cq = ax.Curlyquiver(uvz['lon'], uvz['lat'], corr_u, corr_v, scale=5, linewidth=0.7, arrowsize=.8, MinDistance=[0.1, 0.3], thinning=['30%', 'min'],
+                     regrid=17, color='#454545', transform=ccrs.PlateCarree(central_longitude=0))
+    Cq.key(U=1, label='1 m/s', color='k', fontproperties={'size': 8})
+    nanmax = Cq.nanmax
+    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
+    ax.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
+                      facecolor='none', edgecolor='black', linewidth=.5)
+    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
+                      ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
+
+    # 刻度线设置
+    xticks1 = np.arange(60, 160, 20)
+    yticks1 = np.arange(0, 60, 15)
+    ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
+    ax.set_xticks(xticks1, crs=ccrs.PlateCarree())
+    lon_formatter = LongitudeFormatter()
+    lat_formatter = LatitudeFormatter()
+    ax.yaxis.set_major_formatter(lat_formatter)
+    ax.xaxis.set_major_formatter(lon_formatter)
+
+    ymajorLocator = MultipleLocator(15)  # 先定义xmajorLocator，再进行调用
+    ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
+    yminorLocator = MultipleLocator(5)
+    ax.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
+    xmajorLocator = MultipleLocator(20)  # 先定义xmajorLocator，再进行调用
+    xminorLocator = MultipleLocator(5)
+    ax.xaxis.set_major_locator(xmajorLocator)  # x轴最大刻度
+    ax.xaxis.set_minor_locator(xminorLocator)  # x轴最小刻度
+    # 最大刻度、最小刻度的刻度线长短，粗细设置
+    ax.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
+    ax.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
+    ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
+    plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
+    # 调整刻度值字体大小
+    ax.tick_params(axis='both', labelsize=10, colors='black')
+
+    return contf, ax
+
+
 # read data
 lamda = 2.45e6
 t2m_78 = xr.open_dataset(fr"{PYFILE}/p2/data/t2m_78.nc") - 273.15
@@ -89,6 +156,8 @@ K_series = (K_series - np.mean(K_series)) / np.std(K_series)
 uvz = xr.open_dataset(fr"{PYFILE}/p2/data/uvz_78.nc")
 uvz = uvz.sel(p=500).transpose('year', 'lat', 'lon')  # 500hPa
 
+# 准备绘图数据
+radio = xr.open_dataset(fr"{PYFILE}/p2/data/Surface_Radio.nc") # 为地面供能为正，放能为负
 
 u_78 = regress(K_series, uvz['u'].data)
 v_78 = regress(K_series, uvz['v'].data)
@@ -109,78 +178,76 @@ e = xr.Dataset(
 
 pi = e * t2m_78['t2m'].data
 
+
+#%%
+
 # 字体为新罗马
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['mathtext.fontset'] = 'stix'
 lev_t = np.array([0., .08, .16, .24, .32, .4, .48, .56])
 
-def pic(fig, lat, lon, corr_u, corr_v, corr_z, corr_t2m, p_test_):
-    global lev_t, nanmax
-    pic_ind = ['', 'b', 'b', 'b']
-    ax = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180-70))
-    # 统一加粗所有四个边框
-    for spine in ax.spines.values():
-        spine.set_linewidth(1.5)  # 设置边框线宽
-    ax.set_aspect('auto')
-    ax.set_title(r'UR-type 500UVZ&$\pi$', loc='left', fontsize=12)
-    ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
+fig = plt.figure(figsize=(np.array([8, 4.5*2])*.6))
+gs = gridspec.GridSpec(2, 1, figure=fig, wspace=0, hspace=0.3)
 
-    da_contour = xr.DataArray(
-        corr_t2m,
-        coords={'lat': pi['lat'].data, 'lon': pi['lon'].data},
-        dims=('lat', 'lon')
-    )
-    roi_shape = ((60, 0), (160, 60))
-    contf = ax.contourf(pi['lon'], pi['lat'], da_contour.salem.roi(corners=roi_shape), cmap=cmaps.CBR_wet[0] + cmaps.GMT_polar[11:-4],
-                        levels=lev_t, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
-    # 显著性打点
-    p_test = np.where(np.abs(p_test_) >= r_test(62), 0, np.nan)
 
-    cont = ax.contour(uvz['lon'], uvz['lat'], corr_z, colors='red', levels=[20, 40, 60], linewidths=0.8, transform=ccrs.PlateCarree(central_longitude=0))
-    cont_ = ax.contour(uvz['lon'], uvz['lat'], corr_z, colors='blue', levels=[-60, -40, -20], linestyles='--', linewidths=0.8,
-                       transform=ccrs.PlateCarree(central_longitude=0))
-    cont.clabel(inline=1, fontsize=4)
-    cont_.clabel(inline=1, fontsize=4)
-    #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
-    Cq = ax.Curlyquiver(uvz['lon'], uvz['lat'], corr_u, corr_v, scale=5, linewidth=0.7, arrowsize=.8, MinDistance=[0.1, 0.3], thinning=['30%', 'min'],
-                     regrid=17, color='#454545', transform=ccrs.PlateCarree(central_longitude=0))
-    Cq.key(U=1, label='1 m/s', color='k', fontproperties={'size': 8})
-    nanmax = Cq.nanmax
-    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
-    ax.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
-    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
-                      ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
+reg_map = np.zeros((4, len(radio.lat), len(radio.lon)))
+reg_map[0] = regress(K_series, radio['ssr'].data / 86400)
+reg_map[1] = regress(K_series, radio['str'].data / 86400)
+reg_map[2] = regress(K_series, radio['sshf'].data / 86400)
+reg_map[3] = regress(K_series, radio['slhf'].data / 86400)
+reg_map = xr.Dataset({'ssr': (['lat', 'lon'], reg_map[0]),
+                      'str': (['lat', 'lon'], reg_map[1]),
+                      'sshf': (['lat', 'lon'], reg_map[2]),
+                      'slhf': (['lat', 'lon'], reg_map[3])},
+                     coords={'lat': radio.lat, 'lon': radio.lon})
 
-    # 刻度线设置
-    xticks1 = np.arange(60, 160, 20)
-    yticks1 = np.arange(0, 60, 15)
-    ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
-    ax.set_xticks(xticks1, crs=ccrs.PlateCarree())
-    lon_formatter = LongitudeFormatter()
-    lat_formatter = LatitudeFormatter()
-    ax.yaxis.set_major_formatter(lat_formatter)
-    ax.xaxis.set_major_formatter(lon_formatter)
+reg_map = masked(reg_map, fr"{PYFILE}/map/self/WYTR/长江_tp.shp")
 
-    ymajorLocator = MultipleLocator(15)  # 先定义xmajorLocator，再进行调用
-    ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
-    yminorLocator = MultipleLocator(5)
-    ax.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
-    xmajorLocator = MultipleLocator(20)  # 先定义xmajorLocator，再进行调用
-    xminorLocator = MultipleLocator(5)
-    ax.xaxis.set_major_locator(xmajorLocator)  # x轴最大刻度
-    ax.xaxis.set_minor_locator(xminorLocator)  # x轴最小刻度
-    # 最大刻度、最小刻度的刻度线长短，粗细设置
-    ax.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
-    ax.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
-    ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
-    plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
-    # 调整刻度值字体大小
-    ax.tick_params(axis='both', labelsize=10, colors='black')
+ssr = np.nanmean(reg_map['ssr'])
+str = np.nanmean(reg_map['str'])
+sshf = np.nanmean(reg_map['sshf'])
+slhf = np.nanmean(reg_map['slhf'])
 
-    return contf, ax
+values = [ssr+str, sshf, slhf]
+colors = ['#ff7373' if val > 0 else '#7373ff' for val in values]
 
-fig = plt.figure(figsize=(np.array([8, 4.5])*.6))
+# 添加标题和网格
+ax = fig.add_subplot(gs[0])
+# 统一加粗所有四个边框
+for spine in ax.spines.values():
+    spine.set_linewidth(1.5)  # 设置边框线宽
+ax.set_aspect('auto')
+ax.set_title(f'(a) UR-type surface_energy', fontsize=12, loc='left')
+ax.grid(True, linestyle='--', zorder=0, axis='y')
+
+bars = ax.bar(range(3), values, width=0.3, color=colors, edgecolor='black', zorder=2)
+
+# 设置坐标轴标签,字体为 Times New Roman
+ax.set_xticks(range(3))
+ax.set_xticklabels([r'$R_{n}$',
+                    r'$SSHF$',
+                    r'$SLHF$'], fontsize=12)
+
+# 设置y轴范围
+ymax = 3
+ax.set_ylim(-3, 5)
+ax.set_xlim(-.5, 2.5)
+
+# 仅当 KType == 1 时添加y刻度标签
+ax.set_yticks(np.arange(-3, 6, 1))
+ax.set_yticklabels(np.arange(-3, 6, 1), fontsize=12)
+
+
+# 添加零线
+ax.axhline(0, color='black', lw=1)
+# ax.axvline(2.5, color='black', lw=1)
+
+# 边框显示为黑色
+ax.spines['top'].set_color('black')
+ax.spines['right'].set_color('black')
+ax.spines['bottom'].set_color('black')
+ax.spines['left'].set_color('black')
+
 
 contourfs, ax1 = pic(fig, pi['lat'], pi['lon'], u_78, v_78, z_78, pi.data, corr_pi)
 

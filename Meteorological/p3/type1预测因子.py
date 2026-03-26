@@ -749,10 +749,9 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
 
     return X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr
 
-X1 = ['sst', 15, -5, 160, 360-155]
-X2 = ['sst', 10, -50, -60, -5]
-X6 = ['sst', 0, -30, 85, 360-170]
-X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[4, 5], month2=None, predictor_zone=[X1, X2, X6], cross_month=9)
+X1 = ['sst', 10, -42, -60, 10]
+X6 = ['sst', -14.0,	-44.0,	180.0,	264.0]
+X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[3, 4], month2=None, predictor_zone=[X1, X6], cross_month=9)
 
 
 fig = plt.figure(figsize=(5, 14))
@@ -762,7 +761,7 @@ gs = gridspec.GridSpec(6, 1, height_ratios=[2, 1, 1, 1, 1, 1])  # 设置子图�
 
 # 绘制子图
 ax = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180-70))
-sub_pic(ax, title=f'(b) 4+5_mean_SST', extent=[-180, 180, -50, 80],
+sub_pic(ax, title=f'(b) 3+4_mean_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
         shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
         shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
@@ -773,19 +772,18 @@ sub_pic(ax, title=f'(b) 4+5_mean_SST', extent=[-180, 180, -50, 80],
         wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
         wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
         rec_Set=[{'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
-                 {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6},
                  {'point': [X6[3], X6[4], X6[1], X6[2]], 'color': '#a9aee3', 'ls': (0, (1, 1)), 'lw': 1.6}])
 # ============================================================
 # 第二组预测因子
 # ============================================================
-X3 = ['t2m', 10, -10, 15, 35]
-X4 = ['sst', 10, -40, 130, 360-130]
-X7 = ['sst', 0, -30, -40, -5]
-X_train_dict2, X_pre_dict2, X_rollingCorr_dict2, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[4], month2=[12], predictor_zone=[X3, X4, X7], cross_month=9)
+X3 = ['sst', 10, -42, -60, -18]
+X4 = ['sst',-10, -38, 160, 224]
+X7 = ['sst', 20, -5, -40, -5]
+X_train_dict2, X_pre_dict2, X_rollingCorr_dict2, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[4, 5], month2=None, predictor_zone=[X3], cross_month=9)
 
 ax = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=180-70))
 
-sub_pic(ax, title=f'(c) 4_minus_12_&SST', extent=[-180, 180, -50, 80],
+sub_pic(ax, title=f'(c) 4+5_mean_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
         shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
         shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
@@ -801,19 +799,19 @@ sub_pic(ax, title=f'(c) 4_minus_12_&SST', extent=[-180, 180, -50, 80],
 # ============================================================
 # 第三组预测因子
 # ============================================================
-X5 = ['sst', 15, -35, 140, 360-130]
-X8 = ['sst', 10, -30, 45, 105]
-X_train_dict3, X_pre_dict3, X_rollingCorr_dict3, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[5], month2=[1], predictor_zone=[X5, X8], cross_month=9)
+X5 = ['sst', 15, -10, 180, 360-130]
+X8 = ['sst', 15,	-40.0,	134.0,	360-130]
+X_train_dict3, X_pre_dict3, X_rollingCorr_dict3, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[5], month2=[12], predictor_zone=[X5], cross_month=9)
 
 ax_sic = fig.add_subplot(gs[0], projection=ccrs.NorthPolarStereo(central_longitude=110))
-plot_sea_ice(ax_sic, "(a) 5_minus_1_SIC", sic.lon, sic.lat, sicCorr, np.array([-0.30, -0.25, -0.20, -0.15, -0.10, -0.05, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]))
+plot_sea_ice(ax_sic, "(a) 3_minus_10_SIC", sic.lon, sic.lat, sicCorr, np.array([-0.30, -0.25, -0.20, -0.15, -0.10, -0.05, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]))
 # 绘制子图
 ax = fig.add_subplot(gs[3], projection=ccrs.PlateCarree(central_longitude=180-70))
-sub_pic(ax, title=f'(d) 5_minus_1_SST', extent=[-180, 180, -50, 80],
+sub_pic(ax, title=f'(d) 5_minus_12_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
         shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
         shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-        shading2=sstReg, shading2_levels=np.array([-.2, -.16, -.12, -.08, -.04, .04, .08, .12, .16, .2])*2, shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+        shading2=sstReg, shading2_levels=np.array([-.2, -.16, -.12, -.08, -.04, .04, .08, .12, .16, .2]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
         shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True,
         contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
         contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
@@ -1260,7 +1258,7 @@ for x in model_predictors:
     sign = '+' if coef >= 0 else '-'
     equation_terms.append(f' {sign} {abs(coef):.2f}*{x}')
 
-func = 'TS = ' + ''.join(equation_terms)
+func = 'Days = ' + ''.join(equation_terms)
 
 ax_predict.text(
     0.5, 0.88, func,

@@ -14,6 +14,7 @@ from matplotlib.ticker import MultipleLocator
 from scipy import ndimage
 
 from climkit.Cquiver import *
+from climkit.TN_WaveActivityFlux import TN_WAF_3D
 from climkit.masked import masked
 from climkit.significance_test import r_test, corr_test
 from climkit.lonlat_transform import *
@@ -445,9 +446,9 @@ if __name__ == '__main__':
 #---------------------SST PRE
     Pre = xr.open_dataset(fr"{PYFILE}/p2/data/pre.nc")
     Sst = xr.open_dataset(fr"{PYFILE}/p2/data/sst.nc")
-    Z = xr.open_dataset(fr"{PYFILE}/p2/data/Z.nc").sel(level=[100, 150, 200, 500, 850])
-    U = xr.open_dataset(fr"{PYFILE}/p2/data/U.nc").sel(level=[100, 150, 200, 500, 850])
-    V = xr.open_dataset(fr"{PYFILE}/p2/data/V.nc").sel(level=[100, 150, 200, 500, 850])
+    Z = xr.open_dataset(fr"{PYFILE}/p2/data/Z.nc").sel(level=[200, 500, 850])
+    U = xr.open_dataset(fr"{PYFILE}/p2/data/U.nc").sel(level=[200, 500, 850])
+    V = xr.open_dataset(fr"{PYFILE}/p2/data/V.nc").sel(level=[200, 500, 850])
     from cartopy.util import add_cyclic_point
     corr_pre = np.zeros((2, len(Pre['lat']), len(Pre['lon'])))
     corr_sst = np.zeros((2, len(Sst['lat']), len(Sst['lon'])))
@@ -498,13 +499,75 @@ if __name__ == '__main__':
                                 'lat': V['lat'].data,
                                 'lon': V['lon'].data}).interp(lon=np.arange(0, 360, 0.5), lat=np.arange(-90, 90.1, 0.5))
 
+    Uc = xr.DataArray(U['u'].sel(level=[200]).mean('year').data,
+                        coords=[('level', [200]),
+                                ('lat', U['lat'].data),
+                                ('lon', U['lon'].data)])
+    Vc = xr.DataArray(V['v'].sel(level=[200]).mean('year').data,
+                        coords=[('level', [200]),
+                                ('lat', V['lat'].data),
+                                ('lon', V['lon'].data)])
+    GEOa = xr.DataArray(corr_z['reg'].sel(level=[200]),
+                        coords=[('level', [200]),
+                                ('lat', U['lat'].data),
+                                ('lon', U['lon'].data)])
+    waf_x, waf_y = TN_WAF_3D(Uc, Vc, GEOa)
+
     p_th = r_test(62, 0.1)
     xticks1 = np.arange(-180, 180, 60)
     yticks1 = np.arange(-0, 91, 30)
 
     c_lon = 180 - 70 - 10
 
-    ax2 = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=c_lon))
+    ax1 = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=c_lon))
+    ax1.set_title(f"(d) AR-type 200UVZ&WAF", fontsize=12, loc='left')
+    ax1.set_aspect('auto')
+    plt.rcParams['hatch.linewidth'] = 0.2
+    plt.rcParams['hatch.color'] = '#FFFFFF'
+    ax1.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.75, color="#a4a4a4")
+    ax1.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
+                       facecolor='none', edgecolor='black', linewidth=.5)
+    ax1.set_extent([-180, 180, -20, 90], crs=ccrs.PlateCarree(central_longitude=0))
+    latlon_fmt(ax1, xticks1, yticks1, MultipleLocator(60), MultipleLocator(10), MultipleLocator(30),
+               MultipleLocator(10))
+
+    z_high = ax1.contour(corr_z['lon'], corr_z['lat'], corr_z['reg'].sel(level=200) / 9.8, colors='red', levels=[8, 10, 14], linewidths=0.65,
+                         transform=ccrs.PlateCarree(central_longitude=0))
+    z_low = ax1.contour(corr_z['lon'], corr_z['lat'], corr_z['reg'].sel(level=200) / 9.8, colors='blue', levels=[-3, -1, 0], linewidths=0.65,
+                        transform=ccrs.PlateCarree(central_longitude=0), linestyles='--')
+    clabel1 = z_high.clabel(inline=1, fontsize=4.5)
+    clabel2 = z_low.clabel(inline=1, fontsize=4.5)
+    # 循环遍历每个标签，并为它设置一个带白色背景的边界框
+    clabels = clabel1 + clabel2
+    for label in clabels:
+        label.set_bbox(dict(facecolor='white',  # 背景色为白色
+                            edgecolor='none',  # 无边框
+                            pad=0,  # 标签与背景的间距
+                            alpha=1,  # 背景的透明度 (0.8表示80%不透明)
+                            zorder=20
+                            ))
+
+    wind = ax1.Curlyquiver(corr_u['lon'], corr_u['lat'], corr_u['reg'].sel(level=200),
+                           corr_v['reg'].sel(level=200), transform=ccrs.PlateCarree(central_longitude=0),
+                           arrowsize=1., scale=5, linewidth=0.8, regrid=20, zorder=30,
+                           color='#454545', thinning=['30%', 'min'], MinDistance=[0.25, 0.5], nanmax=2)
+    wind.key(U=2, label='2 m/s', edgecolor='none', arrowsize=4., color='k', linewidth=0.5, fontproperties={'size': 8},
+             bbox_to_anchor=(0, 0.185, 1, 1))
+
+    waf_x_ = waf_x.sel(lat=np.arange(30, 80), lon=np.r_[0:360])
+    waf_y_ = waf_y.sel(lat=np.arange(30, 80), lon=np.r_[0:360])
+    waf_lat = waf_x.sel(lat=np.arange(30, 80), lon=np.r_[0:360])['lat']
+    waf_lon = waf_x.sel(lat=np.arange(30, 80), lon=np.r_[0:360])['lon']
+    WAF_Q = ax1.Curlyquiver(waf_lon, waf_lat, waf_x_.data, waf_y_.data, regrid=30, scale=1.6, color='#0066ff', linewidth=1.6,
+                            arrowsize=2.5, MinDistance=[0.5, 0.2], nanmax=0.006, transform=ccrs.PlateCarree(central_longitude=0),
+                            arrowstyle='tri', thinning=[['50%', '80%'], 'range'], alpha=1, zorder=40,
+                            integration_direction='stick_both')
+    WAF_Q.key(U=0.02, label='0.02 m$^2$/s$^2$', loc='upper right', bbox_to_anchor=(-0.15, 0.185, 1, 1), fontproperties={'size': 8},
+              arrowsize=0.05, edgecolor='none')
+
+
+
+    ax2 = fig.add_subplot(gs[3], projection=ccrs.PlateCarree(central_longitude=c_lon))
     ax2.set_aspect('auto')
     plt.rcParams['hatch.linewidth'] = 0.2
     plt.rcParams['hatch.color'] = '#FFFFFF'
@@ -512,7 +575,7 @@ if __name__ == '__main__':
     for spine in ax2.spines.values():
         spine.set_linewidth(1)  # 设置边框线宽
 
-    ax2.set_title(f"(d) AR-type 500UVZ&SST", fontsize=12, loc='left')
+    ax2.set_title(f"(e) AR-type 500UVZ&SST", fontsize=12, loc='left')
     ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.75, color="#a4a4a4")
     ax2.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                        facecolor='none', edgecolor='black', linewidth=.5)
@@ -567,7 +630,7 @@ if __name__ == '__main__':
                            corr_v['reg'].sel(level=500), transform=ccrs.PlateCarree(central_longitude=0),
                            arrowsize=1., scale=5, linewidth=0.8, regrid=20, zorder=30,
                            color='#454545', thinning=['30%', 'min'], MinDistance=[0.25, 0.5], nanmax=1)
-    wind.key(U=1, label='1 m/s', edgecolor='none', arrowsize=1., color='k', linewidth=0.5, fontproperties={'size': 8},
+    wind.key(U=1, label='1 m/s', edgecolor='none', arrowsize=2., color='k', linewidth=0.5, fontproperties={'size': 8},
              bbox_to_anchor=(0, 0.185, 1, 1))
 
     # 边框显示为黑色
@@ -585,12 +648,12 @@ if __name__ == '__main__':
     cb2.set_ticklabels([str(f'{lev:.2f}') for lev in lev_sst])
     cb2.ax.tick_params(length=0, labelsize=10)  # length为刻度线的长度
 
-    ax3 = fig.add_subplot(gs[3], projection=ccrs.PlateCarree(central_longitude=c_lon))
+    ax3 = fig.add_subplot(gs[5], projection=ccrs.PlateCarree(central_longitude=c_lon))
     ax3.set_aspect('auto')
     # 统一加粗所有四个边框
     for spine in ax3.spines.values():
         spine.set_linewidth(1)  # 设置边框线宽
-    ax3.set_title(f"(e) AR-type 850UVZ&PRE", fontsize=12, loc='left')
+    ax3.set_title(f"(f) AR-type 850UVZ&PRE", fontsize=12, loc='left')
     ax3.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.75, color="#a4a4a4")
     ax3.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                        facecolor='none', edgecolor='black', linewidth=.5)
@@ -660,6 +723,12 @@ if __name__ == '__main__':
 
     # 框选因子
     lw = 1.0
+
+    plot_text(ax1, -61, 41, 'A', 10, 'blue')
+    plot_text(ax1, -12.27, 60.81, 'C', 10, 'red')
+    plot_text(ax1, 40, 58, 'A', 10, 'blue')
+    plot_text(ax1, 74, 47, 'C', 10, 'red')
+    plot_text(ax1, 109, 39, 'A', 10, 'blue')
 
     plot_text(ax2, -59, 41, 'A', 10, 'blue')
     plot_text(ax2, -9.93, 62.8, 'C', 10, 'red')
