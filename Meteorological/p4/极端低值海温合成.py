@@ -351,8 +351,8 @@ PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
 
 # SST
-sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2023)
-sst = sst.sel(time=slice('1961-01-01', '2023-12-31'))
+sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
+sst = sst.sel(time=slice('1961-01-01', '2022-12-31'))
 sst = xr.Dataset(
     {'sst': (['time', 'lat', 'lon'], sst['sst'].data)},
     coords={'time': pd.to_datetime(sst['time'], format="%Y%m%d"),
@@ -367,7 +367,7 @@ sst_ano = sst_ano.assign_coords(year=sst_ano["time"].dt.year, month=sst_ano["tim
 
 # UV
 uvz = xr.open_dataset(fr"{DATA}/ERA5/ERA5_pressLev/era5_pressLev.nc").sel(
-    date=slice('1961-01-01', '2024-12-31'),
+    date=slice('1961-01-01', '2023-12-31'),
     pressure_level=[200, 500, 850],
     latitude=[90 - i * 0.5 for i in range(361)], longitude=[i * 0.5 for i in range(720)])
 uvz = xr.Dataset(
@@ -378,21 +378,21 @@ uvz = xr.Dataset(
             'p': uvz['pressure_level'].data,
             'lat': uvz['latitude'].data,
             'lon': uvz['longitude'].data})
-uvz = uvz.sel(time=slice('1961-01-01', '2024-12-31'))
+uvz = uvz.sel(time=slice('1961-01-01', '2023-12-31'))
 uvz = uvz.transpose('time', 'p', 'lat', 'lon')
 uvz_clim = uvz.groupby('time.month').mean('time')  # 逐月气候态
 uvz_ano = uvz.groupby('time.month') - uvz_clim  # 逐月距平
 uvz_ano = uvz_ano.assign_coords(year=uvz_ano["time"].dt.year, month=uvz_ano["time"].dt.month).set_index(time=["year", "month"]).unstack("time")
 
 # PRE
-pre = prec(f"{DATA}/NOAA/PREC/precip.mon.anom.nc", 1961, 2023)
+pre = prec(f"{DATA}/NOAA/PREC/precip.mon.anom.nc", 1961, 2022)
 pre = transform(pre, type='180->360')
 pre = xr.Dataset(
     {'pre': (['time', 'lat', 'lon'], pre['pre'].data)},
     coords={'time': pd.to_datetime(pre['time'], format="%Y%m%d"),
             'lat': pre['lat'].data,
             'lon': pre['lon'].data})
-pre = pre.sel(time=slice('1961-01-01', '2023-12-31'))
+pre = pre.sel(time=slice('1961-01-01', '2022-12-31'))
 pre = pre.transpose('time', 'lat', 'lon')
 pre_clim = pre.groupby('time.month').mean('time')  # 逐月气候态
 pre_ano = pre.groupby('time.month') - pre_clim  # 逐月距平
@@ -407,7 +407,7 @@ plt.rcParams['axes.edgecolor'] = 'black'
 plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
 
 for i in [5, 6, 7, 8, 9]:
-    year = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014, 2015]
+    year = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014]
 
     ax_spec = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=spec[i - 5], wspace=0, hspace=0)
 
@@ -420,13 +420,13 @@ for i in [5, 6, 7, 8, 9]:
             shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
             shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4], cb_draw=True if i==7 else False,
             shading_corr=None,
-            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet={'N': 2022-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw=False,
 
             shading2=uvz_ano['z'].sel(year=year, month=i, p=200).mean('year'), shading2_levels=[-600, -500, -400, -300, -200, -100, 0, 100, 200, 300, 400, 500, 600],
             shading2_cmap=cmaps.sunshine_diff_12lev, cb_draw2=True if i==7 else False,
             shading2_corr=None,
-            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet2={'N': 2022-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw2=False,
 
             contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
@@ -461,14 +461,14 @@ for i in [5, 6, 7, 8, 9]:
             shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4],
             cb_draw=True if i == 7 else False,
             shading_corr=None,
-            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet={'N': 2022-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw=False,
 
             shading2=sst_ano.sel(year=year, month=i).mean('year').to_array()[0],
             shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.]) * .5, 2),
             shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40], cb_draw2=True if i == 7 else False,
             shading2_corr=None,
-            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet2={'N': 2022-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw2=False,
 
             contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
@@ -505,13 +505,13 @@ for i in [5, 6, 7, 8, 9]:
             shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
             shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4], cb_draw=True if i==7 else False,
             shading_corr=None,
-            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet={'N': 2022-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw=False,
 
             shading2=pre_ano['pre'].sel(year=year, month=i).mean('year'), shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.])*5, 2),
             shading2_cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], cb_draw2=True if i==7 else False,
             shading2_corr=None,
-            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+            p_test_drawSet2={'N': 2022-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw2=False,
 
             contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,

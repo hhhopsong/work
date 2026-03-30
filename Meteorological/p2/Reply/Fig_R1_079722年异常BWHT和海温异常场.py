@@ -115,7 +115,7 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
     plt.rcParams['hatch.linewidth'] = p_test_drawSet['lw']
     plt.rcParams['hatch.color'] = p_test_drawSet['color']
     axes_sub.set_aspect('auto')
-    axes_sub.set_title(title, fontsize=8*fontsize_times, loc='left')
+    axes_sub.set_title(title, fontsize=10*fontsize_times, loc='left')
     for spine in axes_sub.spines.values():
         spine.set_linewidth(spine_lw)  # 设置边框线宽
     latlon_fmt(axes_sub, geoticks['x'], geoticks['y'],  MultipleLocator(geoticks['xminor']),
@@ -215,16 +215,16 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
         # 去除白线
         contour_data, contour_lon = add_cyclic_point(contour, contour['lon'])
         contour_low = axes_sub.contour(contour_lon, contour['lat'], contour_data, colors=contour_cmap[0], linestyles='solid',
-                                       levels=contour_levels[0], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
+                                       levels=contour_levels[0], linewidths=.8, transform=ccrs.PlateCarree(central_longitude=0))
         contour_high = axes_sub.contour(contour_lon, contour['lat'], contour_data, colors=contour_cmap[1], linestyles='solid',
-                                        levels=contour_levels[1], linewidths=0.4, transform=ccrs.PlateCarree(central_longitude=0))
+                                        levels=contour_levels[1], linewidths=.8, transform=ccrs.PlateCarree(central_longitude=0))
         clabel1 = contour_low.clabel(inline=1, fontsize=3*fontsize_times, inline_spacing=0)
         clabel2 = contour_high.clabel(inline=1, fontsize=3*fontsize_times, inline_spacing=0)
         clabels = clabel1 + clabel2
 
         # 循环遍历每个标签，并为它设置一个带白色背景的边界框
         for label in clabels:
-            label.set_bbox(dict(facecolor='white',  # 背景色为白色
+            label.set_bbox(dict(facecolor='none',  # 背景色为白色
                                 edgecolor='none',  # 无边框
                                 pad=0,  # 标签与背景的间距
                                 alpha=1  # 背景的透明度 (0.8表示80%不透明)
@@ -337,7 +337,7 @@ default_p_test_drawSet2 = {'N': 60, 'alpha': 0.1, 'lw': 0.2, 'color': '#FFFFFF'}
 default_edgedraw2 = False # 填色图边缘绘制
 ## 等值线
 default_contour_levels = [[-1, -0.5, -0.2], [0.2, 0.5, 1]]
-default_contour_cmap = ['blue', 'red']
+default_contour_cmap = ['brown', 'green']
 default_contour_corr = False # 等值线相关系数结果
 default_p_test_drawSet_corr = {'N': 60, 'alpha': 0.1} # 显著
 ## 风矢量_1
@@ -444,7 +444,7 @@ plt.rcParams['axes.edgecolor'] = 'black'
 plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
 
 for i in range(3):
-    year = [1997, 2007, 2022]
+    year = [2007, 2022, 1997]
     ax_spec = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=spec[i], wspace=0, hspace=0.42)
 
     extent_CN = [90, 122.5, 23.8, 40]  # 中国大陆经度范围，纬度范围
@@ -508,10 +508,10 @@ for i in range(3):
     # else:
     #     lev = np.array([0, 35, 38, 41, 45, 48, 51, 54, 57])
 
-    if i==0:
+    if i==2:
         lev = np.array([0, 1, 2, 4, 6, 8, 10, 12])
-    elif i==1:
-        lev = np.array([0, 1, 2, 4, 6, 8, 10, 12])
+    elif i==0:
+        lev = np.array([0, 1, 2, 3, 4, 5, 6, 7])
     else:
         lev = np.array([0, 10, 15, 20, 25, 30, 32, 34, 36])
     norm = mcolors.BoundaryNorm(lev, custom_cmap.N)
@@ -534,7 +534,7 @@ for i in range(3):
 
     ax2 = fig.add_subplot(ax_spec[1], projection=proj)  # 添加子图
     ax2.set_aspect('auto')  # 设置长宽比
-    sub_pic(ax2, title=f'({chr(ord('a') + i*2 + 1)}) {year[i]} 500UV&SST_anomaly', extent=[-180, 180, -30, 80],
+    sub_pic(ax2, title=f'({chr(ord('a') + i*2 + 1)}) {year[i]} SST&PRE_anomaly', extent=[-180, 180, -30, 80],
             geoticks={'x': [-180, -120, -60, 0, 60, 120, 180], 'y': yticks if i==0 else [], 'xminor': 10, 'yminor': 10},
             fontsize_times=1.0,
 
@@ -551,11 +551,11 @@ for i in range(3):
             p_test_drawSet2={'N': 2022-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
             edgedraw2=False,
 
-            contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
+            contour=pre_ano['pre'].sel(year=year[i], month=7)/2+pre_ano['pre'].sel(year=year[i], month=8)/2, contour_levels=np.array([[-1.1], [1.5]]) if i!=2 else np.array([[-1.5], [2]]), contour_cmap=default_contour_cmap,
 
             contour_corr=None, p_test_drawSet_corr={'N': 2022-1961+1, 'alpha': 0.1},
 
-            wind_1=uvz_ano.sel(year=year[i], month=7, p=500)/2+uvz_ano.sel(year=year[i], month=8, p=500)/2,
+            wind_1=None,
             wind_1_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 12, 'lw': 0.4,
                       'color': 'black', 'thinning': ['25%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.5]},
             wind_1_key_set={'U': 5, 'label': '5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 5, 'edgecolor': 'black', 'lw': 0.5},

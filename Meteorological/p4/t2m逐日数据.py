@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 
 PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
+# 字体为新罗马
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['mathtext.fontset'] = 'stix'
 
 # 合并后的夏季 t2m 数据
 NC_FILE = "/Volumes/TiPlus7100/p4/data/ERA5_daily_t2m_sum.nc"
@@ -27,10 +31,10 @@ OUT_FIG = os.path.join(OUT_DIR, r"图3_t2m逐日实际场_三线")
 
 # 参考气候态年份
 CLIM_START = 1961
-CLIM_END = 2023
+CLIM_END = 2022
 
 # 合成年份
-COMPOSITE_YEARS = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014, 2015]
+COMPOSITE_YEARS = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014]
 
 # 单独分析年份
 TARGET_YEAR = 2015
@@ -172,36 +176,141 @@ def main():
 
     # ================= 作图：三根线一张图 =================
     print("7) 绘图...")
-    fig, ax = plt.subplots(figsize=(12, 6))
 
-    ax.plot(
-        clim_df["summer_day"],
-        clim_df["climatology_actual"],
-        linewidth=2.2,
-        label=f"Climatology ({CLIM_START}-{CLIM_END})"
+    # 先按 summer_day 合并，确保三条线逐日对齐
+    plot_df = clim_df.merge(comp_df, on="summer_day", how="inner")
+    plot_df = plot_df.merge(y2015_df, on="summer_day", how="inner")
+
+    x = plot_df["summer_day"].values
+    clim_y = plot_df["climatology_actual"].values
+    comp_y = plot_df["composite_actual"].values
+    y2015_y = plot_df[f"{TARGET_YEAR}_actual"].values
+
+    fig, ax = plt.subplots(figsize=(6, 3))
+
+    # 研究区间 7月1日-8月31日的背景色
+    ax.axvspan(31, 92, color="#959595", alpha=0.3, zorder=0)
+
+    # ------------- 填色 -------------
+    # 1) 2015 > 气候态：浅红
+    ax.fill_between(
+        x, y2015_y, clim_y,
+        where=(y2015_y > clim_y),
+        interpolate=True,
+        color="lightcoral",
+        alpha=0.35,
+        zorder=1
     )
 
-    ax.plot(
-        comp_df["summer_day"],
-        comp_df["composite_actual"],
-        linewidth=2.2,
-        label="Composite actual"
+    # 2) 2015 < 气候态：浅蓝
+    ax.fill_between(
+        x, y2015_y, clim_y,
+        where=(y2015_y < clim_y),
+        interpolate=True,
+        color="deepskyblue",
+        alpha=0.35,
+        zorder=1
     )
 
-    ax.plot(
-        y2015_df["summer_day"],
-        y2015_df[f"{TARGET_YEAR}_actual"],
-        linewidth=2.2,
-        label=f"{TARGET_YEAR} actual"
+    # 3) 2015 < 低值年：更深蓝
+    ax.fill_between(
+        x, y2015_y, comp_y,
+        where=(y2015_y < comp_y),
+        interpolate=True,
+        color="#007bbb",
+        alpha=0.6,
+        zorder=2
     )
+
+    # ------------- 三条线 -------------
+    # 气候态：黑色实线
+    ax.plot(
+        x, clim_y,
+        color="black",
+        linestyle="-",
+        linewidth=1,
+        label=f"Clim.",
+        zorder=4
+    )
+
+    # 低值年：蓝色虚线
+    ax.plot(
+        x, comp_y,
+        color="blue",
+        linestyle="--",
+        linewidth=1.5,
+        label="Comp.",
+        zorder=4
+    )
+
+    # 2015：可用红色实线，便于区分
+    ax.plot(
+        x, y2015_y,
+        color="#959595",
+        linestyle="-",
+        linewidth=.8,
+        label=f"{TARGET_YEAR}",
+        zorder=5
+    )
+
+    # 绘制台风标志在x轴上 若有两个则y轴堆叠
+    # tp1 6.30-7.13
+    # tp2 7.2-7.10
+    # tp3 7.30-8.10
+    def month_day_to_summer_day(month: int, day: int) -> int:
+        """把月日转换为夏季日序: 6/1 -> 1, 8/31 -> 92"""
+        if month == 6:
+            return day
+        elif month == 7:
+            return 30 + day
+        elif month == 8:
+            return 61 + day
+        else:
+            raise ValueError("仅支持 6/7/8 月")
+
+    typhoons = [
+        {"start": (6, 30), "end": (7, 13)},
+        {"start": (7, 2), "end": (7, 10)},
+        {"start": (7, 30), "end": (8, 10)},
+    ]
+
+    # 转为 summer_day
+    _ty_index = 0
+    for tp in typhoons:
+        tp["start_day"] = month_day_to_summer_day(*tp["start"])
+        tp["end_day"] = month_day_to_summer_day(*tp["end"])
+
+        for iday in range(tp["start_day"], tp["end_day"] + 1):
+            # 中间放台风符号
+            ax.text(
+                iday,
+                19.6 if _ty_index == 0 else (19.6 if _ty_index == 2 else 19.8),  # 堆叠放置
+                "·",  # 台风符号
+                ha="center",
+                va="center",
+                color='red',
+                fontsize=25,
+                clip_on=False
+            )
+        _ty_index += 1
+
+
+
+    ax.set_xlim(1, 92)
+    ax.set_ylim(19.5, 28.5)
 
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
-    ax.set_xlabel("Summer Day")
-    ax.set_ylabel("T2m (degC)")
-    ax.set_title("Yangtze Basin Summer Daily Mean T2m")
+    ax.set_xlabel("")
+    ax.set_ylabel("Temperature (°C)")
+    ax.set_title("Summer daily T2m", loc='left', fontsize=14)
     ax.grid(True, linestyle="--", alpha=0.4)
     ax.legend(frameon=False)
+
+    for ax in fig.axes:
+        # 遍历每个子图中的所有艺术家对象 (artist)
+        for spine in ax.spines.values():
+            spine.set_linewidth(1.5)  # 设置边框线宽
 
     plt.tight_layout()
     plt.savefig(OUT_FIG + ".png", dpi=600, bbox_inches="tight")
