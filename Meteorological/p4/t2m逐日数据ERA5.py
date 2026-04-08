@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from climkit.masked import masked
+from climkit.filter import *
 import matplotlib.pyplot as plt
 
 # =========================================================
@@ -161,6 +162,20 @@ def main():
         .rename(columns={"t2m": "composite_actual"})
     )
 
+    print("5) 计算合成年份逐日实际场及逐日标准差...")
+    comp_stat_df = (
+        df[df["year"].isin(COMPOSITE_YEARS)]
+        .groupby("summer_day")["t2m"]
+        .agg(["mean", "std"])
+        .reset_index()
+        .rename(columns={
+            "mean": "composite_actual",
+            "std": "composite_std"
+        })
+    )
+    # 如果某些 summer_day 恰好只有一个值，std 会是 NaN，这里补成 0
+    comp_stat_df["composite_std"] = comp_stat_df["composite_std"].fillna(0.0)
+
     # ================= 3) 2015 逐日实际场 =================
     print(f"6) 计算 {TARGET_YEAR} 年逐日实际场...")
     y2015_df = (
@@ -178,13 +193,30 @@ def main():
     print("7) 绘图...")
 
     # 先按 summer_day 合并，确保三条线逐日对齐
-    plot_df = clim_df.merge(comp_df, on="summer_day", how="inner")
+    plot_df = clim_df.merge(comp_stat_df, on="summer_day", how="inner")
     plot_df = plot_df.merge(y2015_df, on="summer_day", how="inner")
 
     x = plot_df["summer_day"].values
     clim_y = plot_df["climatology_actual"].values
     comp_y = plot_df["composite_actual"].values
+    comp_std = plot_df["composite_std"].values
+
     y2015_y = plot_df[f"{TARGET_YEAR}_actual"].values
+    # 滤波
+    y2015_y_filt = LanczosFilter(y2015_y-clim_y, 'bandpass', [10, 30], nwts=9).filted()
+    y2015_y_nan = np.full(len(y2015_y), np.nan)
+
+    comp_y_filt = LanczosFilter(comp_y-clim_y, 'bandpass', [10, 30], nwts=9).filted()
+    comp_y_nan = np.full(len(comp_y), np.nan)
+
+    # 将滤波结果放在原数组中间，两端保持NAN值 计算左右各需要留多少个点
+    m = len(y2015_y_filt)
+    pad_left = (len(y2015_y) - m) // 2
+    pad_right = len(y2015_y) - m - pad_left
+    y2015_y_nan[pad_left:len(y2015_y) - pad_right] = y2015_y_filt
+    y2015_y_filt = y2015_y_nan*2+24+1
+    comp_y_nan[pad_left:len(comp_y) - pad_right] = comp_y_filt
+    comp_y_filt = comp_y_nan*2+24+1
 
     fig, ax = plt.subplots(figsize=(6, 3))
 
@@ -248,10 +280,46 @@ def main():
         x, y2015_y,
         color="#959595",
         linestyle="-",
-        linewidth=.8,
-        label=f"{TARGET_YEAR}",
+        linewidth=0,
         zorder=5
     )
+
+    # ------------- 低值年逐日标准差绿色阴影 -------------
+    y_base = 19.5
+    ax.bar(
+        x, comp_std,
+        color="limegreen",
+        bottom=y_base,
+        alpha=0.25,
+        linewidth=0,
+        zorder=1.5
+    )
+
+    mask_gt = (y2015_y_filt > comp_y_filt)  # 大于 comp_y_filt
+    mask_lt = (y2015_y_filt <= comp_y_filt)  # 小于 comp_y_filt
+
+    ax.plot(
+        x,
+        np.ma.masked_where(~mask_gt, y2015_y_filt),
+        color="orangered",  # 橘红色
+        linestyle="-",
+        linewidth=1.3,
+        zorder=5
+    )
+
+    ax.plot(
+        x,
+        y2015_y_filt,
+        color="green",  # 草绿色
+        linestyle="-",
+        linewidth=1.3,
+        zorder=4
+    )
+
+    secax = ax.secondary_yaxis('right')
+    secax.set_yticks(np.arange(20, 29, 2))
+    secax.set_yticklabels(np.arange(-3, 1.5, 1), fontsize=14)
+    secax.tick_params(axis='y', labelsize=14)
 
     # 绘制台风标志在x轴上 若有两个则y轴堆叠
     # tp1 6.30-7.13
@@ -290,14 +358,15 @@ def main():
                 va="center",
                 color='red',
                 fontsize=25,
-                clip_on=False
+                clip_on=False,
+                zorder=10
             )
         _ty_index += 1
 
 
 
     ax.set_xlim(1, 92)
-    ax.set_ylim(19.5, 28.5)
+    ax.set_ylim(y_base, 28.5)
 
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
@@ -305,12 +374,98 @@ def main():
     ax.set_ylabel("Temperature (°C)")
     ax.set_title("Summer daily T2m", loc='left', fontsize=14)
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.legend(frameon=False)
+
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Rectangle
+    from matplotlib.legend_handler import HandlerBase
+    class HandlerBiColorLine(HandlerBase):
+        def create_artists(self, legend, orig_handle,
+                           x0, y0, width, height, fontsize, trans):
+            # 中间位置
+            xm = x0 + width / 2.0
+
+            # 左半段（红）
+            line1 = Line2D([x0, xm], [y0 + height / 2, y0 + height / 2],
+                           color="orangered", linewidth=1.5)
+
+            # 右半段（绿）
+            line2 = Line2D([xm, x0 + width], [y0 + height / 2, y0 + height / 2],
+                           color="green", linewidth=1.5)
+
+            line1.set_transform(trans)
+            line2.set_transform(trans)
+
+            return [line1, line2]
+
+    class HandlerBiColorPatch(HandlerBase):
+        """双色填色图例：左红右蓝"""
+
+        def create_artists(self, legend, orig_handle,
+                           x0, y0, width, height, fontsize, trans):
+            w2 = width / 2.0
+
+            patch1 = Rectangle(
+                (x0, y0), w2, height,
+                facecolor="lightcoral", edgecolor="none", alpha=0.35,
+                transform=trans
+            )
+            patch2 = Rectangle(
+                (x0 + w2, y0), w2, height,
+                facecolor="deepskyblue", edgecolor="none", alpha=0.35,
+                transform=trans
+            )
+            return [patch1, patch2]
+
+    # ===== 主图例：线图 =====
+    plt.rcParams['legend.fontsize'] = 8
+    line_clim = Line2D([0], [0], color="black", lw=1, linestyle="-", label="Clim.")
+    line_comp = Line2D([0], [0], color="blue", lw=1.5, linestyle="--", label="Cool sum. comp.")
+    bi_line = Line2D([0], [0], color="none", label="2015 filtered anom.")
+
+    legend1 = ax.legend(
+        handles=[bi_line, line_comp, line_clim],
+        handler_map={bi_line: HandlerBiColorLine()},
+        frameon=False,
+        loc="upper left",
+        borderaxespad=0.0
+    )
+    ax.add_artist(legend1)
+
+    # ===== 右侧附加图例 =====
+    bar_handle = Rectangle(
+        (0, 0), 1, 1,
+        facecolor="limegreen",
+        edgecolor="none",
+        alpha=0.25,
+        label="Comp. std"
+    )
+
+    fill_handle = Rectangle((0, 0), 1, 1, facecolor="none", edgecolor="none")
+    fill_handle.set_label("2015 anom.")
+
+    typhoon_handle = Line2D(
+        [0], [0],
+        marker="o",
+        color="red",
+        linestyle="None",
+        markersize=3,
+        label="Typhoon"
+    )
+
+    legend2 = ax.legend(
+        handles=[fill_handle, bar_handle, typhoon_handle],
+        handler_map={fill_handle: HandlerBiColorPatch()},
+        frameon=False,
+        loc="upper right",
+        borderaxespad=0.0
+    )
 
     for ax in fig.axes:
         # 遍历每个子图中的所有艺术家对象 (artist)
         for spine in ax.spines.values():
             spine.set_linewidth(1.5)  # 设置边框线宽
+
+    plt.rcParams['legend.fontsize'] = 8
 
     plt.tight_layout()
     plt.savefig(OUT_FIG + ".png", dpi=600, bbox_inches="tight")
@@ -324,11 +479,11 @@ def main():
     os.makedirs(data_out_dir, exist_ok=True)
 
     clim_out = os.path.join(data_out_dir, "yangtze_t2m_daily_climatology_actual_1961_2023.csv")
-    comp_out = os.path.join(data_out_dir, "yangtze_t2m_composite_actual.csv")
+    comp_out = os.path.join(data_out_dir, "yangtze_t2m_composite_actual_std.csv")
     y2015_out = os.path.join(data_out_dir, f"yangtze_t2m_{TARGET_YEAR}_actual.csv")
 
     clim_df.to_csv(clim_out, index=False, encoding="utf-8-sig")
-    comp_df.to_csv(comp_out, index=False, encoding="utf-8-sig")
+    comp_stat_df.to_csv(comp_out, index=False, encoding="utf-8-sig")
     y2015_df.to_csv(y2015_out, index=False, encoding="utf-8-sig")
 
     print("已导出数据文件：")

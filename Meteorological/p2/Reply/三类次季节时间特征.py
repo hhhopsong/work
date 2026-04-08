@@ -23,7 +23,7 @@ UR = [i[4:] for i in UR]
 MLR_count = pd.Series(MLR).value_counts().sort_index() / (2022-1961+1)
 AR_count = pd.Series(AR).value_counts().sort_index() / (2022-1961+1)
 UR_count = pd.Series(UR).value_counts().sort_index() / (2022-1961+1)
-# 生成7.3到8.28的列表
+# 生成7.3到8.29的列表
 day = [f'{i:0>2}' for i in range(1, 59)]
 # 补全缺失日期，没有的记为 0
 MLR_count = MLR_count.reindex(day, fill_value=0)
@@ -96,9 +96,9 @@ ax.set_ylim(0, 0.48)
 ax.set_yticks([0, 0.12, 0.24, 0.36, 0.48])
 ax.set_yticklabels([ "0     ", "0.12", "0.24", "0.36", "0.48"], rotation=0)
 # 设定x轴坐标标签
-ax.set_xlim(0, 57)
-ax.set_xticks([0, 12, 29, 43, 57])
-ax.set_xticklabels([ "07/03", "07/15", "08/01", "08/15", "08/28"], rotation=0)
+ax.set_xlim(-2, 59)
+ax.set_xticks([-2, 12, 29, 43, 59])
+ax.set_xticklabels([ "07/01", "07/15", "08/01", "08/15", "08/31"], rotation=0)
 
 plt.tight_layout()
 plt.savefig(fr"{PYFILE}/p2/pic/reply/fig_r6.pdf", bbox_inches='tight')

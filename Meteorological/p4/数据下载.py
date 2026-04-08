@@ -14,7 +14,7 @@ from typing import List, Tuple
 
 # --------- Time range (inclusive) ----------
 start_year, start_month = 1961, 1
-end_year, end_month = 2025, 12
+end_year, end_month = 2022, 12
 
 # CDS area order: [North, West, South, East]
 # Northern Hemisphere + Eastern Hemisphere (0–90N, 0–180E)
@@ -22,15 +22,15 @@ NH_EHEM_AREA = [90, 0, 0, 180]
 
 # Variables: Surface Pressure
 # 注意：这里下载的是日平均(daily_mean)的地面气压，用于配合你之前的日平均IVT数据
-VARS = [
-    "2m_temperature",
-]
+
 
 # Dataset: ERA5 daily statistics on single levels
-dataset = "derived-era5-single-levels-daily-statistics"
+#dataset = "derived-era5-single-levels-daily-statistics" # 单层
+dataset = "derived-era5-pressure-levels-daily-statistics" # 多层
 
 # Output directory (已修改文件夹名，避免与IVT混淆)
-output_dir = "/Volumes/TiPlus7100/data/ERA5/daily/t2m"
+# output_dir = "/Volumes/TiPlus7100/data/ERA5/daily/t2m"
+output_dir = "/Volumes/TiPlus7100/data/ERA5/daily/uvwztSh"
 os.makedirs(output_dir, exist_ok=True)
 
 # Accounts pool
@@ -225,6 +225,17 @@ TIME_ZONE = "utc+00:00"
 FREQUENCY = "1_hourly"
 FILE_PREFIX = "ERA5_daily_"  # 修改了文件前缀
 
+# VARS = [
+#     "2m_temperature",
+# ]
+
+VARS = ["geopotential",
+        "specific_humidity",
+        "temperature",
+        "u_component_of_wind",
+        "v_component_of_wind",
+        "vertical_velocity"]
+p_level = ["200", "500", "850", "925"]
 
 # ============================================================
 # ====================== Helper functions ====================
@@ -382,21 +393,40 @@ def main():
         # ============================================================
         # ========================== 请求参数 =========================
         # ============================================================
-        req = {
-            "product_type": "reanalysis",
-            "variable": VARS,
-            "year": year_str,
-            "month": mon_str,
-            "day": days,
-            "daily_statistic": DAILY_STATISTIC,
-            "time_zone": TIME_ZONE,
-            "frequency": FREQUENCY,
-            "grid": GRID,
-            "format": "netcdf",
-        }
+        if 'pressure-levels' in dataset:
+            for plev in p_level:
+                fname = f"{FILE_PREFIX}"+"uvwztSh"+f"_{plev}_{year_str}{mon_str}.nc"
+                req = {
+                    "product_type": "reanalysis",
+                    "variable": VARS,
+                    "year": year_str,
+                    "month": mon_str,
+                    "day": days,
+                    "pressure_level": [plev],
+                    "daily_statistic": DAILY_STATISTIC,
+                    "time_zone": TIME_ZONE,
+                    "frequency": FREQUENCY,
+                    "grid": GRID,
+                    "format": "netcdf",
+                }
+                # 将 (参数, 文件名) 放入队列
+                task_queue.put((req, fname))
+        elif 'single' in dataset:
+            req = {
+                "product_type": "reanalysis",
+                "variable": VARS,
+                "year": year_str,
+                "month": mon_str,
+                "day": days,
+                "daily_statistic": DAILY_STATISTIC,
+                "time_zone": TIME_ZONE,
+                "frequency": FREQUENCY,
+                "grid": GRID,
+                "format": "netcdf",
+            }
 
-        # 将 (参数, 文件名) 放入队列
-        task_queue.put((req, fname))
+            # 将 (参数, 文件名) 放入队列
+            task_queue.put((req, fname))
 
     print(f"任务队列生成完毕，共 {task_queue.qsize()} 个任务，开始下载...")
 

@@ -3,3 +3,4 @@
 *.pyc
 /.idea/
 /Meteorological/climkit/curved_quivers/test.png
+/__pycache__/
