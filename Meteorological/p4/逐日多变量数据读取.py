@@ -77,7 +77,10 @@ def main():
         # 例如：
         # 原文件：ERA5_daily_uvwztSh_500_201507.nc
         # 输出： ERA5_daily_uvwztSh_500_201507_unzip.nc
-        out_name = fp.stem + "_unzip.nc"
+        file_name = fp.stem.split("_")
+        file_name[-1], file_name[-2] = file_name[-2], file_name[-1]
+        file_name = "_".join(file_name)
+        out_name = file_name + "_unzip.nc"
         out_path = fp.with_name(out_name)
 
         print(f"\n处理: {fp.name}")

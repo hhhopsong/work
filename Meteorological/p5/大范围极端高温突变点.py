@@ -169,37 +169,6 @@ def test_cp_significance(x, y, bkps, min_size=5):
 
     return results
 
-
-# =========================
-# 3. plotting function
-# =========================
-def plot_mean_cp(ax, x, y, bkps, cp_idx, sig_results=None,
-                 ylabel='Value', title='Mean change points'):
-    x = np.asarray(x)
-    y = np.asarray(y)
-
-    ax.plot(x, y, label='Corr.', lw=1.5)
-
-    start = 0
-    for end in bkps:
-        seg_mean = y[start:end].mean()
-        ax.hlines(seg_mean, x[start], x[end-1], colors='#454545', ls='--', lw=2)
-        start = end
-
-    for i, idx in enumerate(cp_idx):
-        ax.axvspan(x[idx], 1, color="#959595", alpha=0.3, zorder=0)
-
-    if sig_results is not None and len(sig_results) > 0:
-        y_top = np.nanmax(y)
-        y_bot = np.nanmin(y)
-        y_span = y_top - y_bot if y_top > y_bot else 1.0
-
-    ax.set_xlabel('EHCI Threshold')
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.legend()
-
-
 # =========================
 # 4. prepare data
 # =========================
@@ -238,30 +207,30 @@ for r in sig_results_corr:
 # =========================
 # 7. plot
 # =========================
-fig, ax = plt.subplots(1, 1, figsize=(6, 3), sharex=True)
+fig = plt.figure(figsize=(4, 3))
+ax = fig.add_subplot(1, 1, 1)
 
-plot_mean_cp(
-    ax,
-    x_corr, y_corr,
-    bkps_corr, cp_idx_corr,
-    sig_results=sig_results_corr,
-    ylabel='Correlation',
-    title='Possible Mean Change-Points of Corr.'
-)
+ax.plot(x_corr, y_corr, color='blue', label='Corr.')
+
+ax.set_xlabel('EHCI Threshold')
+ax.set_ylabel('')
+ax.set_title('EHCI Corr.', loc='left')
+ax.set_xlim(0.3, .7)
+ax.set_ylim(0.4, 1)
+ax.axvspan(0.3, 0.47, color="#aaaaaa", alpha=0.3, zorder=0, edgecolor='none')
+ax.axvspan(0.6, 0.68, color="#aaaaaa", alpha=0.3, zorder=0, edgecolor='none')
+plt.legend()
+
+# ax_right = ax.twinx()
+# ax_right.plot(day_EHCI_i['thres'], day_EHCI_i['days'], color='orange', label='Day')
+# ax_right.spines['right'].set_color('tab:orange')
+# ax_right.set_ylabel('')
+# ax_right.tick_params(axis='y', labelcolor='tab:orange')
+# ax_right.spines['left'].set_visible(False)
+# ax_right.set_xlim(0.3, .7)
+# ax_right.set_ylim(0, 0.6)
 
 plt.tight_layout()
-
-
-# axes.plot(corr_EHCI_i['thres'], corr_EHCI_i['corr'], label='Corr.')
-# axes.plot(day_EHCI_i['thres'], day_EHCI_i['days'], label='Day')
-
-plt.xlabel('EHCI Threshold', fontsize=12)
-plt.ylabel('Correlation Coefficient', fontsize=12)
-plt.title('EHCI Corr.', fontsize=14)
-
-plt.legend()
-plt.xlim(0.3, .7)
-plt.ylim(0.4, 1)
 
 plt.savefig(f"{PYFILE}/p5/pic/EHCI极端突变点.png", dpi=1000, bbox_inches='tight')
 plt.savefig(f"{PYFILE}/p5/pic/EHCI极端突变点.pdf", bbox_inches='tight')

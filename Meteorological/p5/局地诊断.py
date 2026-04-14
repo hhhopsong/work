@@ -77,10 +77,10 @@ def pic(fig, pic_loc, lat, lon, lev, lev_t, corr_u, corr_v, corr_z, corr_t2m, ti
     cont_.clabel(inline=1, fontsize=4)
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
 
-    Cq = ax.Curlyquiver(lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=5, linewidth=0.5, arrowsize=1., transform=ccrs.PlateCarree(central_longitude=0), MinDistance=[0.2, 0.5],
+    Cq = ax.Curlyquiver(lon, lat, corr_u[0], corr_v[0], center_lon=110, scale=20, linewidth=0.5, arrowsize=1., transform=ccrs.PlateCarree(central_longitude=0), MinDistance=[0.2, 0.5],
                      regrid=12, color='#454545', nanmax=5)
 
-    Cq.key(U=2, label='2 m/s', color='k', fontproperties={'size': 8}, linewidth=.7, arrowsize=3.)
+    Cq.key(U=1, label='1 m/s', color='k', fontproperties={'size': 8}, linewidth=.7, arrowsize=1., facecolor="white")
     nanmax = Cq.nanmax
     ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
     ax.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
@@ -416,23 +416,20 @@ def detrend(obj, dim='year', deg=1):
     else:
         raise TypeError("obj 必须是 xarray.DataArray 或 xarray.Dataset")
 
-# adv_T_78 = detrend(adv_T_78, dim='year')
-# ver_78 = detrend(ver_78, dim='year')
-# Q_78 = detrend(Q_78, dim='year')
-# uvz = detrend(uvz, dim='year')
-# t2m = detrend(t2m, dim='year')
-# w = detrend(w, dim='year')
-# tcc = detrend(tcc, dim='year')
-# surface_radio = detrend(surface_radio, dim='time')
+adv_T_78 = detrend(adv_T_78, dim='year')
+ver_78 = detrend(ver_78, dim='year')
+Q_78 = detrend(Q_78, dim='year')
+uvz = detrend(uvz, dim='year')
+t2m = detrend(t2m, dim='year')
+w = detrend(w, dim='year')
+tcc = detrend(tcc, dim='year')
+surface_radio = detrend(surface_radio, dim='year')
 
 #%%
 
-YEAR = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014]
-# YEAR = [2015]
-
 EHCI = xr.open_dataset(f"{PYFILE}/p5/data/EHCI_daily.nc")
 EHCI = EHCI.groupby('time.year')
-EHCI30 = EHCI.apply(lambda x: (x > 0.3).sum())
+EHCI30 = EHCI.apply(lambda x: (x > 0.6).sum())
 EHCI30 = (EHCI30 - EHCI30.mean()) / EHCI30.std('year')
 EHCI30 = EHCI30['EHCI'].data
 
@@ -567,7 +564,7 @@ f'(b) {title_head} 500UVZ&T2M'
 )
 
 # plot_text(ax1, 118, 33.6, 'C', 12, 'red')
-plot_text(ax1, 124.3, 35.3, 'A', 12, 'blue')
+plot_text(ax1, 117, 34, 'A', 12, 'blue')
 
 comp_tcc_plot = (comp_tcc[0] * 100,  # 场
     comp_tcc[1]  # p值

@@ -236,13 +236,30 @@ def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, contour_1, contourf_1, contpatch,
 
     return contf, ax
 
+def detrend(obj, dim='year', deg=1):
+    if isinstance(obj, xr.DataArray):
+        coef = obj.polyfit(dim=dim, deg=deg, skipna=True)
+        trend = xr.polyval(obj[dim], coef.polyfit_coefficients)
+        return obj - trend
+
+    elif isinstance(obj, xr.Dataset):
+        out = xr.Dataset(coords=obj.coords, attrs=obj.attrs)
+        for name, da in obj.data_vars.items():
+            coef = da.polyfit(dim=dim, deg=deg, skipna=True)
+            trend = xr.polyval(da[dim], coef.polyfit_coefficients)
+            out[name] = da - trend
+        return out
+
+    else:
+        raise TypeError("obj 必须是 xarray.DataArray 或 xarray.Dataset")
 
 PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
 EHCI = xr.open_dataset(f"{PYFILE}/p5/data/EHCI_daily.nc")
 EHCI = EHCI.groupby('time.year')
-EHCI30 = EHCI.apply(lambda x: (x > 0.3).sum())
+EHCI30 = EHCI.apply(lambda x: (x > 0.6).sum())
 EHCI30 = (EHCI30 - EHCI30.mean()) / EHCI30.std('year')
+EHCI30 = detrend(EHCI30, dim='year')
 EHCI30 = EHCI30['EHCI'].data
 
 #%%

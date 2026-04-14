@@ -55,7 +55,7 @@ def pic(fig, pic_loc, lat, lon, cont_line, lev_line, lat_cf, lon_cf, contf_var, 
     ax.set_title(title, loc='left', fontsize=22)
 
     ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
-    cont = ax.contourf(lon_cf, lat_cf, contf_var,  cmap=cmaps.sunshine_diff_12lev, levels=lev, linewidths=0, transform=ccrs.PlateCarree(central_longitude=0), extend='both', alpha=0.8)
+    cont = ax.contourf(lon_cf, lat_cf, contf_var,  cmap=cmaps.sunshine_diff_12lev, levels=lev, linewidths=0, transform=ccrs.PlateCarree(central_longitude=0), extend='both', alpha=0.8) # type: ignore
 
     plt.rcParams['hatch.linewidth'] = 0.2
     plt.rcParams['hatch.color'] = 'green'
@@ -209,8 +209,8 @@ def composite_analysis(year_list, data, years=None, equal_var=True, var_name=Non
     # 5. 还原为 DataArray
     # -------------------------
     if original_type in ["dataarray", "dataset"]:
-        out_dims = original_dims[1:]
-        out_coords = {dim: original_coords[dim] for dim in out_dims if dim in original_coords}
+        out_dims = original_dims[1:] # type: ignore
+        out_coords = {dim: original_coords[dim] for dim in out_dims if dim in original_coords} # type: ignore
 
         comp_diff = xr.DataArray(
             comp_diff_np,
@@ -352,21 +352,21 @@ for i in range(29):
             fig, (6, 5, i+1),
             tcc['latitude'], tcc['longitude'], pre_bp[iday], lev_pre,
             olr['lat'], olr['lon'], olr_bp[iday], lev,
-            f'2015 OLR&PRE',lat_tick=None, lon_tick=None, key=False
+            f'2015 OLR&PRE',lat_tick=None, lon_tick=None, key=False # pyright: ignore[reportArgumentType]
         )
     elif i==4:
         ax, cont = pic(
             fig, (6, 5, i + 1),
             tcc['latitude'], tcc['longitude'], pre_bp[iday], lev_pre,
             olr['lat'], olr['lon'], olr_bp[iday], lev,
-            f'', lat_tick=None, lon_tick=None, key=True
+            f'', lat_tick=None, lon_tick=None, key=True # pyright: ignore[reportArgumentType]
         )
     else:
         ax, cont = pic(
             fig, (6, 5, i+1),
             tcc['latitude'], tcc['longitude'], pre_bp[iday], lev_pre,
             olr['lat'], olr['lon'], olr_bp[iday], lev,
-            f'', key=False, lat_tick=None, lon_tick=None,
+            f'', key=False, lat_tick=None, lon_tick=None, # pyright: ignore[reportArgumentType]
         )
     # ===== 当前子图日期 =====
     from matplotlib.patheffects import withStroke
@@ -418,16 +418,16 @@ for i in range(29):
                 )
 
 # 添加全局colorbar  # 为colorbar腾出空间
-cbar_ax = inset_axes(ax, width="4%", height="100%", loc='lower left', bbox_to_anchor=(1.025, 0., 1, 1),
-                     bbox_transform=ax.transAxes, borderpad=0)
-cbar = fig.colorbar(cont, cax=cbar_ax, orientation='vertical', drawedges=True)
-cbar.locator = ticker.FixedLocator(lev)
+cbar_ax = inset_axes(ax, width="4%", height="100%", loc='lower left', bbox_to_anchor=(1.025, 0., 1, 1), # type: ignore
+                     bbox_transform=ax.transAxes, borderpad=0) # type: ignore
+cbar = fig.colorbar(cont, cax=cbar_ax, orientation='vertical', drawedges=True) # pyright: ignore[reportPossiblyUnboundVariable]
+cbar.locator = ticker.FixedLocator(lev) # pyright: ignore[reportArgumentType]
 cbar.set_ticklabels([f"{i:.1f}" for i in lev])
 
-for spine in ax.spines.values():
+for spine in ax.spines.values(): # pyright: ignore[reportPossiblyUnboundVariable]
     spine.set_linewidth(1.5)
 
-ax.set_aspect('auto')
+ax.set_aspect('auto') # pyright: ignore[reportPossiblyUnboundVariable]
 
 for ax in fig.axes:
     # 遍历每个子图中的所有艺术家对象 (artist)
