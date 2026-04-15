@@ -31,6 +31,43 @@ from climkit.corr_reg import corr, regress
 from climkit.lonlat_transform import transform
 
 
+read_sic = sic
+
+
+def prepare_sic_dataset(ds):
+    """Normalize HadISST sea-ice dataset to a stable {'sic': [time, lat, lon]} schema."""
+    # Normalize coordinate names first.
+    rename_map = {}
+    if 'latitude' in ds.coords and 'lat' not in ds.coords:
+        rename_map['latitude'] = 'lat'
+    if 'longitude' in ds.coords and 'lon' not in ds.coords:
+        rename_map['longitude'] = 'lon'
+    if len(rename_map) > 0:
+        ds = ds.rename(rename_map)
+
+    # Normalize variable name to "sic".
+    if 'sic' not in ds.data_vars:
+        for cand in ('ice', 'siconc', 'ci'):
+            if cand in ds.data_vars:
+                ds = ds.rename({cand: 'sic'})
+                break
+
+    if 'sic' not in ds.data_vars:
+        raise ValueError(f"SIC variable not found in dataset. Available vars: {list(ds.data_vars)}")
+
+    # Keep valid physical range only. (0~1 or 0~100 are both supported)
+    sic_da = ds['sic']
+    vmax = float(np.nanmax(sic_da.values))
+    if vmax <= 1.5:
+        sic_da = sic_da.where((sic_da >= 0) & (sic_da <= 1.0))
+    else:
+        sic_da = sic_da.where((sic_da >= 0) & (sic_da <= 100.0))
+
+    out = xr.Dataset({'sic': sic_da})
+    out = out.sortby('lat').sortby('lon')
+    return out
+
+
 def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=None, cross_month=9):
 
     if predictor_zone is None:
@@ -86,47 +123,47 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
         t2m_imonth = get_seasonal_mean(t2m, month1, TR_time[0], TR_time[1], cross_month)
         slp_imonth = get_seasonal_mean(slp, month1, TR_time[0], TR_time[1], cross_month)
         sst_imonth = get_seasonal_mean(sst, month1, TR_time[0], TR_time[1], cross_month)
-        sic_imonth = get_seasonal_mean(sic, month1, TR_time[0], TR_time[1], cross_month)
+        sic_imonth = get_seasonal_mean(sic_ds, month1, TR_time[0], TR_time[1], cross_month)
 
         t2m_imonth_pre = get_seasonal_mean(t2m, month1, PR_time[0], PR_time[1], cross_month)
         slp_imonth_pre = get_seasonal_mean(slp, month1, PR_time[0], PR_time[1], cross_month)
         sst_imonth_pre = get_seasonal_mean(sst, month1, PR_time[0], PR_time[1], cross_month)
-        sic_imonth_pre = get_seasonal_mean(sic, month1, PR_time[0], PR_time[1], cross_month)
+        sic_imonth_pre = get_seasonal_mean(sic_ds, month1, PR_time[0], PR_time[1], cross_month)
 
         t2m_imonth_all = get_seasonal_mean(t2m, month1, TR_time[0], PR_time[1], cross_month)
         slp_imonth_all = get_seasonal_mean(slp, month1, TR_time[0], PR_time[1], cross_month)
         sst_imonth_all = get_seasonal_mean(sst, month1, TR_time[0], PR_time[1], cross_month)
-        sic_imonth_all = get_seasonal_mean(sic, month1, TR_time[0], PR_time[1], cross_month)
+        sic_imonth_all = get_seasonal_mean(sic_ds, month1, TR_time[0], PR_time[1], cross_month)
     else:
         t2m_imonth_1 = get_seasonal_mean(t2m, month1, TR_time[0], TR_time[1], cross_month)
         slp_imonth_1 = get_seasonal_mean(slp, month1, TR_time[0], TR_time[1], cross_month)
         sst_imonth_1 = get_seasonal_mean(sst, month1, TR_time[0], TR_time[1], cross_month)
-        sic_imonth_1 = get_seasonal_mean(sic, month1, TR_time[0], TR_time[1], cross_month)
+        sic_imonth_1 = get_seasonal_mean(sic_ds, month1, TR_time[0], TR_time[1], cross_month)
 
         t2m_imonth_pre_1 = get_seasonal_mean(t2m, month1, PR_time[0], PR_time[1], cross_month)
         slp_imonth_pre_1 = get_seasonal_mean(slp, month1, PR_time[0], PR_time[1], cross_month)
         sst_imonth_pre_1 = get_seasonal_mean(sst, month1, PR_time[0], PR_time[1], cross_month)
-        sic_imonth_pre_1 = get_seasonal_mean(sic, month1, PR_time[0], PR_time[1], cross_month)
+        sic_imonth_pre_1 = get_seasonal_mean(sic_ds, month1, PR_time[0], PR_time[1], cross_month)
 
         t2m_imonth_all_1 = get_seasonal_mean(t2m, month1, TR_time[0], PR_time[1], cross_month)
         slp_imonth_all_1 = get_seasonal_mean(slp, month1, TR_time[0], PR_time[1], cross_month)
         sst_imonth_all_1 = get_seasonal_mean(sst, month1, TR_time[0], PR_time[1], cross_month)
-        sic_imonth_all_1 = get_seasonal_mean(sic, month1, TR_time[0], PR_time[1], cross_month)
+        sic_imonth_all_1 = get_seasonal_mean(sic_ds, month1, TR_time[0], PR_time[1], cross_month)
 
         t2m_imonth_2 = get_seasonal_mean(t2m, month2, TR_time[0], TR_time[1], cross_month)
         slp_imonth_2 = get_seasonal_mean(slp, month2, TR_time[0], TR_time[1], cross_month)
         sst_imonth_2 = get_seasonal_mean(sst, month2, TR_time[0], TR_time[1], cross_month)
-        sic_imonth_2 = get_seasonal_mean(sic, month2, TR_time[0], TR_time[1], cross_month)
+        sic_imonth_2 = get_seasonal_mean(sic_ds, month2, TR_time[0], TR_time[1], cross_month)
 
         t2m_imonth_pre_2 = get_seasonal_mean(t2m, month2, PR_time[0], PR_time[1], cross_month)
         slp_imonth_pre_2 = get_seasonal_mean(slp, month2, PR_time[0], PR_time[1], cross_month)
         sst_imonth_pre_2 = get_seasonal_mean(sst, month2, PR_time[0], PR_time[1], cross_month)
-        sic_imonth_pre_2 = get_seasonal_mean(sic, month2, PR_time[0], PR_time[1], cross_month)
+        sic_imonth_pre_2 = get_seasonal_mean(sic_ds, month2, PR_time[0], PR_time[1], cross_month)
 
         t2m_imonth_all_2 = get_seasonal_mean(t2m, month2, TR_time[0], PR_time[1], cross_month)
         slp_imonth_all_2 = get_seasonal_mean(slp, month2, TR_time[0], PR_time[1], cross_month)
         sst_imonth_all_2 = get_seasonal_mean(sst, month2, TR_time[0], PR_time[1], cross_month)
-        sic_imonth_all_2 = get_seasonal_mean(sic, month2, TR_time[0], PR_time[1], cross_month)
+        sic_imonth_all_2 = get_seasonal_mean(sic_ds, month2, TR_time[0], PR_time[1], cross_month)
 
         t2m_imonth = t2m_imonth_1 - t2m_imonth_2
         slp_imonth = slp_imonth_1 - slp_imonth_2
@@ -1331,13 +1368,13 @@ slp = era5_s(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
 # sst
 sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
 # sic
-sic = sic(fr"{DATA}/NOAA/HadISST/HadISST_ice.nc", 1961, 2022)
+sic_ds = prepare_sic_dataset(read_sic(fr"{DATA}/NOAA/HadISST/HadISST_ice.nc", 1961, 2022))
 
 TR_time = [1962, 2004]
 PR_time = [2005, 2022]
 timeSerie = EHCI30
 
-predict_month = [6, 7, 8, 9, 10]
+predict_month = [6, 7, 8, 9, 10, 11, 12]
 
 X_train_all_dict, X_pre_all_dict, X_roll_all_dict, meta_df, TS, TS_pre, TS_all = auto_build_predictors(
     timeSerie=timeSerie,

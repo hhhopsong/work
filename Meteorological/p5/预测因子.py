@@ -335,19 +335,41 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
     return 0
 
 
-def plot_sea_ice(ax, title, lon, lat, ice, level, cmap=cmaps.BlueWhiteOrangeRed[40:-40]):
+def plot_sea_ice(
+    ax,
+    title,
+    lon,
+    lat,
+    ice,
+    level,
+    cmap=cmaps.BlueWhiteOrangeRed_r[40:-40],
+    rec_Set=None,
+    ice_corr=None,
+    sig_draw_set=None,
+):
     """
     lon, lat, ice can be 2D arrays of the same shape.
     Projection: North Polar Stereographic
     Central longitude: 110E
     Extent: 40N to 90N
     Thick border
+
+    Optional significance stippling:
+    - ice_corr: correlation field used for significance test; fallback to ice when None
+    - sig_draw_set: {'N': sample_size, 'alpha': 0.1, 'color': '#303030', 's': 2, 'marker': '.', 'alpha_pt': 0.8, 'stride': 1}
     """
     import matplotlib.path as mpath
 
+    def rec(ax_, point, color='blue', ls='--', lw=0.5):
+        x1, x2 = point[:2]
+        y1, y2 = point[2:]
+        x = [x1, x2, x2, x1, x1]
+        y = [y1, y1, y2, y2, y1]
+        ax_.plot(x, y, color=color, linestyle=ls, lw=lw, transform=ccrs.PlateCarree(), zorder=100)
+
     proj = ccrs.NorthPolarStereo(central_longitude=110)
 
-    ax.set_extent([-180, 180, 40, 90], crs=ccrs.PlateCarree())
+    ax.set_extent([-180, 180, 60, 90], crs=ccrs.PlateCarree())
 
     # 圆形边界
     theta = np.linspace(0, 2 * np.pi, 400)
@@ -358,22 +380,14 @@ def plot_sea_ice(ax, title, lon, lat, ice, level, cmap=cmaps.BlueWhiteOrangeRed[
     ax.set_boundary(circle, transform=ax.transAxes)
 
     # Optional base layers
-    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.7, color='#757575', alpha=0.75)
-    ax.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
-    ax.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
-                       facecolor='none', edgecolor='blue', linewidth=0.2)
-    ax.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江干流_lake/lake_wsg84.shp').geometries(),
-                       ccrs.PlateCarree(), facecolor='blue', edgecolor='blue', linewidth=0.05)
-    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
-                       ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=10)
+    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=2, color='#757575', alpha=0.75, zorder=99)
     ax.set_title(title, fontsize=10)
     ax.coastlines(linewidth=0.8, zorder=2)
     gl = ax.gridlines(
         crs=ccrs.PlateCarree(),
         draw_labels=True,
         xlocs=np.array([-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150, 180])-10,
-        ylocs=[30, 60],
+        ylocs=[70, 80],
         linewidth=0.6,
         linestyle="--",
         alpha=0.7
@@ -397,6 +411,47 @@ def plot_sea_ice(ax, title, lon, lat, ice, level, cmap=cmaps.BlueWhiteOrangeRed[
         zorder=3,
         norm=norm
     )
+
+    # 90% significance stippling (|r| > r_crit), rendered as points instead of contourf
+    if sig_draw_set is not None and sig_draw_set.get('N', None) is not None:
+        corr_field = ice if ice_corr is None else ice_corr
+        r_crit = r_test(sig_draw_set['N'], sig_draw_set.get('alpha', 0.1))
+        sig_mask = np.abs(np.asarray(corr_field)) >= r_crit
+
+        lon_np = np.asarray(lon)
+        lat_np = np.asarray(lat)
+        if lon_np.ndim == 1 and lat_np.ndim == 1:
+            lon2d, lat2d = np.meshgrid(lon_np, lat_np)
+        else:
+            lon2d, lat2d = lon_np, lat_np
+
+        if lon2d.shape == sig_mask.shape and lat2d.shape == sig_mask.shape:
+            stride = int(sig_draw_set.get('stride', 1))
+            stride = 1 if stride < 1 else stride
+            sig_lon = lon2d[sig_mask][::stride]
+            sig_lat = lat2d[sig_mask][::stride]
+            ax.scatter(
+                sig_lon,
+                sig_lat,
+                s=sig_draw_set.get('s', 2),
+                c=sig_draw_set.get('color', '#303030'),
+                marker=sig_draw_set.get('marker', '.'),
+                alpha=sig_draw_set.get('alpha_pt', 0.8),
+                linewidths=0,
+                transform=ccrs.PlateCarree(),
+                zorder=4,
+            )
+
+    # 新增: 绘制因子框
+    if rec_Set is not None:
+        for rec_set in rec_Set:
+            rec(
+                ax,
+                rec_set['point'],
+                rec_set.get('color', 'blue'),
+                rec_set.get('ls', '--'),
+                rec_set.get('lw', 0.5)
+            )
 
     ax_colorbar = inset_axes(ax, width="6%", height="100%", loc='lower left', bbox_to_anchor=(1.2, 0., 1, 1),
                               bbox_transform=ax.transAxes, borderpad=0)
@@ -755,20 +810,27 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
     return X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr
 
 
-
-
-
-X1 = ['sic', 85.5, 68.5, 157.5, 360-137.5]
-X2 = ['sic', 80, 68.5, -25,	50]
-X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[3, 4], month2=None, predictor_zone=[X1], cross_month=9)
-
+X1 = ['sic', 80.5,	74.5,	61.5,	80.5]
+X2 = ['sst', 8.0,	-2.0,	244.0,	282.0]
+X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[5], month2=[2], predictor_zone=[X2], cross_month=9)
 
 fig = plt.figure(figsize=(5, 14))
 fig.subplots_adjust(hspace=0.35)
 gs = gridspec.GridSpec(6, 1, height_ratios=[2, 1, 1, 1, 1, 1])  # 设置子图的高度比例
 
-
-
+ax_sic = fig.add_subplot(gs[0], projection=ccrs.NorthPolarStereo(central_longitude=110))
+plot_sea_ice(
+    ax_sic,
+    "(a) 3+4_mean_SIC",
+    sic.lon,
+    sic.lat,
+    sicCorr,
+    np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
+    rec_Set=[{'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
+             {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': 'brown', 'ls': (0, (1, 1)), 'lw': 1.6}],
+    ice_corr=sicCorr,
+    sig_draw_set={'N': TR_time[1] - TR_time[0] + 1, 'alpha': 0.1, 'hatch': '..', 'lw': 0.2, 'color': '#303030'}
+)
 
 # 绘制子图
 ax = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180-70))
@@ -776,7 +838,7 @@ sub_pic(ax, title=f'(b) 3+4_mean_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
         shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
         shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-        shading2=sstReg, shading2_levels=np.array([-.2, -.16, -.12, -.08, -.04, .04, .08, .12, .16, .2]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+        shading2=sstCorr, shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
         shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True,
         contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
         contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
@@ -787,14 +849,11 @@ sub_pic(ax, title=f'(b) 3+4_mean_SST', extent=[-180, 180, -50, 80],
 # ============================================================
 # 第二组预测因子
 # ============================================================
-X3 = ['sic', 79.5,	68.5,	164.5,	360-154.5]
-X4 = ['sst',-10, -38, 160, 224]
-X7 = ['sst', 20, -5, -40, -5]
-X_train_dict2, X_pre_dict2, X_rollingCorr_dict2, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[3, 4], month2=[11, 12], predictor_zone=[X4], cross_month=9)
+X1 = ['sic', 79.5,	68.5,	164.5,	360-154.5]
+X2 = ['sic', 90, 80, -40, 360-70]
+X3 = ['sst', 20, -5, -40, -5]
+X_train_dict2, X_pre_dict2, X_rollingCorr_dict2, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[2, 3], month2=[11, 12], predictor_zone=[], cross_month=9)
 
-
-ax_sic = fig.add_subplot(gs[0], projection=ccrs.NorthPolarStereo(central_longitude=110))
-plot_sea_ice(ax_sic, "(a) 3+4_minus_11+12_SIC", sic.lon, sic.lat, sicCorr, np.array([-0.30, -0.25, -0.20, -0.15, -0.10, -0.05, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]))
 
 ax = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=180-70))
 
@@ -802,36 +861,36 @@ sub_pic(ax, title=f'(c) 4+5_mean_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
         shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
         shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-        shading2=sstReg, shading2_levels=np.array([-.2, -.16, -.12, -.08, -.04, .04, .08, .12, .16, .2]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+        shading2=sstCorr, shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
         shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True,
         contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
         contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
         wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
         wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
-        rec_Set=[{'point': [X3[3], X3[4], X3[1], X3[2]], 'color': 'blue', 'ls': (0, (1, 1)), 'lw': 1.6},
-                 {'point': [X4[3], X4[4], X4[1], X4[2]], 'color': 'purple', 'ls': (0, (1, 1)), 'lw': 1.6},
-                 {'point': [X7[3], X7[4], X7[1], X7[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}])
+        rec_Set=[{'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'blue', 'ls': (0, (1, 1)), 'lw': 1.6},
+                 {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': 'purple', 'ls': (0, (1, 1)), 'lw': 1.6},
+                 {'point': [X3[3], X3[4], X3[1], X3[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}])
 # ============================================================
 # 第三组预测因子
 # ============================================================
-X5 = ['sst', 30.0,	10.0,	194.0,	242.0]
-X8 = ['sst', 15,	-40.0,	134.0,	360-130]
-X_train_dict3, X_pre_dict3, X_rollingCorr_dict3, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[4], month2=[2], predictor_zone=[X5], cross_month=9)
+X1 = ['sst', 30.0,	10.0,	194.0,	242.0]
+X2 = ['sic', 85.5,	81.5,	-165.5,	-142.5]
+X_train_dict3, X_pre_dict3, X_rollingCorr_dict3, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[4], month2=[2], predictor_zone=[X1, X2], cross_month=9)
 
 # 绘制子图
 ax = fig.add_subplot(gs[3], projection=ccrs.PlateCarree(central_longitude=180-70))
-sub_pic(ax, title=f'(d) 5_minus_12_SST', extent=[-180, 180, -50, 80],
+sub_pic(ax, title=f'(d) 4_minus_2_SST', extent=[-180, 180, -50, 80],
         geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
         shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
         shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-        shading2=sstReg, shading2_levels=np.array([-.2, -.16, -.12, -.08, -.04, .04, .08, .12, .16, .2]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+        shading2=sstCorr, shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
         shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True,
         contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
         contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
         wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
         wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
-        rec_Set=[{'point': [X5[3], X5[4], X5[1], X5[2]], 'color': 'darkgreen', 'ls': (0, (1, 1)), 'lw': 1.6},
-                 {'point': [X8[3], X8[4], X8[1], X8[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}])
+        rec_Set=[{'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'darkgreen', 'ls': (0, (1, 1)), 'lw': 1.6},
+                 {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}])
 
 
 # ============================================================

@@ -1,13 +1,15 @@
-import cdsapi
 import os
-import threading
-from queue import Queue
-import calendar
-import requests
 import json
 import time
-import hashlib                          # [NEW]
-from typing import List, Tuple, Optional
+import queue
+import hashlib
+import threading
+import calendar
+import heapq
+from typing import List, Optional, Dict, Tuple
+
+import requests
+
 
 # ============================================================
 # ======================= User settings ======================
@@ -17,216 +19,206 @@ start_year, start_month = 1961, 1
 end_year,   end_month   = 2022, 12
 
 NH_EHEM_AREA = [90, 0, 0, 180]
-#dataset = "derived-era5-single-levels-daily-statistics" # 单层
-dataset    = "derived-era5-pressure-levels-daily-statistics"
+
+# dataset = "derived-era5-single-levels-daily-statistics"
+dataset = "derived-era5-pressure-levels-daily-statistics"
+
 output_dir = "/Volumes/TiPlus7100/data/ERA5/daily/uvwztSh"
 os.makedirs(output_dir, exist_ok=True)
 
-ACCOUNTS = API_ACCOUNTS = [
-    {
-        "name": "sty",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "c1128eeb-5ffb-47c5-bf53-d9ee49bd0ee8",
-    },
-    {
-        "name": "gmail",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "597a9d0a-c76d-455c-ba3e-fd216892f2a5",
-    },
-    {
-        "name": "outlook",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "44c4b366-992b-4d64-a23c-762df238b256",
-    },
-    {
-        "name": "outlook01",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "70e7cd2e-5244-49c6-bf56-daa8fea76a19",
-    },
-    {
-        "name": "outlook02",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "e40466fc-198d-45e5-b624-3de5a7895290",
-    },
-    {
-        "name": "IsabellPricecfry@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "4a693aa0-e52c-4db3-b867-c241883c4f4c",
-    },
-    {
-        "name": "TiaMosciskigngp@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "d1a22e82-0d42-4bb9-b742-b4b8794f5d77",
-    },
-    {
-        "name": "MustafaJerdecmyn@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "485386f6-bbc8-4700-a5cc-5321a91415b2",
-    },
-    {
-        "name": "CatherineLangsr@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "f70904af-aedb-4976-9cae-551bf63111fe",
-    },
-    {
-        "name": "WestleyMrazxzx@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "81ae194d-721c-4a7d-8f4e-0b266b314a77",
-    },
-    {
-        "name": "AliviaWeberqs@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "ed61650f-1b8f-4cd4-a2f1-f7a9079628ba",
-    },
-    {
-        "name": "JefferyRennerrpjj@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "2ac20345-3c6a-4e00-aabb-93f2db01b45b",
-    },
-    {
-        "name": "SusieRiceomh@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "be50cad9-0285-4773-8860-3f680932ad22",
-    },
-    {
-        "name": "JohnJacobsonzjnm@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "95ca9611-0e51-407c-a64e-70abdc0e17b1",
-    },
-    {
-        "name": "BabyKubkhp@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "64c6067e-9c80-495a-9838-ecb01ab49a21",
-    },
-    {
-        "name": "ArchibaldHillsath@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "32c310df-8eec-4438-bcb2-009b8b54cd8e",
-    },
-    {
-        "name": "EmilieMoenef@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "000ad20e-c198-4da6-b565-cce54809c831",
-    },
-    {
-        "name": "DarleneAltenwerthho@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "054bb282-cfd0-40d5-9b00-29973b6cec3d",
-    },
-    {
-        "name": "ArneAltenwerthwhn@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "92f932d6-414f-489a-8205-d7c1f3dd8d16",
-    },
-    {
-        "name": "AlfonsoJacobswc@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "be8ae80f-aad4-4a1d-aeb0-35b3c25ba945",
-    },
-    {
-        "name": "JalonRolfsonal@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "88571325-d938-43ed-be46-570c908c77e6",
-    },
-    {
-        "name": "CordieCasperyc@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "87d2ef9f-fa6a-4d51-826f-84dcf1a30cd3",
-    },
-    {
-        "name": "TravonShieldsosse@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "f237c2e7-66f1-4eb0-ae1f-97575385ef98",
-    },
-    {
-        "name": "MagdalenaSchadenosvy@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "20522dac-bb52-4eed-a28c-d5a2bd44bcc9",
-    },
-    {
-        "name": "MurphyVeumnomjb@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "2d879c75-25cc-433a-a342-27c353217cfe",
-    },
-    {
-        "name": "DaleBotsfordrd@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "b91d5c5c-6803-4159-ba9d-e4e09c9941f2",
-    },
-    {
-        "name": "KevenWolfgjp@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "a99f1166-f709-465b-ac00-0e139108b6ce",
-    },
-    {
-        "name": "ChaseRutherfordrfx@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "8a833e23-2376-455a-9a06-997699e6287e",
-    },
-    {
-        "name": "DerrickBoganvj@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "54a29a40-9007-4b02-ad4c-5766fbe16e1f",
-    },
-    {
-        "name": "JeramyHagenessauij@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "7c4690cb-682a-47ea-8771-b71e86a5b2bf",
-    },
-    {
-        "name": "RyleyWalternf@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "1be5a570-fc32-4f2c-bf53-409e22fb0c23",
-    },
-    {
-        "name": "NicholasGreen9389@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "e3498bd0-ded5-47c2-841e-de9a83110989",
-    },
-    {
-        "name": "KarenWilkerson6715@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "03a55d2e-32f4-4cb5-9a73-b833b041fd87",
-    },
-    {
-        "name": "LuisBryant1509@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "a93421fb-743a-466e-afaf-44592bb3d46c",
-    },
-    {
-        "name": "AdrianCrane2402@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "ee320bd4-45f5-44b2-b458-9656b8b2aee8",
-    },
-    {
-        "name": "RichardHoffman2974@outlook.com",
-        "url": "https://cds.climate.copernicus.eu/api",
-        "key": "595ca59f-272a-4256-ac8b-bd98a66c75ce",
-    },
-]
+ACCOUNTS_FILE = "cds_accounts.json"
 
 GRID            = "1.0/1.0"
 DAILY_STATISTIC = "daily_mean"
 TIME_ZONE       = "utc+00:00"
 FREQUENCY       = "1_hourly"
 FILE_PREFIX     = "ERA5_daily_"
-VARS            = ["geopotential", "specific_humidity", "temperature",
-                   "u_component_of_wind", "v_component_of_wind", "vertical_velocity"]
-p_level         = ["200", "500", "850", "925"]
 
-# [NEW] 缓存文件路径
+VARS = [
+    "geopotential",
+    "specific_humidity",
+    "temperature",
+    "u_component_of_wind",
+    "v_component_of_wind",
+    "vertical_velocity",
+]
+
+p_level = ["200", "500", "850", "925"]
+
 CACHE_FILE = os.path.join(output_dir, "submitted_jobs_cache.json")
 
+# -----------------------------
+# 提交与下载参数
+# -----------------------------
+SUBMIT_SLEEP_SECONDS = 2
+DOWNLOAD_WORKERS = 6
+
+# 非阻塞轮询参数
+DEFAULT_RECHECK_SECONDS = 60
+NETWORK_ERROR_RECHECK_SECONDS = 120
+SUBMIT_RETRY_DELAY_SECONDS = 180
+MAX_JOB_AGE_HOURS = 72
+
+# 是否在 fail_job 时自动重新提交
+AUTO_RESUBMIT_ON_FAIL_JOB = True
+
+
 # ============================================================
-# =================== [NEW] Job Cache ========================
+# ======================= Load accounts ======================
+# ============================================================
+
+def load_accounts(accounts_file: str) -> List[dict]:
+    if not os.path.exists(accounts_file):
+        raise FileNotFoundError(
+            f"账号文件不存在：{accounts_file}\n"
+            f"请创建该文件，并写入账号列表。"
+        )
+
+    with open(accounts_file, "r", encoding="utf-8") as f:
+        accounts = json.load(f)
+
+    if not isinstance(accounts, list) or not accounts:
+        raise ValueError(f"账号文件格式错误：{accounts_file}")
+
+    required_keys = {"name", "url", "key"}
+    for i, acc in enumerate(accounts):
+        if not isinstance(acc, dict):
+            raise ValueError(f"第 {i} 个账号不是对象")
+        missing = required_keys - set(acc.keys())
+        if missing:
+            raise ValueError(f"第 {i} 个账号缺少字段：{missing}")
+
+    return accounts
+
+
+ACCOUNTS = load_accounts(ACCOUNTS_FILE)
+
+
+# ============================================================
+# ================= Global queues & controls =================
+# ============================================================
+
+submit_queue = queue.Queue()
+
+_submit_locks: Dict[str, threading.Lock] = {}
+_submit_locks_meta = threading.Lock()
+
+_active_downloads = set()
+_active_downloads_lock = threading.Lock()
+
+_done_submitting = False
+_done_submitting_lock = threading.Lock()
+
+shutdown_event = threading.Event()
+
+
+def mark_submit_done():
+    global _done_submitting
+    with _done_submitting_lock:
+        _done_submitting = True
+
+
+def is_submit_done() -> bool:
+    with _done_submitting_lock:
+        return _done_submitting
+
+
+def _get_submit_lock(fp: str) -> threading.Lock:
+    with _submit_locks_meta:
+        if fp not in _submit_locks:
+            _submit_locks[fp] = threading.Lock()
+        return _submit_locks[fp]
+
+
+# ============================================================
+# =================== Download scheduler =====================
+# ============================================================
+
+class DownloadScheduler:
+    """
+    用最小堆维护 (run_at, seq, fingerprint, fname)
+    """
+
+    def __init__(self):
+        self._cv = threading.Condition()
+        self._heap = []
+        self._seq = 0
+        self._unfinished = 0
+        self._scheduled_keys = set()
+        self._closed = False
+
+    def _make_key(self, fingerprint: str, fname: str) -> Tuple[str, str]:
+        return fingerprint, fname
+
+    def schedule_at(self, run_at: float, fingerprint: str, fname: str) -> bool:
+        key = self._make_key(fingerprint, fname)
+        with self._cv:
+            if self._closed:
+                return False
+            if key in self._scheduled_keys:
+                return False
+            self._seq += 1
+            heapq.heappush(self._heap, (run_at, self._seq, fingerprint, fname))
+            self._scheduled_keys.add(key)
+            self._unfinished += 1
+            self._cv.notify_all()
+            return True
+
+    def schedule_now(self, fingerprint: str, fname: str) -> bool:
+        return self.schedule_at(time.time(), fingerprint, fname)
+
+    def schedule_after(self, delay_seconds: int, fingerprint: str, fname: str) -> bool:
+        return self.schedule_at(time.time() + max(0, delay_seconds), fingerprint, fname)
+
+    def get_due_task(self, timeout: float = 1.0):
+        with self._cv:
+            while True:
+                if self._closed and not self._heap:
+                    return None
+
+                now = time.time()
+                if self._heap:
+                    run_at, seq, fp, fname = self._heap[0]
+                    wait_time = run_at - now
+                    if wait_time <= 0:
+                        heapq.heappop(self._heap)
+                        self._scheduled_keys.discard((fp, fname))
+                        return fp, fname
+                    self._cv.wait(timeout=min(wait_time, timeout))
+                else:
+                    self._cv.wait(timeout=timeout)
+                    if self._closed and not self._heap:
+                        return None
+
+    def task_done(self):
+        with self._cv:
+            self._unfinished -= 1
+            if self._unfinished <= 0:
+                self._cv.notify_all()
+
+    def join(self):
+        with self._cv:
+            while self._unfinished > 0:
+                self._cv.wait()
+
+    def close(self):
+        with self._cv:
+            self._closed = True
+            self._cv.notify_all()
+
+    def unfinished_count(self) -> int:
+        with self._cv:
+            return self._unfinished
+
+
+download_scheduler = DownloadScheduler()
+
+
+# ============================================================
+# =================== Job Cache ==============================
 # ============================================================
 
 class JobCache:
-    """
-    线程安全的本地缓存。
-    记录已提交任务的 request_id，程序重启后可复用，避免重复提交。
-    使用原子写入（先写 .tmp 再 os.replace），防止崩溃时缓存损坏。
-    """
     def __init__(self, cache_file: str):
         self.cache_file = cache_file
         self._lock = threading.Lock()
@@ -243,11 +235,13 @@ class JobCache:
         return {}
 
     def _save(self):
-        """调用方须持有 _lock。原子写入，防止写到一半时崩溃导致 JSON 损坏。"""
         tmp = self.cache_file + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(self._data, f, indent=2, ensure_ascii=False)
-        os.replace(tmp, self.cache_file)
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self._data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp, self.cache_file)
+        except Exception as e:
+            print(f"[Cache] 警告：缓存写入磁盘失败（{e}），内存缓存仍有效")
 
     def get(self, fp: str) -> Optional[dict]:
         with self._lock:
@@ -258,27 +252,35 @@ class JobCache:
             self._data[fp] = info
             self._save()
 
+    def update_fields(self, fp: str, **kwargs):
+        with self._lock:
+            if fp in self._data:
+                self._data[fp].update(kwargs)
+                self._save()
+
     def remove(self, fp: str):
         with self._lock:
             if fp in self._data:
                 del self._data[fp]
                 self._save()
 
+    def items_snapshot(self) -> List[Tuple[str, dict]]:
+        with self._lock:
+            return list(self._data.items())
+
 
 # ============================================================
-# ============= [NEW] 请求指纹 + CDS REST 辅助 ===============
+# ============= Request fingerprint + CDS REST ===============
 # ============================================================
 
 def compute_fingerprint(dataset_name: str, req: dict) -> str:
-    """对 (数据集名, 请求参数) 计算 MD5，用于唯一标识一个任务。"""
-    canonical = json.dumps({"dataset": dataset_name, **req},
-                           sort_keys=True, ensure_ascii=False)
+    canonical = json.dumps(
+        {"dataset": dataset_name, **req},
+        sort_keys=True,
+        ensure_ascii=False,
+    )
     return hashlib.md5(canonical.encode("utf-8")).hexdigest()
 
-
-# ============================================================
-# ============= [FIX] CDS API v2 REST 辅助函数 ==============
-# ============================================================
 
 def _make_session(account: dict) -> requests.Session:
     s = requests.Session()
@@ -290,36 +292,23 @@ def _make_session(account: dict) -> requests.Session:
 
 
 def _submit_job(account: dict, dataset_name: str, req: dict) -> str:
-    """
-    CDS API v2 提交端点：
-      POST {base}/retrieve/v1/processes/{dataset}/execution
-      Body: {"inputs": req}
-    立即返回 job_id，不阻塞等待。
-    """
-    url  = f"{account['url']}/retrieve/v1/processes/{dataset_name}/execution"
+    url = f"{account['url']}/retrieve/v1/processes/{dataset_name}/execution"
     resp = _make_session(account).post(url, json={"inputs": req}, timeout=120)
 
     if resp.status_code == 404:
-        raise RuntimeError(
-            f"404：数据集路径不存在，请检查 dataset 名称是否正确。\n"
-            f"  URL  = {url}\n"
-            f"  账号 = {account['name']}"
-        )
-    resp.raise_for_status()
+        raise RuntimeError(f"404：数据集路径不存在。URL={url} 账号={account['name']}")
 
-    data   = resp.json()
+    resp.raise_for_status()
+    data = resp.json()
+
     job_id = data.get("jobID") or data.get("id") or data.get("request_id")
     if not job_id:
         raise RuntimeError(f"CDS 未返回 jobID，完整响应：{data}")
+
     return job_id
 
 
 def _check_job(account: dict, job_id: str) -> Optional[dict]:
-    """
-    CDS API v2 查询端点：
-      GET {base}/retrieve/v1/jobs/{job_id}
-    任务不存在（404）时返回 None。
-    """
     url = f"{account['url']}/retrieve/v1/jobs/{job_id}"
     try:
         resp = _make_session(account).get(url, timeout=30)
@@ -327,311 +316,150 @@ def _check_job(account: dict, job_id: str) -> Optional[dict]:
             return None
         resp.raise_for_status()
         return resp.json()
+
+    except requests.exceptions.SSLError as e:
+        print(f"  [CDS] SSL异常（网络抖动），本轮跳过 {job_id}: {e}")
+        return {"status": "network_error"}
+
     except Exception as e:
         print(f"  [CDS] 查询任务状态异常 {job_id}: {e}")
-        return None
+        return {"status": "network_error"}
 
-# ============================================================
-# ===== [FIX 1] 哨兵文件：代替"靠 Motrix 返回值判断完成" =====
-# ============================================================
-
-def _pending_path(outpath: str) -> str:
-    """下载中标记文件，存在即表示该文件正在/曾经被 Motrix 接管。"""
-    return outpath + ".pending"
-
-def _download_url(url: str, target_directory: str,
-                  output_fname: str, worker_id: str) -> str:
-    """
-    返回值改为三种字符串状态：
-      "done"   — 直接下载完成，文件已落盘
-      "motrix" — 已交给 Motrix，文件尚未落盘
-      "fail"   — 下载失败
-    """
-    outpath = os.path.join(target_directory, output_fname)
-    pending = _pending_path(outpath)
-
-    ok = motrix_rpc_download(url, dir_path=target_directory, filename=output_fname)
-    if ok:
-        # 写哨兵文件，记录"Motrix 已接管但尚未确认完成"
-        try:
-            with open(pending, "w") as f:
-                f.write(f"{url}\n{time.strftime('%Y-%m-%dT%H:%M:%S')}\n")
-        except Exception:
-            pass
-        print(f"[{worker_id}] 已发送 Motrix（哨兵已写）：{output_fname}")
-        return "motrix"
-
-    # Motrix 不可用 → 直接流式下载
-    print(f"[{worker_id}] Motrix 不可用，直接下载：{output_fname}")
-    try:
-        resp = requests.get(url, stream=True, timeout=600)
-        resp.raise_for_status()
-        with open(outpath, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=65536):
-                if chunk:
-                    f.write(chunk)
-        if os.path.exists(pending):
-            os.remove(pending)
-        print(f"[{worker_id}] 直接下载完成：{outpath}")
-        return "done"
-    except Exception as e:
-        print(f"[{worker_id}] 直接下载失败：{e}")
-        if os.path.exists(outpath):
-            os.remove(outpath)
-        return "fail"
 
 def _get_job_results(account: dict, job_id: str) -> Optional[str]:
-    """
-    CDS API v2 结果端点：
-      GET {base}/retrieve/v1/jobs/{job_id}/results
-    返回下载 URL（asset href），失败返回 None。
-    """
     url = f"{account['url']}/retrieve/v1/jobs/{job_id}/results"
     try:
         resp = _make_session(account).get(url, timeout=30)
         resp.raise_for_status()
         data = resp.json()
-        # 响应结构：{"asset": {"value": {"href": "..."}}}
-        href = (data.get("asset", {})
-                    .get("value", {})
-                    .get("href"))
-        # 部分版本直接放在顶层
+
+        href = data.get("asset", {}).get("value", {}).get("href")
         if not href:
             href = data.get("location") or data.get("url")
+
         return href
+
     except Exception as e:
         print(f"  [CDS] 获取结果链接失败 {job_id}: {e}")
         return None
 
 
 # ============================================================
-# ===== [FIX 3] _wait_and_download 返回值与 _download_url 对齐
+# ====================== Download utils ======================
 # ============================================================
 
-def _wait_and_download(account: dict, request_id: str,
-                       target_directory: str, output_fname: str,
-                       worker_id: str,
-                       poll_interval: int = 60,
-                       max_wait_hours: int = 48):
-    """
-    返回 "done" / "motrix" / "fail"，与 _download_url 一致。
-    """
-    max_polls = int(max_wait_hours * 3600 / poll_interval)
-    for i in range(max_polls):
-        info = _check_job(account, request_id)
-        if info is None:
-            print(f"[{worker_id}] 任务 {request_id} 已不存在于 CDS")
-            return "fail"
+def _pending_path(outpath: str) -> str:
+    return outpath + ".pending"
 
-        status = info.get("status", "unknown")
-        if i % 5 == 0 or status in ("successful", "failed"):
-            print(f"[{worker_id}] {output_fname}  status={status}  "
-                  f"已等待 {i * poll_interval // 60} min")
-
-        if status == "successful":
-            location = _get_job_results(account, request_id)
-            if not location:
-                print(f"[{worker_id}] 任务完成但取不到下载链接，job_id={request_id}")
-                return "fail"
-            return _download_url(location, target_directory, output_fname, worker_id)
-
-        if status == "failed":
-            reason = info.get("message") or info.get("detail") or str(info)
-            print(f"[{worker_id}] 任务 {request_id} 失败：{reason}")
-            return "fail"
-
-        time.sleep(poll_interval)
-
-    print(f"[{worker_id}] 等待超时，job_id={request_id}")
-    return "fail"
-
-# ============================================================
-# ===== [FIX 4] main()：启动时扫描哨兵文件 ===================
-# ============================================================
-
-def _cleanup_finished_motrix(output_dir: str, job_cache: JobCache):
-    """
-    启动时检查哨兵文件：
-    - 若对应 .nc 文件已存在且完整 → 删哨兵 + 删缓存条目（Motrix 已完成）
-    - 否则保留哨兵，走正常的任务队列流程继续处理
-    """
-    pending_files = [f for f in os.listdir(output_dir) if f.endswith(".nc.pending")]
-    if not pending_files:
-        return
-    print(f"[Startup] 发现 {len(pending_files)} 个哨兵文件，开始扫描...")
-    for pf in pending_files:
-        nc_name = pf[:-len(".pending")]
-        nc_path = os.path.join(output_dir, nc_name)
-        p_path  = os.path.join(output_dir, pf)
-        if os.path.exists(nc_path) and os.path.getsize(nc_path) > 0:
-            print(f"[Startup] Motrix 已完成：{nc_name}，清理哨兵")
-            os.remove(p_path)
-            # 缓存条目在 execute_download_task 开头的文件检查处会被清理
-        else:
-            print(f"[Startup] Motrix 未完成：{nc_name}，保留哨兵等待重处理")
-
-
-# ============================================================
-# ================= Motrix RPC（保持原逻辑）=================
-# ============================================================
 
 def motrix_rpc_download(url, dir_path=None, filename=None) -> bool:
     rpc_url = "http://localhost:16800/jsonrpc"
     options = {}
-    if dir_path:  options["dir"] = dir_path
-    if filename:  options["out"] = filename
-    data = {"jsonrpc": "2.0", "id": "qwer",
-            "method": "aria2.addUri", "params": [[url], options]}
+    if dir_path:
+        options["dir"] = dir_path
+    if filename:
+        options["out"] = filename
+
+    data = {
+        "jsonrpc": "2.0",
+        "id": "qwer",
+        "method": "aria2.addUri",
+        "params": [[url], options],
+    }
+
     try:
         response = requests.post(rpc_url, json=data, timeout=10)
         response.raise_for_status()
         return True
+
     except requests.exceptions.ConnectionError:
         print(f"错误：无法连接 Motrix RPC ({rpc_url})")
     except requests.exceptions.Timeout:
         print("错误：连接 Motrix RPC 超时")
     except requests.exceptions.RequestException as e:
         print(f"错误：Motrix RPC 请求失败: {e}")
+
     return False
 
 
-# ============================================================
-# ========= [CHANGED] execute_download_task =================
-# ============================================================
+def _download_url(url: str, target_directory: str, output_fname: str, worker_id: str) -> str:
+    outpath = os.path.join(target_directory, output_fname)
+    pending = _pending_path(outpath)
 
-# ============================================================
-# ===== [FIX 2] execute_download_task：修复两处漏洞 ==========
-# ============================================================
+    ok = motrix_rpc_download(url, dir_path=target_directory, filename=output_fname)
+    if ok:
+        try:
+            with open(pending, "w", encoding="utf-8") as f:
+                f.write(f"{url}\n{time.strftime('%Y-%m-%dT%H:%M:%S')}\n")
+        except Exception:
+            pass
 
-# 进程级锁，防止多线程同时对相同 fingerprint 执行 get→submit→set
-_submit_locks: dict = {}
-_submit_locks_meta = threading.Lock()
+        print(f"[{worker_id}] 已发送 Motrix（哨兵已写）：{output_fname}")
+        return "motrix"
 
-def _get_submit_lock(fp: str) -> threading.Lock:
-    with _submit_locks_meta:
-        if fp not in _submit_locks:
-            _submit_locks[fp] = threading.Lock()
-        return _submit_locks[fp]
+    print(f"[{worker_id}] Motrix 不可用，直接下载：{output_fname}")
+    try:
+        resp = requests.get(url, stream=True, timeout=600)
+        resp.raise_for_status()
+
+        with open(outpath, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=65536):
+                if chunk:
+                    f.write(chunk)
+
+        if os.path.exists(pending):
+            try:
+                os.remove(pending)
+            except Exception:
+                pass
+
+        print(f"[{worker_id}] 直接下载完成：{outpath}")
+        return "done"
+
+    except Exception as e:
+        print(f"[{worker_id}] 直接下载失败：{e}")
+        if os.path.exists(outpath):
+            try:
+                os.remove(outpath)
+            except Exception:
+                pass
+        return "fail_download"
+
+
+def _cleanup_finished_motrix(output_dir: str, job_cache: JobCache):
+    pending_files = [f for f in os.listdir(output_dir) if f.endswith(".nc.pending")]
+    if not pending_files:
+        return
+
+    print(f"[Startup] 发现 {len(pending_files)} 个哨兵文件，开始扫描...")
+    for pf in pending_files:
+        nc_name = pf[:-len(".pending")]
+        nc_path = os.path.join(output_dir, nc_name)
+        p_path = os.path.join(output_dir, pf)
+
+        if os.path.exists(nc_path) and os.path.getsize(nc_path) > 0:
+            print(f"[Startup] Motrix 已完成：{nc_name}，清理哨兵")
+            try:
+                os.remove(p_path)
+            except Exception:
+                pass
+        else:
+            print(f"[Startup] Motrix 未完成：{nc_name}，保留哨兵等待重处理")
+
 
 def _log_error(target_directory: str, worker_id: str, output_fname: str, e: Exception):
     with open(os.path.join(target_directory, "error_log.txt"), "a", encoding="utf-8") as ef:
         ef.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} [{worker_id}] {output_fname}: {e}\n")
 
-def execute_download_task(account_info: dict, request_params: dict,
-                          target_directory: str, output_fname: str,
-                          worker_id: str, job_cache: JobCache):
-    outpath = os.path.join(target_directory, output_fname)
-    pending = _pending_path(outpath)
-
-    # ① 文件已完整落盘
-    if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
-        if os.path.exists(pending):
-            os.remove(pending)
-        job_cache.remove(compute_fingerprint(dataset, request_params))
-        print(f"[{worker_id}] {output_fname} 已存在，跳过")
-        return
-
-    # ② [NEW] 运行时防重：若已有线程在处理此文件，直接跳过
-    with _in_progress_lock:
-        if output_fname in _in_progress:
-            print(f"[{worker_id}] {output_fname} 已由其他线程处理中，跳过")
-            return
-        _in_progress.add(output_fname)
-
-    try:
-        _do_download(account_info, request_params, target_directory,
-                     output_fname, worker_id, job_cache, outpath, pending)
-    finally:
-        # 无论成功/失败/异常，都释放占用标记
-        with _in_progress_lock:
-            _in_progress.discard(output_fname)
-
-def _do_download(account_info, request_params, target_directory,
-                 output_fname, worker_id, job_cache, outpath, pending):
-    """实际下载逻辑，由 execute_download_task 在持有 _in_progress 标记时调用。"""
-    fingerprint = compute_fingerprint(dataset, request_params)
-
-    if os.path.exists(pending):
-        print(f"[{worker_id}] 检测到哨兵文件，重新处理：{output_fname}")
-
-    fp_lock = _get_submit_lock(fingerprint)
-    with fp_lock:
-        # 锁内双重检查文件
-        if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
-            if os.path.exists(pending):
-                os.remove(pending)
-            job_cache.remove(fingerprint)
-            print(f"[{worker_id}] {output_fname} 已存在（锁内），跳过")
-            return
-
-        cached = job_cache.get(fingerprint)
-        if cached:
-            rid = cached["request_id"]
-            print(f"[{worker_id}] 缓存命中 job_id={rid}，复用：{output_fname}")
-        else:
-            try:
-                print(f"[{worker_id}] 提交新任务：{output_fname}")
-                rid = _submit_job(account_info, dataset, request_params)
-                print(f"[{worker_id}] 已提交 job_id={rid}")
-                job_cache.set(fingerprint, {
-                    "request_id":   rid,
-                    "fname":        output_fname,
-                    "account":      account_info,
-                    "submitted_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                })
-                cached = job_cache.get(fingerprint)
-            except Exception as e:
-                print(f"[{worker_id}] 提交失败 {output_fname}: {e}")
-                _log_error(target_directory, worker_id, output_fname, e)
-                return
-
-    # 锁外轮询（耗时，不占锁）
-    result = _wait_and_download(
-        account=cached["account"],
-        request_id=rid,
-        target_directory=target_directory,
-        output_fname=output_fname,
-        worker_id=worker_id,
-    )
-
-    if result == "done":
-        if os.path.exists(pending):
-            os.remove(pending)
-        job_cache.remove(fingerprint)
-    elif result == "motrix":
-        print(f"[{worker_id}] Motrix 接管，保留缓存：{output_fname}")
-    else:
-        print(f"[{worker_id}] 任务失败，缓存已暂存：{output_fname}")
 
 # ============================================================
-# ========= [CHANGED] worker_function =======================
+# ==================== Task builders =========================
 # ============================================================
-
-def worker_function(account_info: dict, worker_name: str,
-                    target_directory: str, job_cache: JobCache):
-    print(f"线程 {worker_name} 启动")
-    while True:
-        task = task_queue.get()
-        if task is None:
-            task_queue.task_done()
-            print(f"线程 {worker_name} 收到停止信号，退出")
-            break
-        req_params, fname = task
-        execute_download_task(account_info, req_params,
-                              target_directory, fname, worker_name, job_cache)
-        task_queue.task_done()
-    print(f"线程 {worker_name} 退出")
-
-
-# ============================================================
-# ========================== Main ============================
-# ============================================================
-
-task_queue = Queue()
 
 def get_days_of_month(year: int, month: int) -> List[str]:
     ndays = calendar.monthrange(year, month)[1]
     return [f"{d:02d}" for d in range(1, ndays + 1)]
+
 
 def iter_months(sy, sm, ey, em):
     y, m = sy, sm
@@ -642,102 +470,478 @@ def iter_months(sy, sm, ey, em):
             y, m = y + 1, 1
 
 
+def build_request_and_fname(year_str: str, mon_str: str, days: List[str], plev: Optional[str] = None):
+    if "pressure-levels" in dataset:
+        if plev is None:
+            raise ValueError("pressure-levels 数据集必须提供 plev")
+
+        fname = f"{FILE_PREFIX}uvwztSh_{plev}_{year_str}{mon_str}.nc"
+        req = {
+            "product_type": "reanalysis",
+            "variable": VARS,
+            "year": year_str,
+            "month": mon_str,
+            "day": days,
+            "pressure_level": [plev],
+            "daily_statistic": DAILY_STATISTIC,
+            "time_zone": TIME_ZONE,
+            "frequency": FREQUENCY,
+            "grid": GRID,
+            "format": "netcdf",
+        }
+        return req, fname
+
+    if "single" in dataset:
+        fname = f"{FILE_PREFIX}{VARS[0]}_{year_str}{mon_str}.nc"
+        req = {
+            "product_type": "reanalysis",
+            "variable": VARS,
+            "year": year_str,
+            "month": mon_str,
+            "day": days,
+            "daily_statistic": DAILY_STATISTIC,
+            "time_zone": TIME_ZONE,
+            "frequency": FREQUENCY,
+            "grid": GRID,
+            "format": "netcdf",
+        }
+        return req, fname
+
+    raise ValueError(f"不支持的 dataset：{dataset}")
+
+
+# ============================================================
+# ==================== Resubmit helper =======================
+# ============================================================
+
+def _rebuild_request_from_fname(fname: str) -> Tuple[dict, str]:
+    basename = os.path.basename(fname)
+
+    if "pressure-levels" in dataset:
+        # ERA5_daily_uvwztSh_500_196101.nc
+        stem = basename.replace(".nc", "")
+        parts = stem.split("_")
+        plev = parts[-2]
+        yyyymm = parts[-1]
+    else:
+        # 单层：ERA5_daily_xxx_196101.nc
+        stem = basename.replace(".nc", "")
+        parts = stem.split("_")
+        plev = None
+        yyyymm = parts[-1]
+
+    year_str = yyyymm[:4]
+    mon_str = yyyymm[4:6]
+    days = get_days_of_month(int(year_str), int(mon_str))
+    req, rebuilt_fname = build_request_and_fname(year_str, mon_str, days, plev=plev)
+    return req, rebuilt_fname
+
+
+def resubmit_task(job_cache: JobCache, fingerprint: str, fname: str, reason: str):
+    """
+    自动重提逻辑：
+    1. 优先使用缓存里的 request_params
+    2. 如果没有，再从文件名反推
+    """
+    cached = job_cache.get(fingerprint)
+
+    # 优先走缓存里的原始 request_params
+    if cached and isinstance(cached.get("request_params"), dict):
+        req = cached["request_params"]
+        rebuilt_fname = cached.get("fname", fname)
+
+        try:
+            new_fp = compute_fingerprint(dataset, req)
+            print(f"[Resubmit] 因 {reason}，使用缓存 request_params 重新提交：{fname}")
+
+            # 如果新旧 fingerprint 一样，直接放回 submit_queue
+            if new_fp == fingerprint:
+                submit_queue.put((req, rebuilt_fname))
+                return
+
+            # 万一不同，说明缓存内容或数据集配置被改过，按新 fp 逻辑提交也没问题
+            submit_queue.put((req, rebuilt_fname))
+            return
+
+        except Exception as e:
+            print(f"[Resubmit] 使用缓存 request_params 重提失败，退回文件名反推：{fname} -> {e}")
+
+    # 回退方案：从文件名反推
+    try:
+        req, rebuilt_fname = _rebuild_request_from_fname(fname)
+
+        if rebuilt_fname != fname:
+            print(f"[Resubmit] 文件名反推不一致，跳过重提：{fname} -> {rebuilt_fname}")
+            return
+
+        print(f"[Resubmit] 因 {reason}，使用文件名反推重新提交：{fname}")
+        submit_queue.put((req, fname))
+
+    except Exception as e:
+        print(f"[Resubmit] 重新构造请求失败：{fname} -> {e}")
+
+
+# ============================================================
+# ==================== Submit stage ==========================
+# ============================================================
+
+def try_submit_task(account_info: dict, request_params: dict,
+                    output_fname: str, job_cache: JobCache, worker_name: str):
+    outpath = os.path.join(output_dir, output_fname)
+    pending = _pending_path(outpath)
+    fingerprint = compute_fingerprint(dataset, request_params)
+
+    if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
+        if os.path.exists(pending):
+            try:
+                os.remove(pending)
+            except Exception:
+                pass
+        job_cache.remove(fingerprint)
+        print(f"[{worker_name}] {output_fname} 已存在，跳过提交")
+        return
+
+    fp_lock = _get_submit_lock(fingerprint)
+    with fp_lock:
+        if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
+            if os.path.exists(pending):
+                try:
+                    os.remove(pending)
+                except Exception:
+                    pass
+            job_cache.remove(fingerprint)
+            print(f"[{worker_name}] {output_fname} 已存在（锁内），跳过提交")
+            return
+
+        cached = job_cache.get(fingerprint)
+        if cached and cached.get("request_id"):
+            print(f"[{worker_name}] 已有缓存 job_id={cached['request_id']}，不重复提交：{output_fname}")
+            download_scheduler.schedule_now(fingerprint, output_fname)
+            return
+
+        try:
+            print(f"[{worker_name}] 提交新任务：{output_fname}  fingerprint={fingerprint}")
+            rid = _submit_job(account_info, dataset, request_params)
+            print(f"[{worker_name}] 已提交 job_id={rid}")
+        except Exception as e:
+            print(f"[{worker_name}] 提交CDS失败 {output_fname}: {e}")
+            _log_error(output_dir, worker_name, output_fname, e)
+            download_scheduler.schedule_after(SUBMIT_RETRY_DELAY_SECONDS, fingerprint, output_fname)
+            return
+
+        cache_entry = {
+            "request_id": rid,
+            "fname": output_fname,
+            "request_params": request_params,
+            "dataset": dataset,
+            "account_name": account_info["name"],
+            "account_url": account_info["url"],
+            "account_key": account_info["key"],
+            "submitted_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "last_check_at": None,
+            "status": "submitted",
+        }
+
+        try:
+            job_cache.set(fingerprint, cache_entry)
+        except Exception as e:
+            print(f"[{worker_name}] 缓存写入失败（{e}），本次仍继续下载阶段")
+
+    download_scheduler.schedule_now(fingerprint, output_fname)
+
+    if SUBMIT_SLEEP_SECONDS > 0:
+        time.sleep(SUBMIT_SLEEP_SECONDS)
+
+
+def submit_worker(account_info: dict, worker_name: str, job_cache: JobCache):
+    print(f"提交线程 {worker_name} 启动")
+
+    while True:
+        task = submit_queue.get()
+        if task is None:
+            submit_queue.task_done()
+            print(f"提交线程 {worker_name} 收到停止信号，退出")
+            break
+
+        req_params, fname = task
+        try_submit_task(account_info, req_params, fname, job_cache, worker_name)
+        submit_queue.task_done()
+
+    print(f"提交线程 {worker_name} 退出")
+
+
+# ============================================================
+# =================== Download stage =========================
+# ============================================================
+
+def _job_too_old(cached: dict) -> bool:
+    submitted_at = cached.get("submitted_at")
+    if not submitted_at:
+        return False
+    try:
+        ts = time.mktime(time.strptime(submitted_at, "%Y-%m-%dT%H:%M:%S"))
+        return (time.time() - ts) > MAX_JOB_AGE_HOURS * 3600
+    except Exception:
+        return False
+
+
+def try_download_task_nonblocking(fingerprint: str, output_fname: str,
+                                  target_directory: str, job_cache: JobCache, worker_name: str):
+    outpath = os.path.join(target_directory, output_fname)
+    pending = _pending_path(outpath)
+
+    if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
+        if os.path.exists(pending):
+            try:
+                os.remove(pending)
+            except Exception:
+                pass
+        job_cache.remove(fingerprint)
+        print(f"[{worker_name}] {output_fname} 已存在，跳过下载")
+        return
+
+    with _active_downloads_lock:
+        if output_fname in _active_downloads:
+            print(f"[{worker_name}] {output_fname} 已由其他线程处理中，跳过")
+            return
+        _active_downloads.add(output_fname)
+
+    try:
+        cached = job_cache.get(fingerprint)
+        if not cached:
+            if not is_submit_done():
+                print(f"[{worker_name}] 无缓存，稍后再试：{output_fname}")
+                download_scheduler.schedule_after(SUBMIT_RETRY_DELAY_SECONDS, fingerprint, output_fname)
+            else:
+                print(f"[{worker_name}] 提交阶段已结束且无缓存，尝试自动重提：{output_fname}")
+                if AUTO_RESUBMIT_ON_FAIL_JOB:
+                    resubmit_task(job_cache, fingerprint, output_fname, "cache_missing")
+            return
+
+        rid = cached.get("request_id")
+        if not rid:
+            print(f"[{worker_name}] 缓存中无 request_id：{output_fname}")
+            if AUTO_RESUBMIT_ON_FAIL_JOB:
+                job_cache.remove(fingerprint)
+                resubmit_task(job_cache, fingerprint, output_fname, "request_id_missing")
+            return
+
+        if _job_too_old(cached):
+            print(f"[{worker_name}] job 已过老，自动重提：{output_fname}")
+            if AUTO_RESUBMIT_ON_FAIL_JOB:
+                resubmit_task(job_cache, fingerprint, output_fname, "job_too_old")
+            job_cache.remove(fingerprint)
+            return
+
+        account_info = {
+            "name": cached["account_name"],
+            "url": cached["account_url"],
+            "key": cached["account_key"],
+        }
+
+        info = _check_job(account_info, rid)
+
+        if info is None:
+            print(f"[{worker_name}] job 不存在，自动重提：{output_fname}")
+            if AUTO_RESUBMIT_ON_FAIL_JOB:
+                resubmit_task(job_cache, fingerprint, output_fname, "job_missing")
+            job_cache.remove(fingerprint)
+            return
+
+        status = info.get("status", "unknown")
+        job_cache.update_fields(
+            fingerprint,
+            status=status,
+            last_check_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+
+        print(f"[{worker_name}] {output_fname} 当前状态：{status}")
+
+        if status == "network_error":
+            download_scheduler.schedule_after(NETWORK_ERROR_RECHECK_SECONDS, fingerprint, output_fname)
+            return
+
+        if status in ("queued", "running", "accepted", "pending", "unknown"):
+            download_scheduler.schedule_after(DEFAULT_RECHECK_SECONDS, fingerprint, output_fname)
+            return
+
+        if status == "failed":
+            reason = info.get("message") or info.get("detail") or str(info)
+            print(f"[{worker_name}] CDS任务失败：{output_fname} -> {reason}")
+            if AUTO_RESUBMIT_ON_FAIL_JOB:
+                resubmit_task(job_cache, fingerprint, output_fname, "job_failed")
+            job_cache.remove(fingerprint)
+            return
+
+        if status == "successful":
+            location = _get_job_results(account_info, rid)
+            if not location:
+                print(f"[{worker_name}] 取不到结果链接，稍后再试：{output_fname}")
+                download_scheduler.schedule_after(DEFAULT_RECHECK_SECONDS, fingerprint, output_fname)
+                return
+
+            result = _download_url(location, target_directory, output_fname, worker_name)
+
+            if result == "done":
+                if os.path.exists(pending):
+                    try:
+                        os.remove(pending)
+                    except Exception:
+                        pass
+                job_cache.remove(fingerprint)
+                print(f"[{worker_name}] 下载完成，缓存已清除：{output_fname}")
+                return
+
+            if result == "motrix":
+                print(f"[{worker_name}] Motrix 接管，保留缓存：{output_fname}")
+                return
+
+            if result == "fail_download":
+                print(f"[{worker_name}] 下载失败，稍后重试：{output_fname}")
+                download_scheduler.schedule_after(DEFAULT_RECHECK_SECONDS, fingerprint, output_fname)
+                return
+
+        download_scheduler.schedule_after(DEFAULT_RECHECK_SECONDS, fingerprint, output_fname)
+
+    finally:
+        with _active_downloads_lock:
+            _active_downloads.discard(output_fname)
+
+
+def download_worker(worker_name: str, target_directory: str, job_cache: JobCache):
+    print(f"下载线程 {worker_name} 启动")
+
+    while not shutdown_event.is_set():
+        task = download_scheduler.get_due_task(timeout=1.0)
+        if task is None:
+            if shutdown_event.is_set():
+                break
+            if is_submit_done() and download_scheduler.unfinished_count() == 0:
+                break
+            continue
+
+        fp, fname = task
+        try:
+            try_download_task_nonblocking(fp, fname, target_directory, job_cache, worker_name)
+        finally:
+            download_scheduler.task_done()
+
+    print(f"下载线程 {worker_name} 退出")
+
+
+# ============================================================
+# ==================== Startup recovery ======================
+# ============================================================
+
+def enqueue_cached_jobs(job_cache: JobCache):
+    count = 0
+    for fp, info in job_cache.items_snapshot():
+        fname = info.get("fname")
+        rid = info.get("request_id")
+
+        if not fname or not rid:
+            continue
+
+        outpath = os.path.join(output_dir, fname)
+        if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
+            continue
+
+        download_scheduler.schedule_now(fp, fname)
+        count += 1
+
+    print(f"[Startup] 已恢复 {count} 个缓存任务到下载调度器")
+
+
+# ============================================================
+# ========================== Main ============================
+# ============================================================
+
 def main():
-    # [NEW] 共享缓存实例（所有线程共用同一个 JobCache 对象）
     job_cache = JobCache(CACHE_FILE)
 
-    # 启动时先清理已完成的 Motrix 任务
     _cleanup_finished_motrix(output_dir, job_cache)
+    enqueue_cached_jobs(job_cache)
 
-    # 启动工作线程（每个账号一个线程）
-    threads = []
+    submit_threads = []
     for acc in ACCOUNTS:
         t = threading.Thread(
-            target=worker_function,
-            args=(acc, acc["name"], output_dir, job_cache),
+            target=submit_worker,
+            args=(acc, acc["name"], job_cache),
             daemon=True,
         )
         t.start()
-        threads.append(t)
+        submit_threads.append(t)
 
-    # 构建任务队列
-    print("正在生成任务队列...")
+    download_threads = []
+    for i in range(max(1, DOWNLOAD_WORKERS)):
+        t = threading.Thread(
+            target=download_worker,
+            args=(f"downloader-{i + 1}", output_dir, job_cache),
+            daemon=True,
+        )
+        t.start()
+        download_threads.append(t)
+
+    print("正在生成提交任务队列...")
     total = 0
-    queued_fnames = set()  # [NEW] 队列级去重，防止多次重启累积重复条目
+    queued_fnames = set()
 
     for y, m in iter_months(start_year, start_month, end_year, end_month):
         year_str = str(y)
-        mon_str  = f"{m:02d}"
-        days     = get_days_of_month(y, m)
+        mon_str = f"{m:02d}"
+        days = get_days_of_month(y, m)
 
-        if 'pressure-levels' in dataset:
+        if "pressure-levels" in dataset:
             for plev in p_level:
-                fname = f"{FILE_PREFIX}" + "uvwztSh" + f"_{plev}_{year_str}{mon_str}.nc"
+                req, fname = build_request_and_fname(year_str, mon_str, days, plev=plev)
                 outpath = os.path.join(output_dir, fname)
-                # [FIXED] 逐文件检查，不再只检查 VARS[0]
+
                 if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
                     print(f"  {fname} 已存在，跳过")
                     continue
-                if fname in queued_fnames:  # [NEW]
+
+                if fname in queued_fnames:
                     continue
-                queued_fnames.add(fname)  # [NEW]
-                req = {
-                    "product_type":    "reanalysis",
-                    "variable":        VARS,
-                    "year":            year_str,
-                    "month":           mon_str,
-                    "day":             days,
-                    "pressure_level":  [plev],
-                    "daily_statistic": DAILY_STATISTIC,
-                    "time_zone":       TIME_ZONE,
-                    "frequency":       FREQUENCY,
-                    "grid":            GRID,
-                    "format":          "netcdf",
-                }
-                task_queue.put((req, fname))
+                queued_fnames.add(fname)
+
+                submit_queue.put((req, fname))
                 total += 1
 
-        elif 'single' in dataset:
-            fname = f"{FILE_PREFIX}"+VARS[0]+f"_{year_str}{mon_str}.nc"
+        elif "single" in dataset:
+            req, fname = build_request_and_fname(year_str, mon_str, days)
             outpath = os.path.join(output_dir, fname)
-            # [FIXED] 逐文件检查，不再只检查 VARS[0]
+
             if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
                 print(f"  {fname} 已存在，跳过")
                 continue
-            if fname in queued_fnames:          # [NEW]
-                continue
-            queued_fnames.add(fname)            # [NEW]
-            req = {
-                "product_type": "reanalysis",
-                "variable": VARS,
-                "year": year_str,
-                "month": mon_str,
-                "day": days,
-                "daily_statistic": DAILY_STATISTIC,
-                "time_zone": TIME_ZONE,
-                "frequency": FREQUENCY,
-                "grid": GRID,
-                "format": "netcdf",
-            }
 
-            # 将 (参数, 文件名) 放入队列
-            task_queue.put((req, fname))
+            if fname in queued_fnames:
+                continue
+            queued_fnames.add(fname)
+
+            submit_queue.put((req, fname))
             total += 1
 
-    print(f"任务队列就绪：{total} 个任务，开始处理...")
+    print(f"提交队列就绪：{total} 个任务")
 
-    for _ in threads:
-        task_queue.put(None)
+    submit_queue.join()
 
-    task_queue.join()
-    for t in threads:
+    for _ in submit_threads:
+        submit_queue.put(None)
+    for t in submit_threads:
+        t.join()
+
+    mark_submit_done()
+    print("提交阶段完成，等待下载阶段结束...")
+
+    download_scheduler.join()
+    download_scheduler.close()
+
+    shutdown_event.set()
+    for t in download_threads:
         t.join()
 
     print("全部任务完成")
-
-# 全局：记录"当前正在被某线程处理"的文件名
-_in_progress: set = set()
-_in_progress_lock = threading.Lock()
 
 
 if __name__ == "__main__":
