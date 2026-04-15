@@ -50,14 +50,18 @@ CACHE_FILE = os.path.join(output_dir, "submitted_jobs_cache.json")
 # -----------------------------
 # 提交与下载参数
 # -----------------------------
-SUBMIT_SLEEP_SECONDS = 2
+SUBMIT_SLEEP_SECONDS = 1
 DOWNLOAD_WORKERS = 6
 
 # 非阻塞轮询参数
 DEFAULT_RECHECK_SECONDS = 60
 NETWORK_ERROR_RECHECK_SECONDS = 120
 SUBMIT_RETRY_DELAY_SECONDS = 180
+ACCOUNT_FULL_RETRY_SECONDS = 30
 MAX_JOB_AGE_HOURS = 72
+
+# 每个账号最多同时挂起多少个活跃请求
+MAX_ACTIVE_JOBS_PER_ACCOUNT = 2
 
 # 是否在 fail_job 时自动重新提交
 AUTO_RESUBMIT_ON_FAIL_JOB = True
@@ -87,6 +91,10 @@ def load_accounts(accounts_file: str) -> List[dict]:
         missing = required_keys - set(acc.keys())
         if missing:
             raise ValueError(f"第 {i} 个账号缺少字段：{missing}")
+
+    names = [a["name"] for a in accounts]
+    if len(names) != len(set(names)):
+        raise ValueError("账号 name 存在重复，请保证每个账号 name 唯一")
 
     return accounts
 
@@ -131,14 +139,111 @@ def _get_submit_lock(fp: str) -> threading.Lock:
 
 
 # ============================================================
+# ================= Account slot limiter =====================
+# ============================================================
+
+account_slots: Dict[str, threading.BoundedSemaphore] = {}
+account_slot_usage_lock = threading.Lock()
+account_slot_usage: Dict[str, int] = {}
+
+
+def init_account_slots():
+    global account_slots, account_slot_usage
+    account_slots = {
+        acc["name"]: threading.BoundedSemaphore(MAX_ACTIVE_JOBS_PER_ACCOUNT)
+        for acc in ACCOUNTS
+    }
+    account_slot_usage = {
+        acc["name"]: 0
+        for acc in ACCOUNTS
+    }
+
+
+def acquire_account_slot(account_name: str, blocking: bool = False, timeout: Optional[float] = None) -> bool:
+    sem = account_slots.get(account_name)
+    if sem is None:
+        raise KeyError(f"未知账号：{account_name}")
+
+    if blocking:
+        ok = sem.acquire(timeout=timeout)
+    else:
+        ok = sem.acquire(blocking=False)
+
+    if ok:
+        with account_slot_usage_lock:
+            account_slot_usage[account_name] = account_slot_usage.get(account_name, 0) + 1
+    return ok
+
+
+def release_account_slot(account_name: str, worker_name: str, fname: str):
+    sem = account_slots.get(account_name)
+    if sem is None:
+        return
+
+    try:
+        sem.release()
+        with account_slot_usage_lock:
+            cur = account_slot_usage.get(account_name, 0)
+            account_slot_usage[account_name] = max(0, cur - 1)
+        print(f"[{worker_name}] 已释放账号槽位：{account_name} -> {fname}")
+    except ValueError:
+        print(f"[{worker_name}] 警告：账号槽位重复释放：{account_name} -> {fname}")
+
+
+def release_slot_if_needed(cached: Optional[dict], worker_name: str, fname: str, job_cache=None, fingerprint=None):
+    if not cached:
+        return
+    if not cached.get("slot_acquired"):
+        return
+
+    acc_name = cached.get("account_name")
+    if not acc_name:
+        return
+
+    release_account_slot(acc_name, worker_name, fname)
+
+    if job_cache is not None and fingerprint is not None:
+        try:
+            job_cache.update_fields(fingerprint, slot_acquired=False)
+        except Exception:
+            pass
+
+
+def rebuild_account_slots_from_cache(job_cache):
+    init_account_slots()
+
+    counts = {acc["name"]: 0 for acc in ACCOUNTS}
+
+    for _, info in job_cache.items_snapshot():
+        if not info.get("slot_acquired"):
+            continue
+
+        status = info.get("status", "submitted")
+        if status in ("submitted", "queued", "running", "accepted", "pending", "unknown", "network_error"):
+            acc_name = info.get("account_name")
+            if acc_name in counts:
+                counts[acc_name] += 1
+
+    for acc_name, used in counts.items():
+        used = min(used, MAX_ACTIVE_JOBS_PER_ACCOUNT)
+        for _ in range(used):
+            ok = acquire_account_slot(acc_name, blocking=False)
+            if not ok:
+                break
+
+    print(f"[Startup] 已按缓存恢复账号并发占用：{counts}")
+
+
+def account_slot_snapshot() -> Dict[str, int]:
+    with account_slot_usage_lock:
+        return dict(account_slot_usage)
+
+
+# ============================================================
 # =================== Download scheduler =====================
 # ============================================================
 
 class DownloadScheduler:
-    """
-    用最小堆维护 (run_at, seq, fingerprint, fname)
-    """
-
     def __init__(self):
         self._cv = threading.Condition()
         self._heap = []
@@ -245,7 +350,8 @@ class JobCache:
 
     def get(self, fp: str) -> Optional[dict]:
         with self._lock:
-            return self._data.get(fp)
+            v = self._data.get(fp)
+            return dict(v) if isinstance(v, dict) else v
 
     def set(self, fp: str, info: dict):
         with self._lock:
@@ -266,7 +372,7 @@ class JobCache:
 
     def items_snapshot(self) -> List[Tuple[str, dict]]:
         with self._lock:
-            return list(self._data.items())
+            return [(k, dict(v) if isinstance(v, dict) else v) for k, v in self._data.items()]
 
 
 # ============================================================
@@ -518,13 +624,11 @@ def _rebuild_request_from_fname(fname: str) -> Tuple[dict, str]:
     basename = os.path.basename(fname)
 
     if "pressure-levels" in dataset:
-        # ERA5_daily_uvwztSh_500_196101.nc
         stem = basename.replace(".nc", "")
         parts = stem.split("_")
         plev = parts[-2]
         yyyymm = parts[-1]
     else:
-        # 单层：ERA5_daily_xxx_196101.nc
         stem = basename.replace(".nc", "")
         parts = stem.split("_")
         plev = None
@@ -537,46 +641,21 @@ def _rebuild_request_from_fname(fname: str) -> Tuple[dict, str]:
     return req, rebuilt_fname
 
 
-def resubmit_task(job_cache: JobCache, fingerprint: str, fname: str, reason: str):
-    """
-    自动重提逻辑：
-    1. 优先使用缓存里的 request_params
-    2. 如果没有，再从文件名反推
-    """
-    cached = job_cache.get(fingerprint)
+def resubmit_task_with_snapshot(cached_snapshot: Optional[dict], fname: str, reason: str):
+    if cached_snapshot and isinstance(cached_snapshot.get("request_params"), dict):
+        req = cached_snapshot["request_params"]
+        actual_fname = cached_snapshot.get("fname", fname)
+        print(f"[Resubmit] 因 {reason}，使用缓存 request_params 重新提交：{actual_fname}")
+        submit_queue.put((req, actual_fname))
+        return
 
-    # 优先走缓存里的原始 request_params
-    if cached and isinstance(cached.get("request_params"), dict):
-        req = cached["request_params"]
-        rebuilt_fname = cached.get("fname", fname)
-
-        try:
-            new_fp = compute_fingerprint(dataset, req)
-            print(f"[Resubmit] 因 {reason}，使用缓存 request_params 重新提交：{fname}")
-
-            # 如果新旧 fingerprint 一样，直接放回 submit_queue
-            if new_fp == fingerprint:
-                submit_queue.put((req, rebuilt_fname))
-                return
-
-            # 万一不同，说明缓存内容或数据集配置被改过，按新 fp 逻辑提交也没问题
-            submit_queue.put((req, rebuilt_fname))
-            return
-
-        except Exception as e:
-            print(f"[Resubmit] 使用缓存 request_params 重提失败，退回文件名反推：{fname} -> {e}")
-
-    # 回退方案：从文件名反推
     try:
         req, rebuilt_fname = _rebuild_request_from_fname(fname)
-
         if rebuilt_fname != fname:
             print(f"[Resubmit] 文件名反推不一致，跳过重提：{fname} -> {rebuilt_fname}")
             return
-
         print(f"[Resubmit] 因 {reason}，使用文件名反推重新提交：{fname}")
         submit_queue.put((req, fname))
-
     except Exception as e:
         print(f"[Resubmit] 重新构造请求失败：{fname} -> {e}")
 
@@ -619,11 +698,19 @@ def try_submit_task(account_info: dict, request_params: dict,
             download_scheduler.schedule_now(fingerprint, output_fname)
             return
 
+        acc_name = account_info["name"]
+        got_slot = acquire_account_slot(acc_name, blocking=False)
+        if not got_slot:
+            print(f"[{worker_name}] 账号 {acc_name} 已满 {MAX_ACTIVE_JOBS_PER_ACCOUNT} 个活跃任务，稍后重试：{output_fname}")
+            download_scheduler.schedule_after(ACCOUNT_FULL_RETRY_SECONDS, fingerprint, output_fname)
+            return
+
         try:
             print(f"[{worker_name}] 提交新任务：{output_fname}  fingerprint={fingerprint}")
             rid = _submit_job(account_info, dataset, request_params)
             print(f"[{worker_name}] 已提交 job_id={rid}")
         except Exception as e:
+            release_account_slot(acc_name, worker_name, output_fname)
             print(f"[{worker_name}] 提交CDS失败 {output_fname}: {e}")
             _log_error(output_dir, worker_name, output_fname, e)
             download_scheduler.schedule_after(SUBMIT_RETRY_DELAY_SECONDS, fingerprint, output_fname)
@@ -640,6 +727,7 @@ def try_submit_task(account_info: dict, request_params: dict,
             "submitted_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
             "last_check_at": None,
             "status": "submitted",
+            "slot_acquired": True,
         }
 
         try:
@@ -691,11 +779,13 @@ def try_download_task_nonblocking(fingerprint: str, output_fname: str,
     pending = _pending_path(outpath)
 
     if os.path.exists(outpath) and os.path.getsize(outpath) > 0:
+        cached = job_cache.get(fingerprint)
         if os.path.exists(pending):
             try:
                 os.remove(pending)
             except Exception:
                 pass
+        release_slot_if_needed(cached, worker_name, output_fname, job_cache, fingerprint)
         job_cache.remove(fingerprint)
         print(f"[{worker_name}] {output_fname} 已存在，跳过下载")
         return
@@ -715,22 +805,26 @@ def try_download_task_nonblocking(fingerprint: str, output_fname: str,
             else:
                 print(f"[{worker_name}] 提交阶段已结束且无缓存，尝试自动重提：{output_fname}")
                 if AUTO_RESUBMIT_ON_FAIL_JOB:
-                    resubmit_task(job_cache, fingerprint, output_fname, "cache_missing")
+                    resubmit_task_with_snapshot(None, output_fname, "cache_missing")
             return
 
         rid = cached.get("request_id")
         if not rid:
             print(f"[{worker_name}] 缓存中无 request_id：{output_fname}")
+            snapshot = dict(cached)
+            release_slot_if_needed(snapshot, worker_name, output_fname, job_cache, fingerprint)
+            job_cache.remove(fingerprint)
             if AUTO_RESUBMIT_ON_FAIL_JOB:
-                job_cache.remove(fingerprint)
-                resubmit_task(job_cache, fingerprint, output_fname, "request_id_missing")
+                resubmit_task_with_snapshot(snapshot, output_fname, "request_id_missing")
             return
 
         if _job_too_old(cached):
             print(f"[{worker_name}] job 已过老，自动重提：{output_fname}")
-            if AUTO_RESUBMIT_ON_FAIL_JOB:
-                resubmit_task(job_cache, fingerprint, output_fname, "job_too_old")
+            snapshot = dict(cached)
+            release_slot_if_needed(snapshot, worker_name, output_fname, job_cache, fingerprint)
             job_cache.remove(fingerprint)
+            if AUTO_RESUBMIT_ON_FAIL_JOB:
+                resubmit_task_with_snapshot(snapshot, output_fname, "job_too_old")
             return
 
         account_info = {
@@ -743,9 +837,11 @@ def try_download_task_nonblocking(fingerprint: str, output_fname: str,
 
         if info is None:
             print(f"[{worker_name}] job 不存在，自动重提：{output_fname}")
-            if AUTO_RESUBMIT_ON_FAIL_JOB:
-                resubmit_task(job_cache, fingerprint, output_fname, "job_missing")
+            snapshot = dict(cached)
+            release_slot_if_needed(snapshot, worker_name, output_fname, job_cache, fingerprint)
             job_cache.remove(fingerprint)
+            if AUTO_RESUBMIT_ON_FAIL_JOB:
+                resubmit_task_with_snapshot(snapshot, output_fname, "job_missing")
             return
 
         status = info.get("status", "unknown")
@@ -768,9 +864,11 @@ def try_download_task_nonblocking(fingerprint: str, output_fname: str,
         if status == "failed":
             reason = info.get("message") or info.get("detail") or str(info)
             print(f"[{worker_name}] CDS任务失败：{output_fname} -> {reason}")
-            if AUTO_RESUBMIT_ON_FAIL_JOB:
-                resubmit_task(job_cache, fingerprint, output_fname, "job_failed")
+            snapshot = dict(cached)
+            release_slot_if_needed(snapshot, worker_name, output_fname, job_cache, fingerprint)
             job_cache.remove(fingerprint)
+            if AUTO_RESUBMIT_ON_FAIL_JOB:
+                resubmit_task_with_snapshot(snapshot, output_fname, "job_failed")
             return
 
         if status == "successful":
@@ -788,12 +886,15 @@ def try_download_task_nonblocking(fingerprint: str, output_fname: str,
                         os.remove(pending)
                     except Exception:
                         pass
+                release_slot_if_needed(cached, worker_name, output_fname, job_cache, fingerprint)
                 job_cache.remove(fingerprint)
                 print(f"[{worker_name}] 下载完成，缓存已清除：{output_fname}")
                 return
 
             if result == "motrix":
-                print(f"[{worker_name}] Motrix 接管，保留缓存：{output_fname}")
+                release_slot_if_needed(cached, worker_name, output_fname, job_cache, fingerprint)
+                job_cache.update_fields(fingerprint, status="motrix")
+                print(f"[{worker_name}] Motrix 接管，已释放账号槽位：{output_fname}")
                 return
 
             if result == "fail_download":
@@ -860,6 +961,7 @@ def main():
     job_cache = JobCache(CACHE_FILE)
 
     _cleanup_finished_motrix(output_dir, job_cache)
+    rebuild_account_slots_from_cache(job_cache)
     enqueue_cached_jobs(job_cache)
 
     submit_threads = []
@@ -923,6 +1025,7 @@ def main():
             total += 1
 
     print(f"提交队列就绪：{total} 个任务")
+    print(f"[Startup] 当前账号占用：{account_slot_snapshot()}")
 
     submit_queue.join()
 
