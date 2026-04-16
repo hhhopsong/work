@@ -1369,19 +1369,27 @@ slp = era5_s(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
 sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
 # sic
 sic_ds = prepare_sic_dataset(read_sic(fr"{DATA}/NOAA/HadISST/HadISST_ice.nc", 1961, 2022))
+# swvl1 + swvl2
+swvl = era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl1') + era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl2').values()
 
+def detrend(data):
+    return data - np.polyval(np.polyfit(range(len(data)), data, 1), range(len(data)))
 TR_time = [1962, 2004]
 PR_time = [2005, 2022]
 timeSerie = EHCI30
 
-predict_month = [6, 7, 8, 9, 10, 11, 12]
+from scipy import stats
+slope, intercept, r_value, p_value, std_err = stats.linregress([i for i in range(len(EHCI30))], EHCI30)
+print(f"##################################{p_value}#########################################")
+
+predict_month = [7, 8, 9, 10]
 
 X_train_all_dict, X_pre_all_dict, X_roll_all_dict, meta_df, TS, TS_pre, TS_all = auto_build_predictors(
     timeSerie=timeSerie,
     TR_time=TR_time,
     PR_time=PR_time,
     predict_month=predict_month,
-    elements=('sst', 'sic'),
+    elements=('sst', 'sic', ),
     alpha=0.1,
     min_size=40,
     cross_month=9,
