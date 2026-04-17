@@ -463,7 +463,52 @@ def plot_sea_ice(
     cb2.ax.tick_params(length=0, labelsize=6)  # length为刻度线的长度
     ax.spines["geo"].set_linewidth(1.25)
 
+def prepare_swvl_dataset(swvl_like):
+    """
+    Normalize soil moisture field to a stable {'swvl': [time, lat, lon]} schema.
+    支持 DataArray / Dataset
+    """
+    if isinstance(swvl_like, xr.DataArray):
+        da = swvl_like.copy()
+        if da.name is None:
+            da = da.rename('swvl')
+        elif da.name != 'swvl':
+            da = da.rename('swvl')
+        ds = da.to_dataset()
 
+    elif isinstance(swvl_like, xr.Dataset):
+        ds = swvl_like.copy()
+
+        rename_map = {}
+        if 'latitude' in ds.coords and 'lat' not in ds.coords:
+            rename_map['latitude'] = 'lat'
+        if 'longitude' in ds.coords and 'lon' not in ds.coords:
+            rename_map['longitude'] = 'lon'
+        if len(rename_map) > 0:
+            ds = ds.rename(rename_map)
+
+        if 'swvl' not in ds.data_vars:
+            for cand in ('swvl1', 'soil_moisture', 'sm'):
+                if cand in ds.data_vars:
+                    ds = ds.rename({cand: 'swvl'})
+                    break
+    else:
+        raise TypeError("swvl_like must be xarray.DataArray or xarray.Dataset")
+
+    rename_map = {}
+    if 'latitude' in ds.coords and 'lat' not in ds.coords:
+        rename_map['latitude'] = 'lat'
+    if 'longitude' in ds.coords and 'lon' not in ds.coords:
+        rename_map['longitude'] = 'lon'
+    if len(rename_map) > 0:
+        ds = ds.rename(rename_map)
+
+    if 'swvl' not in ds.data_vars:
+        raise ValueError(f"SWVL variable not found in dataset. Available vars: {list(ds.data_vars)}")
+
+    out = xr.Dataset({'swvl': ds['swvl']})
+    out = out.sortby('lat').sortby('lon')
+    return out
 
 plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
 plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
@@ -536,15 +581,31 @@ slp = era5_s(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
 sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
 # sic
 sic = sic(fr"{DATA}/NOAA/HadISST/HadISST_ice.nc", 1961, 2022)
+
+swvl1 = era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl1')
+swvl2 = era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl2')
+if isinstance(swvl1, xr.Dataset):
+    swvl1_da = swvl1['swvl1']
+else:
+    swvl1_da = swvl1
+if isinstance(swvl2, xr.Dataset):
+    swvl2_da = swvl2['swvl2']
+else: swvl2_da = swvl2
+swvl = prepare_swvl_dataset((swvl1_da + swvl2_da).rename('swvl'))
 # %%
+# ============================================================
 # 计算
+# ============================================================
 TR_time = [1962, 2004]  # 训练时间段
 PR_time = [2005, 2022]
 
+def detrend(data):
+    return data - np.polyval(np.polyfit(range(len(data)), data, 1), range(len(data)))
 
 timeSerie = EHCI30
+
 # ============================================================
-# 第一组预测因子
+# predictor：加入 SWVL（土壤湿度）
 # ============================================================
 def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=None, cross_month=9):
 
@@ -597,75 +658,102 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
         else:
             return seasonal_mean_same_year(da, months, start_year, end_year)
 
+    # ============================================================
+    # 计算 month1 / month2 季节平均
+    # ============================================================
     if month2 is None:
         t2m_imonth = get_seasonal_mean(t2m, month1, TR_time[0], TR_time[1], cross_month)
         slp_imonth = get_seasonal_mean(slp, month1, TR_time[0], TR_time[1], cross_month)
         sst_imonth = get_seasonal_mean(sst, month1, TR_time[0], TR_time[1], cross_month)
         sic_imonth = get_seasonal_mean(sic, month1, TR_time[0], TR_time[1], cross_month)
+        swvl_imonth = get_seasonal_mean(swvl, month1, TR_time[0], TR_time[1], cross_month)
 
         t2m_imonth_pre = get_seasonal_mean(t2m, month1, PR_time[0], PR_time[1], cross_month)
         slp_imonth_pre = get_seasonal_mean(slp, month1, PR_time[0], PR_time[1], cross_month)
         sst_imonth_pre = get_seasonal_mean(sst, month1, PR_time[0], PR_time[1], cross_month)
         sic_imonth_pre = get_seasonal_mean(sic, month1, PR_time[0], PR_time[1], cross_month)
+        swvl_imonth_pre = get_seasonal_mean(swvl, month1, PR_time[0], PR_time[1], cross_month)
 
         t2m_imonth_all = get_seasonal_mean(t2m, month1, TR_time[0], PR_time[1], cross_month)
         slp_imonth_all = get_seasonal_mean(slp, month1, TR_time[0], PR_time[1], cross_month)
         sst_imonth_all = get_seasonal_mean(sst, month1, TR_time[0], PR_time[1], cross_month)
         sic_imonth_all = get_seasonal_mean(sic, month1, TR_time[0], PR_time[1], cross_month)
+        swvl_imonth_all = get_seasonal_mean(swvl, month1, TR_time[0], PR_time[1], cross_month)
+
     else:
+        # month1
         t2m_imonth_1 = get_seasonal_mean(t2m, month1, TR_time[0], TR_time[1], cross_month)
         slp_imonth_1 = get_seasonal_mean(slp, month1, TR_time[0], TR_time[1], cross_month)
         sst_imonth_1 = get_seasonal_mean(sst, month1, TR_time[0], TR_time[1], cross_month)
         sic_imonth_1 = get_seasonal_mean(sic, month1, TR_time[0], TR_time[1], cross_month)
+        swvl_imonth_1 = get_seasonal_mean(swvl, month1, TR_time[0], TR_time[1], cross_month)
 
         t2m_imonth_pre_1 = get_seasonal_mean(t2m, month1, PR_time[0], PR_time[1], cross_month)
         slp_imonth_pre_1 = get_seasonal_mean(slp, month1, PR_time[0], PR_time[1], cross_month)
         sst_imonth_pre_1 = get_seasonal_mean(sst, month1, PR_time[0], PR_time[1], cross_month)
         sic_imonth_pre_1 = get_seasonal_mean(sic, month1, PR_time[0], PR_time[1], cross_month)
+        swvl_imonth_pre_1 = get_seasonal_mean(swvl, month1, PR_time[0], PR_time[1], cross_month)
 
         t2m_imonth_all_1 = get_seasonal_mean(t2m, month1, TR_time[0], PR_time[1], cross_month)
         slp_imonth_all_1 = get_seasonal_mean(slp, month1, TR_time[0], PR_time[1], cross_month)
         sst_imonth_all_1 = get_seasonal_mean(sst, month1, TR_time[0], PR_time[1], cross_month)
         sic_imonth_all_1 = get_seasonal_mean(sic, month1, TR_time[0], PR_time[1], cross_month)
+        swvl_imonth_all_1 = get_seasonal_mean(swvl, month1, TR_time[0], PR_time[1], cross_month)
 
+        # month2
         t2m_imonth_2 = get_seasonal_mean(t2m, month2, TR_time[0], TR_time[1], cross_month)
         slp_imonth_2 = get_seasonal_mean(slp, month2, TR_time[0], TR_time[1], cross_month)
         sst_imonth_2 = get_seasonal_mean(sst, month2, TR_time[0], TR_time[1], cross_month)
         sic_imonth_2 = get_seasonal_mean(sic, month2, TR_time[0], TR_time[1], cross_month)
+        swvl_imonth_2 = get_seasonal_mean(swvl, month2, TR_time[0], TR_time[1], cross_month)
 
         t2m_imonth_pre_2 = get_seasonal_mean(t2m, month2, PR_time[0], PR_time[1], cross_month)
         slp_imonth_pre_2 = get_seasonal_mean(slp, month2, PR_time[0], PR_time[1], cross_month)
         sst_imonth_pre_2 = get_seasonal_mean(sst, month2, PR_time[0], PR_time[1], cross_month)
         sic_imonth_pre_2 = get_seasonal_mean(sic, month2, PR_time[0], PR_time[1], cross_month)
+        swvl_imonth_pre_2 = get_seasonal_mean(swvl, month2, PR_time[0], PR_time[1], cross_month)
 
         t2m_imonth_all_2 = get_seasonal_mean(t2m, month2, TR_time[0], PR_time[1], cross_month)
         slp_imonth_all_2 = get_seasonal_mean(slp, month2, TR_time[0], PR_time[1], cross_month)
         sst_imonth_all_2 = get_seasonal_mean(sst, month2, TR_time[0], PR_time[1], cross_month)
         sic_imonth_all_2 = get_seasonal_mean(sic, month2, TR_time[0], PR_time[1], cross_month)
+        swvl_imonth_all_2 = get_seasonal_mean(swvl, month2, TR_time[0], PR_time[1], cross_month)
 
+        # 差值
         t2m_imonth = t2m_imonth_1 - t2m_imonth_2
         slp_imonth = slp_imonth_1 - slp_imonth_2
         sst_imonth = sst_imonth_1 - sst_imonth_2
         sic_imonth = sic_imonth_1 - sic_imonth_2
+        swvl_imonth = swvl_imonth_1 - swvl_imonth_2
 
         t2m_imonth_pre = t2m_imonth_pre_1 - t2m_imonth_pre_2
         slp_imonth_pre = slp_imonth_pre_1 - slp_imonth_pre_2
         sst_imonth_pre = sst_imonth_pre_1 - sst_imonth_pre_2
         sic_imonth_pre = sic_imonth_pre_1 - sic_imonth_pre_2
+        swvl_imonth_pre = swvl_imonth_pre_1 - swvl_imonth_pre_2
 
         t2m_imonth_all = t2m_imonth_all_1 - t2m_imonth_all_2
         slp_imonth_all = slp_imonth_all_1 - slp_imonth_all_2
         sst_imonth_all = sst_imonth_all_1 - sst_imonth_all_2
         sic_imonth_all = sic_imonth_all_1 - sic_imonth_all_2
+        swvl_imonth_all = swvl_imonth_all_1 - swvl_imonth_all_2
 
+    # ============================================================
+    # 训练/预测时间序列
+    # ============================================================
     timeSerie_train = timeSerie.sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}')).data
     train_years = pd.to_datetime(np.arange(TR_time[0], TR_time[1] + 1), format='%Y')
     pre_years = pd.to_datetime(np.arange(PR_time[0], PR_time[1] + 1), format='%Y')
 
+    # ============================================================
+    # 回归 / 相关场
+    # ============================================================
     t2mReg, t2mCorr = regress(timeSerie_train, t2m_imonth['t2m'].data), corr(timeSerie_train, t2m_imonth['t2m'].data)
     slpReg, slpCorr = regress(timeSerie_train, slp_imonth['msl'].data), corr(timeSerie_train, slp_imonth['msl'].data)
     sstReg, sstCorr = regress(timeSerie_train, sst_imonth['sst'].data), corr(timeSerie_train, sst_imonth['sst'].data)
     sicReg, sicCorr = regress(timeSerie_train, sic_imonth['sic'].data), corr(timeSerie_train, sic_imonth['sic'].data)
+    swvlReg, swvlCorr = regress(timeSerie_train, swvl_imonth['swvl'].data), corr(timeSerie_train, swvl_imonth['swvl'].data)
+
     t2mReg = xr.DataArray(t2mReg, coords=[t2m_imonth['lat'], t2m_imonth['lon']],
                           dims=['lat', 'lon'], name='t2m_reg')
     slpReg = xr.DataArray(slpReg, coords=[slp_imonth['lat'], slp_imonth['lon']],
@@ -674,6 +762,9 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
                           dims=['lat', 'lon'], name='sst_reg')
     sicReg = xr.DataArray(sicReg, coords=[sic_imonth['lat'], sic_imonth['lon']],
                           dims=['lat', 'lon'], name='sic_reg')
+    swvlReg = xr.DataArray(swvlReg, coords=[swvl_imonth['lat'], swvl_imonth['lon']],
+                           dims=['lat', 'lon'], name='swvl_reg')
+
     t2mCorr = xr.DataArray(t2mCorr, coords=[t2m_imonth['lat'], t2m_imonth['lon']],
                            dims=['lat', 'lon'], name='t2m_corr')
     slpCorr = xr.DataArray(slpCorr, coords=[slp_imonth['lat'], slp_imonth['lon']],
@@ -682,7 +773,12 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
                            dims=['lat', 'lon'], name='sst_corr')
     sicCorr = xr.DataArray(sicCorr, coords=[sic_imonth['lat'], sic_imonth['lon']],
                            dims=['lat', 'lon'], name='sic_corr')
+    swvlCorr = xr.DataArray(swvlCorr, coords=[swvl_imonth['lat'], swvl_imonth['lon']],
+                            dims=['lat', 'lon'], name='swvl_corr')
 
+    # ============================================================
+    # 标准化目标序列
+    # ============================================================
     nor_mean = np.mean(timeSerie_train)
     nor_std = np.std(timeSerie_train)
     timeSerie_train = (timeSerie_train - nor_mean) / nor_std
@@ -696,7 +792,9 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
     timeSerie_all = (timeSerie_all - nor_mean) / nor_std
     TS_all = pd.Series(timeSerie_all, index=np.arange(TR_time[0], PR_time[1] + 1), name='TS_all')
 
-    # 统一管理四类场
+    # ============================================================
+    # 场统一管理
+    # ============================================================
     field_map = {
         'sst': {
             'corr': sstCorr,
@@ -725,6 +823,13 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
             'pre': sic_imonth_pre,
             'all': sic_imonth_all,
             'var': 'sic',
+        },
+        'swvl': {
+            'corr': swvlCorr,
+            'train': swvl_imonth,
+            'pre': swvl_imonth_pre,
+            'all': swvl_imonth_all,
+            'var': 'swvl',
         }
     }
 
@@ -740,7 +845,10 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
         X_zone = izone[1:]   # [lat1, lat2, lon1, lon2]
 
         if elem not in field_map:
-            raise ValueError(f"Unsupported predictor element: {elem}. Choose from ['sst', 'slp', 't2m', 'sic'].")
+            raise ValueError(
+                f"Unsupported predictor element: {elem}. "
+                f"Choose from ['sst', 'slp', 't2m', 'sic', 'swvl']."
+            )
 
         corr_da = field_map[elem]['corr']
         train_da = field_map[elem]['train']
@@ -768,7 +876,7 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
 
         sig_mask = np.abs(weight) > r_test(TR_time[1] - TR_time[0] + 1, 0.1)
 
-        # ---------- train ----------
+        # train
         X_train = train_da_[var_name].sel(
             lat=slice(X_zone[0], X_zone[1]),
             lon=slice(X_zone[2], X_zone[3])
@@ -779,7 +887,7 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
         X_train = (X_train - X_mean) / X_std
         X_train = pd.Series(X_train.data, index=train_years, name=f'X{index}_train')
 
-        # ---------- pre ----------
+        # pre
         X_pre = pre_da_[var_name].sel(
             lat=slice(X_zone[0], X_zone[1]),
             lon=slice(X_zone[2], X_zone[3])
@@ -789,7 +897,7 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
         X_pre = (X_pre - X_mean) / X_std
         X_pre = pd.Series(X_pre.data, index=pre_years, name=f'X{index}_pre')
 
-        # ---------- all / rolling corr ----------
+        # all / rolling corr
         X_all = all_da_[var_name].sel(
             lat=slice(X_zone[0], X_zone[1]),
             lon=slice(X_zone[2], X_zone[3])
@@ -799,7 +907,6 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
         X_all = (X_all - X_mean) / X_std
         X_all = pd.Series(X_all.data, index=np.arange(TR_time[0], PR_time[1] + 1), name=f'X{index}_all')
 
-        # 与目标序列做11年滑动相关
         X_rollingCorr = X_all.rolling(window=11).corr(TS_all)
         X_rollingCorr.name = f'X{index}_rollingCorr'
 
@@ -807,17 +914,81 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
         X_pre_dict[f'X{index}'] = X_pre
         X_rollingCorr_dict[f'X{index}'] = X_rollingCorr
 
-    return X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr
+    return (
+        X_train_dict, X_pre_dict, X_rollingCorr_dict,
+        TS, TS_pre, TS_all,
+        t2mReg, t2mCorr,
+        slpReg, slpCorr,
+        sstReg, sstCorr,
+        sicReg, sicCorr,
+        swvlReg, swvlCorr
+    )
 
+# ============================================================
+# 第一组预测因子
+# ============================================================
+X1 = ['sic', 76, 68, 35, 50]
+X2 = ['sst', 70,	10,	-70,	-6]
 
-X1 = ['sic', 80.5,	74.5,	61.5,	80.5]
-X2 = ['sst', 8.0,	-2.0,	244.0,	282.0]
-X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[5], month2=[2], predictor_zone=[X2], cross_month=9)
+X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, \
+t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr, swvlReg, swvlCorr = predictor(
+    timeSerie, [1962, 2004], [2005, 2022],
+    month1=[3, 4], month2=[11, 12],
+    predictor_zone=[],
+    cross_month=9
+)
 
-fig = plt.figure(figsize=(5, 14))
-fig.subplots_adjust(hspace=0.35)
-gs = gridspec.GridSpec(6, 1, height_ratios=[2, 1, 1, 1, 1, 1])  # 设置子图的高度比例
+# ============================================================
+# 第二组预测因子
+# ============================================================
+X1_b = ['sst', 62.0,	52.0,	162.0,	188.0]
+X2_b = ['slp', 34.0,	-20,	210,	290]
+X3_b = ['sst', 65, 10, -65, -10]
 
+X_train_dict2, X_pre_dict2, X_rollingCorr_dict2, _, _, _, \
+t2mReg2, t2mCorr2, slpReg2, slpCorr2, sstReg2, sstCorr2, sicReg2, sicCorr2, swvlReg2, swvlCorr2 = predictor(
+    timeSerie, [1962, 2004], [2005, 2022],
+    month1=[5], month2=[12],
+    predictor_zone=[X2_b],
+    cross_month=9
+)
+
+# ============================================================
+# 第三组预测因子
+# ============================================================
+X1_c = ['sst', 30.0, 10.0, 194.0, 242.0]
+X2_c = ['sic', 85.5, 81.5, -165.5, -142.5]
+
+X_train_dict3, X_pre_dict3, X_rollingCorr_dict3, _, _, _, \
+t2mReg3, t2mCorr3, slpReg3, slpCorr3, sstReg3, sstCorr3, sicReg3, sicCorr3, swvlReg3, swvlCorr3 = predictor(
+    timeSerie, [1962, 2004], [2005, 2022],
+    month1=[4], month2=[2],
+    predictor_zone=[X1_c],
+    cross_month=9
+)
+
+# ============================================================
+# 第四组预测因子：土壤湿度
+# ============================================================
+X4 = ['swvl', 30.500000000001000,	22.00000000000090,	104.49999999999800,	121.49999999999700]
+
+X_train_dict4, X_pre_dict4, X_rollingCorr_dict4, _, _, _, \
+t2mReg4, t2mCorr4, slpReg4, slpCorr4, sstReg4, sstCorr4, sicReg4, sicCorr4, swvlReg4, swvlCorr4 = predictor(
+    timeSerie, [1962, 2004], [2005, 2022],
+    month1=[3], month2=[12],
+    predictor_zone=[],
+    cross_month=9
+)
+
+# ============================================================
+# 作图
+# 7 行：SIC / SST / SLP / SST / SWVL / rollingCorr / forecast
+# ============================================================
+fig = plt.figure(figsize=(5, 16))
+fig.subplots_adjust(hspace=0.4)
+gs = gridspec.GridSpec(7, 1, height_ratios=[2, 1, 1, 1, 1, 1, 1])
+
+# (a) SIC
 ax_sic = fig.add_subplot(gs[0], projection=ccrs.NorthPolarStereo(central_longitude=110))
 plot_sea_ice(
     ax_sic,
@@ -826,105 +997,181 @@ plot_sea_ice(
     sic.lat,
     sicCorr,
     np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
-    rec_Set=[{'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
-             {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': 'brown', 'ls': (0, (1, 1)), 'lw': 1.6}],
+    rec_Set=[
+        {'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
+        {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': 'brown', 'ls': (0, (1, 1)), 'lw': 1.6}
+    ],
     ice_corr=sicCorr,
     sig_draw_set={'N': TR_time[1] - TR_time[0] + 1, 'alpha': 0.1, 'hatch': '..', 'lw': 0.2, 'color': '#303030'}
 )
 
-# 绘制子图
-ax = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180-70))
-sub_pic(ax, title=f'(b) 3+4_mean_SST', extent=[-180, 180, -50, 80],
-        geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
-        shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-        shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-        shading2=sstCorr, shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-        shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True,
-        contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
-        contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
-        wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
-        wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
-        rec_Set=[{'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
-                 {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': '#a9aee3', 'ls': (0, (1, 1)), 'lw': 1.6}])
+# (b) SST
+ax = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180 - 70))
+sub_pic(
+    ax, title='(b) 6_minus_4_SST', extent=[-180, 180, -50, 80],
+    geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
+    fontsize_times=default_fontsize_times,
+    shading=None,
+    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+    shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+    shading_corr=None,
+    p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw=False,
+    cb_draw=True,
+    shading2=sstCorr,
+    shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
+    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+    shading2_corr=sstCorr,
+    p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw2=False,
+    cb_draw2=True,
+    contour=None,
+    contour_levels=np.array([[-50, -20], [20, 50]]) * 0.0005,
+    contour_cmap=default_contour_cmap,
+    contour_corr=None,
+    p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+    wind_1=default_wind_1,
+    wind_1_set=default_wind_1_set,
+    wind_1_key_set=default_wind_1_key_set,
+    bbox_to_anchor_1=None,
+    loc1='upper right',
+    wind_2=default_wind_2,
+    wind_2_set=default_wind_2_set,
+    wind_2_key_set=default_wind_2_key_set,
+    bbox_to_anchor_2=None,
+    loc2='upper right',
+    rec_Set=[{'point': [X2[3], X2[4], X2[1], X2[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}]
+)
+
+# (c) SLP
+ax = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=180 - 70))
+sub_pic(
+    ax, title='(c) 5_minus_12_SLP', extent=[-180, 180, -50, 80],
+    geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
+    fontsize_times=default_fontsize_times,
+    shading=None,
+    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+    shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+    shading_corr=None,
+    p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw=False,
+    cb_draw=True,
+    shading2=slpCorr2,
+    shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
+    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+    shading2_corr=slpCorr2,
+    p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw2=False,
+    cb_draw2=True,
+    contour=None,
+    contour_levels=np.array([[-50, -20], [20, 50]]) * 0.0005,
+    contour_cmap=default_contour_cmap,
+    contour_corr=None,
+    p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+    wind_1=default_wind_1,
+    wind_1_set=default_wind_1_set,
+    wind_1_key_set=default_wind_1_key_set,
+    bbox_to_anchor_1=None,
+    loc1='upper right',
+    wind_2=default_wind_2,
+    wind_2_set=default_wind_2_set,
+    wind_2_key_set=default_wind_2_key_set,
+    bbox_to_anchor_2=None,
+    loc2='upper right',
+    rec_Set=[{'point': [X2_b[3], X2_b[4], X2_b[1], X2_b[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}]
+)
+
+# (d) SST
+ax = fig.add_subplot(gs[3], projection=ccrs.PlateCarree(central_longitude=180 - 70))
+sub_pic(
+    ax, title='(d) 4_minus_2_SST', extent=[-180, 180, -50, 80],
+    geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
+    fontsize_times=default_fontsize_times,
+    shading=None,
+    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+    shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+    shading_corr=None,
+    p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw=False,
+    cb_draw=True,
+    shading2=sstCorr3,
+    shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
+    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+    shading2_corr=sstCorr3,
+    p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw2=False,
+    cb_draw2=True,
+    contour=None,
+    contour_levels=np.array([[-50, -20], [20, 50]]) * 0.0005,
+    contour_cmap=default_contour_cmap,
+    contour_corr=None,
+    p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+    wind_1=default_wind_1,
+    wind_1_set=default_wind_1_set,
+    wind_1_key_set=default_wind_1_key_set,
+    bbox_to_anchor_1=None,
+    loc1='upper right',
+    wind_2=default_wind_2,
+    wind_2_set=default_wind_2_set,
+    wind_2_key_set=default_wind_2_key_set,
+    bbox_to_anchor_2=None,
+    loc2='upper right',
+    rec_Set=[{'point': [X1_c[3], X1_c[4], X1_c[1], X1_c[2]], 'color': 'darkgreen', 'ls': (0, (1, 1)), 'lw': 1.6}]
+)
+
+# (e) SWVL
+ax = fig.add_subplot(gs[4], projection=ccrs.PlateCarree(central_longitude=180 - 70))
+sub_pic(
+    ax, title='(e) 5_minus_3_SWVL', extent=[-180, 180, -50, 80],
+    geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
+    fontsize_times=default_fontsize_times,
+    shading=None,
+    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+    shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+    shading_corr=None,
+    p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw=False,
+    cb_draw=True,
+    shading2=swvlCorr4,
+    shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
+    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+    shading2_corr=swvlCorr4,
+    p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw2=False,
+    cb_draw2=True,
+    contour=None,
+    contour_levels=np.array([[-50, -20], [20, 50]]) * 0.0005,
+    contour_cmap=default_contour_cmap,
+    contour_corr=None,
+    p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+    wind_1=default_wind_1,
+    wind_1_set=default_wind_1_set,
+    wind_1_key_set=default_wind_1_key_set,
+    bbox_to_anchor_1=None,
+    loc1='upper right',
+    wind_2=default_wind_2,
+    wind_2_set=default_wind_2_set,
+    wind_2_key_set=default_wind_2_key_set,
+    bbox_to_anchor_2=None,
+    loc2='upper right',
+    rec_Set=[{'point': [X4[3], X4[4], X4[1], X4[2]], 'color': 'purple', 'ls': (0, (1, 1)), 'lw': 1.6}]
+)
+
 # ============================================================
-# 第二组预测因子
+# 自动因子池 + rolling corr + 逐步回归
 # ============================================================
-X1 = ['sic', 79.5,	68.5,	164.5,	360-154.5]
-X2 = ['sic', 90, 80, -40, 360-70]
-X3 = ['sst', 20, -5, -40, -5]
-X_train_dict2, X_pre_dict2, X_rollingCorr_dict2, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[2, 3], month2=[11, 12], predictor_zone=[], cross_month=9)
-
-
-ax = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=180-70))
-
-sub_pic(ax, title=f'(c) 4+5_mean_SST', extent=[-180, 180, -50, 80],
-        geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
-        shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-        shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-        shading2=sstCorr, shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-        shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True,
-        contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
-        contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
-        wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
-        wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
-        rec_Set=[{'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'blue', 'ls': (0, (1, 1)), 'lw': 1.6},
-                 {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': 'purple', 'ls': (0, (1, 1)), 'lw': 1.6},
-                 {'point': [X3[3], X3[4], X3[1], X3[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}])
-# ============================================================
-# 第三组预测因子
-# ============================================================
-X1 = ['sst', 30.0,	10.0,	194.0,	242.0]
-X2 = ['sic', 85.5,	81.5,	-165.5,	-142.5]
-X_train_dict3, X_pre_dict3, X_rollingCorr_dict3, _, _, _, t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr = predictor(timeSerie, [1962, 2004], [2005, 2022], month1=[4], month2=[2], predictor_zone=[X1, X2], cross_month=9)
-
-# 绘制子图
-ax = fig.add_subplot(gs[3], projection=ccrs.PlateCarree(central_longitude=180-70))
-sub_pic(ax, title=f'(d) 4_minus_2_SST', extent=[-180, 180, -50, 80],
-        geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
-        shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-        shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-        shading2=sstCorr, shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-        shading2_corr=sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True,
-        contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
-        contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
-        wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
-        wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
-        rec_Set=[{'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'darkgreen', 'ls': (0, (1, 1)), 'lw': 1.6},
-                 {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}])
-
-
-# ============================================================
-# 自动因子池 + 滑动相关绘图 + 逐步回归筛选
-# 说明：
-# 1) 自动遍历 predictor 结果构建因子池 X1, X2, ...
-# 2) 自动绘制全部候选因子的 rolling correlation
-# 3) 使用“前进-后退逐步回归”自动筛选因子
-# 4) 逐步筛选过程中同时剔除：
-#    - 共线性因子（VIF 超阈值）
-#    - 不显著因子（pvalue 超阈值）
-# 5) 最终自动建模、预测、绘图、输出回归方程
-# ============================================================
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import statsmodels.formula.api as smf
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-# ============================================================
-# 0. 收集所有 predictor 结果
-#    按你的实际 predictor 调用结果继续往这个列表里加即可
-# ============================================================
 predictor_results = [
     (X_train_dict,  X_pre_dict,  X_rollingCorr_dict),
     (X_train_dict2, X_pre_dict2, X_rollingCorr_dict2),
     (X_train_dict3, X_pre_dict3, X_rollingCorr_dict3),
+    (X_train_dict4, X_pre_dict4, X_rollingCorr_dict4),
 ]
 
-# ============================================================
-# 1. 自动构建因子池：X1, X2, X3, ...
-# ============================================================
+# 构建因子池
 all_X_train = {}
 all_X_pre = {}
 all_X_rollingCorr = {}
@@ -941,9 +1188,7 @@ for train_dict, pre_dict, rolling_dict in predictor_results:
 candidate_predictors = list(all_X_train.keys())
 print("Available predictors:", candidate_predictors)
 
-# ============================================================
-# 2. 组装训练/预测数据
-# ============================================================
+# 组装训练/预测数据
 df_train = pd.concat(
     [TS.rename('TS')] + [all_X_train[x].rename(x) for x in candidate_predictors],
     axis=1
@@ -954,46 +1199,30 @@ df_pre = pd.concat(
     axis=1
 )
 
-# 如果你仍然需要去掉第一年，可保留；否则改成 df_train.copy()
 df_train_step = df_train.iloc[1:].copy()
 
-# 仅保留完整样本做逐步回归
 step_cols = ['TS'] + candidate_predictors
 df_step = df_train_step[step_cols].replace([np.inf, -np.inf], np.nan).dropna().copy()
 
 print("Training rows used for stepwise regression:", len(df_step))
 print("Candidate predictors:", candidate_predictors)
 
-# ============================================================
-# 3. 工具函数：VIF 计算
-# ============================================================
 def calc_vif(df, features):
-    """
-    返回 Series(index=features, values=VIF)
-    """
     if len(features) <= 1:
         return pd.Series([1.0] * len(features), index=features, dtype=float)
 
     X = df[features].copy()
     X = X.replace([np.inf, -np.inf], np.nan).dropna()
 
-    # 样本不足时直接返回较小VIF，避免报错
     if len(X) <= len(features):
         return pd.Series([1.0] * len(features), index=features, dtype=float)
 
     X_const = sm.add_constant(X, has_constant='add')
     vif_values = []
-    for i in range(1, X_const.shape[1]):  # 跳过 const
+    for i in range(1, X_const.shape[1]):
         vif_values.append(variance_inflation_factor(X_const.values, i))
     return pd.Series(vif_values, index=features, dtype=float)
 
-# ============================================================
-# 4. 工具函数：前进-后退逐步回归
-#    筛选规则：
-#    - 前进：新变量进入后 p < p_enter
-#    - 后退：已入模变量若 p > p_remove 则移除
-#    - 每轮后若最大 VIF > vif_thres，则剔除 VIF 最大的变量
-# ============================================================
 def stepwise_selection(
     df,
     response='TS',
@@ -1015,9 +1244,7 @@ def stepwise_selection(
         step += 1
         changed = False
 
-        # -------------------------
-        # Forward step
-        # -------------------------
+        # forward
         best_feature = None
         best_pval = None
 
@@ -1041,9 +1268,7 @@ def stepwise_selection(
             if verbose:
                 print(f"[Forward] add {best_feature}, p={best_pval:.4f}")
 
-        # -------------------------
-        # Backward step (remove insignificant)
-        # -------------------------
+        # backward by p
         while len(selected) > 0:
             formula = response + " ~ " + " + ".join(selected)
             model = smf.ols(formula=formula, data=df).fit()
@@ -1065,9 +1290,7 @@ def stepwise_selection(
             else:
                 break
 
-        # -------------------------
-        # Remove high VIF
-        # -------------------------
+        # backward by vif
         while len(selected) >= 2:
             vif = calc_vif(df, selected)
             max_vif_feature = vif.idxmax()
@@ -1086,12 +1309,10 @@ def stepwise_selection(
         if not changed:
             break
 
-    # 最终再做一次稳健清理：显著性 + VIF
     cleaned = True
     while cleaned and len(selected) > 0:
         cleaned = False
 
-        # pvalue clean
         formula = response + " ~ " + " + ".join(selected)
         model = smf.ols(formula=formula, data=df).fit()
         pvalues = model.pvalues.drop('Intercept', errors='ignore')
@@ -1104,7 +1325,6 @@ def stepwise_selection(
             cleaned = True
             continue
 
-        # vif clean
         if len(selected) >= 2:
             vif = calc_vif(df, selected)
             if vif.max() > vif_thres:
@@ -1117,11 +1337,6 @@ def stepwise_selection(
 
     return selected
 
-# ============================================================
-# 5. 自动逐步筛选
-#    阈值可自行调整：
-#    p_enter=0.05, p_remove=0.10, vif_thres=5.0
-# ============================================================
 model_predictors = stepwise_selection(
     df=df_step,
     response='TS',
@@ -1138,14 +1353,10 @@ if len(model_predictors) == 0:
 
 print("Selected predictors:", model_predictors)
 
-# rollingCorr 图默认画最终入模因子；
-# 如果你想画全部候选因子，这里改成 candidate_predictors
+# rollingCorr 图画全部候选因子；最终入模因子高亮
 selected_predictors = candidate_predictors.copy()
 
-# ============================================================
-# 6. 为最终绘图/预测重新组装 DataFrame
-#    只保留最终入模因子
-# ============================================================
+# 重新组装
 df_train = pd.concat(
     [TS.rename('TS')] + [all_X_train[x].rename(x) for x in selected_predictors],
     axis=1
@@ -1157,19 +1368,15 @@ df_pre = pd.concat(
 )
 
 # ============================================================
-# 7. rollingCorr 绘图
-#    画全部候选因子；入模因子在线宽、透明度、图例文字上更突出
+# (f) rolling correlation
 # ============================================================
-ax_rollingCorr = fig.add_subplot(gs[4])
-ax_rollingCorr.set_ylim(-0.5, 1)
+ax_rollingCorr = fig.add_subplot(gs[5])
+ax_rollingCorr.set_ylim(-0.5, 1.0)
 
 n_factor = len(selected_predictors)
-# Use the AMWG colormap from the `cmaps` package instead of matplotlib's tab20
-# `cmaps.amwg` is a colormap; obtain a matplotlib-compatible colormap and sample colors from it
 try:
     cmap_amwg = plt.get_cmap(cmaps.amwg)
 except Exception:
-    # If cmaps.amwg is already a Colormap-like callable, fall back to using it directly
     cmap_amwg = cmaps.amwg
 color_list = cmap_amwg(np.linspace(0, 1, max(n_factor, 1)))
 
@@ -1185,7 +1392,7 @@ for i, xname in enumerate(selected_predictors):
         color=color_list[i],
         linewidth=1.5 if is_selected else 0.9,
         linestyle='-' if is_selected else '--',
-        alpha=1.0 if is_selected else 1,
+        alpha=1.0,
         zorder=2 if is_selected else 1,
         label=xname
     )
@@ -1193,7 +1400,6 @@ for i, xname in enumerate(selected_predictors):
     line_handles.append(line)
     line_labels.append(xname)
 
-# 显著性参考线
 h1 = ax_rollingCorr.axhline(
     y=r_test(11, 0.1),
     color='black',
@@ -1202,7 +1408,7 @@ h1 = ax_rollingCorr.axhline(
     label='90%',
     alpha=0.7
 )
-h2 = ax_rollingCorr.axhline(
+ax_rollingCorr.axhline(
     y=0,
     color='#999999',
     linestyle='-',
@@ -1210,7 +1416,6 @@ h2 = ax_rollingCorr.axhline(
     alpha=0.7
 )
 
-# legend
 legend_ncol = min(4, max(1, int(np.ceil(n_factor / 2))))
 leg = ax_rollingCorr.legend(
     handles=line_handles + [h1],
@@ -1221,8 +1426,7 @@ leg = ax_rollingCorr.legend(
     frameon=False
 )
 
-# 图例中入模因子加粗、非入模因子变淡
-for txt, handle in zip(leg.get_texts()[:-1], line_handles):  # 最后一个是90%
+for txt in leg.get_texts()[:-1]:
     label = txt.get_text()
     if label in model_predictors:
         txt.set_fontweight('bold')
@@ -1231,75 +1435,49 @@ for txt, handle in zip(leg.get_texts()[:-1], line_handles):  # 最后一个是90
         txt.set_fontweight('normal')
         txt.set_alpha(0.8)
 
-# 90% 图例保持正常
 leg.get_texts()[-1].set_fontweight('normal')
 leg.get_texts()[-1].set_alpha(0.8)
 
-# 全部候选因子的训练期相关系数；入模因子用数学加粗
-corr_text_list = []
-for xname in selected_predictors:
-    corr_val = df_train['TS'].corr(df_train[xname])
-    if xname in model_predictors:
-        corr_text_list.append(rf'$\bf{{{xname}}}$:{corr_val:.2f}')
-    else:
-        corr_text_list.append(f'{xname}:{corr_val:.2f}')
-
-items_per_line = 3
-corr_text = '\n'.join([
-    '\t'.join(corr_text_list[i:i + items_per_line])
-    for i in range(0, len(corr_text_list), items_per_line)
-])
-
-# ax_rollingCorr.text(
-#     0.5, 0.08, corr_text,
-#     transform=ax_rollingCorr.transAxes,
-#     ha='center', va='bottom', fontsize=6,
-#     bbox=dict(boxstyle='round,pad=0.5', fc='none', ec='#757575', alpha=0.6),
-#     zorder=10
-# )
+ax_rollingCorr.set_title('(f) Rolling correlation', loc='left', fontsize=8)
+ax_rollingCorr.tick_params(labelsize=6)
 
 # ============================================================
-# 8. 最终回归建模
+# 最终回归建模
 # ============================================================
 formula = "TS ~ " + " + ".join(model_predictors)
 print("Final formula:", formula)
 
-# statsmodels 会自动忽略含 NaN 的样本
 model = smf.ols(formula=formula, data=df_train).fit()
 print(model.summary())
 
 intercept = model.params['Intercept']
 coef_dict = {x: model.params[x] for x in model_predictors}
 
-# 打印最终VIF
 if len(model_predictors) >= 2:
     final_vif = calc_vif(df_step[['TS'] + model_predictors], model_predictors)
     print("Final VIF:")
     print(final_vif)
 
-# ============================================================
-# 9. 预测
-# ============================================================
+# 预测
 df_train['predicted_TS'] = model.predict(df_train)
 df_pre['inDependent_pre'] = model.predict(df_pre)
 df_train['residuals'] = model.resid
 
-TS_all = pd.concat([TS.rename('TS'), TS_pre.rename('TS')])
+TS_all_plot = pd.concat([TS.rename('TS'), TS_pre.rename('TS')])
 
 # ============================================================
-# 10. 预测图
+# (g) 预测图
 # ============================================================
-ax_predict = fig.add_subplot(gs[5])
+ax_predict = fig.add_subplot(gs[6])
 ax_predict.set_ylim(-3, 3)
 
-ax_predict.plot(TS_all.index, TS_all.values, color='black', linestyle='-', linewidth=1.5, label='Obs')
+ax_predict.plot(TS_all_plot.index, TS_all_plot.values, color='black', linestyle='-', linewidth=1.5, label='Obs')
 ax_predict.plot(df_train.index, df_train['predicted_TS'], color='blue', linestyle='--', linewidth=1.5, label='Reforecast')
 ax_predict.plot(df_pre.index, df_pre['inDependent_pre'], color='red', linestyle=(0, (1, 1)), linewidth=1.5, label='Independent forecast')
 ax_predict.axhline(y=0, color='#999999', linestyle='-', linewidth=0.5, alpha=0.5)
 ax_predict.legend(loc='lower right', fontsize=6 * default_fontsize_times, ncol=3, frameon=False)
 ax_predict.axvline(x=pd.to_datetime(f'{TR_time[1]}-6-30'), color='orange', linestyle='-', linewidth=1)
 
-# 训练期技巧
 tcc_text_train = f"TCC={df_train['TS'].corr(df_train['predicted_TS']):.2f}"
 rmse_text_train = f"RMSE={np.sqrt(np.mean((df_train['TS'] - df_train['predicted_TS'])**2)):.2f}"
 ax_predict.text(
@@ -1310,7 +1488,6 @@ ax_predict.text(
     zorder=10
 )
 
-# 独立样本技巧
 tcc_text_pre = f"TCC={df_pre['TS'].corr(df_pre['inDependent_pre']):.2f}"
 rmse_text_pre = f"RMSE={np.sqrt(np.mean((df_pre['TS'] - df_pre['inDependent_pre'])**2)):.2f}"
 ax_predict.text(
@@ -1321,9 +1498,6 @@ ax_predict.text(
     zorder=10
 )
 
-# ============================================================
-# 11. 自动生成回归方程文本
-# ============================================================
 equation_terms = [f'{intercept:.2f}']
 for x in model_predictors:
     coef = coef_dict[x]
@@ -1340,12 +1514,14 @@ ax_predict.text(
     zorder=10
 )
 
+ax_predict.set_title('(g) Forecast', loc='left', fontsize=8)
+ax_predict.tick_params(labelsize=6)
+
 # ============================================================
-# 12. 如需后续使用，这几个变量就是最终结果
+# 输出结果
 # ============================================================
 print("Final selected predictors:", model_predictors)
 print("Final equation:", func)
 
-
 plt.savefig(fr'{PYFILE}/p5/pic/前期因子.pdf', bbox_inches='tight')
-plt.savefig(f'{PYFILE}/p5/pic/前期因子.png', dpi=600, bbox_inches='tight')
+plt.savefig(fr'{PYFILE}/p5/pic/前期因子.png', dpi=600, bbox_inches='tight')

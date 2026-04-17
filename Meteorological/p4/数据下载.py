@@ -20,10 +20,11 @@ end_year,   end_month   = 2022, 12
 
 NH_EHEM_AREA = [90, 0, 0, 180]
 
-# dataset = "derived-era5-single-levels-daily-statistics"
-dataset = "derived-era5-pressure-levels-daily-statistics"
+dataset = "derived-era5-single-levels-daily-statistics"
+# dataset = "derived-era5-pressure-levels-daily-statistics"
 
-output_dir = "/Volumes/TiPlus7100/data/ERA5/daily/uvwztSh"
+output_dir = "/Volumes/TiPlus7100/data/ERA5/daily/slp_tpp_rad_tcc_eva_peva"
+# output_dir = "/Volumes/TiPlus7100/data/ERA5/daily/uvwztSh"
 os.makedirs(output_dir, exist_ok=True)
 
 ACCOUNTS_FILE = "cds_accounts.json"
@@ -34,16 +35,30 @@ TIME_ZONE       = "utc+00:00"
 FREQUENCY       = "1_hourly"
 FILE_PREFIX     = "ERA5_daily_"
 
-VARS = [
-    "geopotential",
-    "specific_humidity",
-    "temperature",
-    "u_component_of_wind",
-    "v_component_of_wind",
-    "vertical_velocity",
-]
+# VARS = [
+#     "geopotential",
+#     "specific_humidity",
+#     "temperature",
+#     "u_component_of_wind",
+#     "v_component_of_wind",
+#     "vertical_velocity",
+# ]
+# p_level = ["200", "500", "850", "925"]
 
-p_level = ["200", "500", "850", "925"]
+VARS = [
+    "mean_sea_level_pressure",
+    "total_precipitation",
+    "surface_latent_heat_flux",
+    "surface_net_solar_radiation",
+    "surface_net_thermal_radiation",
+    "surface_sensible_heat_flux",
+    "top_net_solar_radiation",
+    "top_net_thermal_radiation",
+    "total_cloud_cover",
+    "evaporation",
+    "potential_evaporation"
+]
+VARS_fname = "slp_tpp_rad_tcc_eva_peva"
 
 CACHE_FILE = os.path.join(output_dir, "submitted_jobs_cache.json")
 
@@ -61,7 +76,7 @@ ACCOUNT_FULL_RETRY_SECONDS = 30
 MAX_JOB_AGE_HOURS = 72
 
 # 每个账号最多同时挂起多少个活跃请求
-MAX_ACTIVE_JOBS_PER_ACCOUNT = 2
+MAX_ACTIVE_JOBS_PER_ACCOUNT = 10
 
 # 是否在 fail_job 时自动重新提交
 AUTO_RESUBMIT_ON_FAIL_JOB = True
@@ -598,7 +613,7 @@ def build_request_and_fname(year_str: str, mon_str: str, days: List[str], plev: 
         return req, fname
 
     if "single" in dataset:
-        fname = f"{FILE_PREFIX}{VARS[0]}_{year_str}{mon_str}.nc"
+        fname = f"{FILE_PREFIX}_{VARS_fname}_{year_str}{mon_str}.nc"
         req = {
             "product_type": "reanalysis",
             "variable": VARS,
