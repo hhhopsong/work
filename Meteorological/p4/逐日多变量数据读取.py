@@ -9,7 +9,7 @@ import xarray as xr
 
 # ========= 你的目录 =========
 DATA = r"/volumes/TiPlus7100/data"
-DATA_DIR = fr"{DATA}/ERA5/daily/uvwztSh"
+DATA_DIR = fr"{DATA}/ERA5/daily/slp_tpp_rad_tcc_eva_peva"
 # ==========================
 
 
@@ -78,7 +78,8 @@ def main():
         # 原文件：ERA5_daily_uvwztSh_500_201507.nc
         # 输出： ERA5_daily_uvwztSh_500_201507_unzip.nc
         file_name = fp.stem.split("_")
-        file_name[-1], file_name[-2] = file_name[-2], file_name[-1]
+        # 删除file_name中空字符串
+        file_name = [part for part in file_name if part]
         file_name = "_".join(file_name)
         out_name = file_name + "_unzip.nc"
         out_path = fp.with_name(out_name)

@@ -5,11 +5,11 @@ import xarray as xr
 # Input / Output settings
 # =========================================
 input_dir = "/Volumes/TiPlus7100/data/ERA5/daily/uvwztSh"
-output_file = "/Volumes/TiPlus7100/p4/data/ERA5_daily_uvwztq_sum.nc"
+output_file = "/Volumes/TiPlus7100/p4/data/ERA5_daily_uvwztq_sum.zarr"
 
 start_year = 1961
 end_year = 2022
-summer_months = ["06", "07", "08"]
+summer_months = ["05", "06", "07", "08", "09"]
 levels = [200, 500, 850, 925]
 
 file_prefix = "ERA5_daily_uvwztSh_"
@@ -130,14 +130,24 @@ for coord in ds.coords:
     if coord not in encoding:
         encoding[coord] = {"zlib": False}
 
+
 # =========================================
 # Save merged nc
 # =========================================
+# 关键：统一 chunk，避免 (12, 11, 1, 11, 1, ...)
+ds = ds.unify_chunks()
+ds = ds.chunk({
+    "time": 12,
+    "level": -1,   # 整个 level 一块；内存紧张可改小
+    "latitude": 90,
+    "longitude": 180
+})
+
 print("\n开始写出 NetCDF ...")
-ds.to_netcdf(
+ds.to_zarr(
     output_file,
-    format="NETCDF4",
-    encoding=encoding
+    mode="w",
+    consolidated=True
 )
 
 print(f"合并完成，输出文件：{output_file}")

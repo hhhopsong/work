@@ -1,3 +1,5 @@
+import warnings
+
 import cmaps
 import numpy as np
 import xarray as xr
@@ -194,8 +196,8 @@ def composite_analysis(year_list, data, years=None, equal_var=True, var_name=Non
     ----------
     year_list : list
         合成年份
-    data : np.ndarray | xr.DataArray | xr.Dataset
-        如果是 ndarray，shape=(nyear, ...)
+    data : np.ndarray | xr.DataArray | xr.Dataset | dask.array.Array | array-like
+        如果是 ndarray/array-like，shape=(nyear, ...)
         如果是 DataArray，默认第一维为时间/年份维
         如果是 Dataset，需要指定 var_name
     years : array-like, optional
@@ -222,16 +224,20 @@ def composite_analysis(year_list, data, years=None, equal_var=True, var_name=Non
     original_coords = None
     original_name = None
 
+    # Dataset -> DataArray
     if isinstance(data, xr.Dataset):
         if var_name is None:
             raise ValueError("当 data 为 xarray.Dataset 时，必须提供 var_name。")
         if var_name not in data:
             raise ValueError(f"var_name='{var_name}' 不在 Dataset 中。")
-        data = data.to_array()
+        data = data[var_name]
         original_type = "dataset"
 
+    # DataArray
     if isinstance(data, xr.DataArray):
-        original_type = "dataarray" if original_type is None else original_type
+        if original_type is None:
+            original_type = "dataarray"
+
         original_dims = data.dims
         original_coords = data.coords
         original_name = data.name
@@ -240,22 +246,27 @@ def composite_analysis(year_list, data, years=None, equal_var=True, var_name=Non
             first_dim = data.dims[0]
             years = data[first_dim].values
 
-        data_np = np.array(data)
-
-    elif isinstance(data, np.ndarray):
-        original_type = "ndarray"
-        data_np = data
-        if years is None:
-            raise ValueError("当 data 为 np.ndarray 时，必须提供 years。")
+        # 这里用 np.asarray / np.array 都行，会把 dask 真正算出来
+        data_np = np.asarray(data)
 
     else:
-        raise TypeError("data 必须是 np.ndarray、xarray.DataArray 或 xarray.Dataset。")
+        # 兼容 np.ndarray / dask.array / 其他 array-like
+        try:
+            data_np = np.asarray(data)
+            original_type = "ndarray"
+        except Exception as e:
+            raise TypeError(
+                "data 必须是 np.ndarray、xarray.DataArray、xarray.Dataset 或可转换为 ndarray 的对象。"
+            ) from e
+
+        if years is None:
+            raise ValueError("当 data 不是 xarray.DataArray/xarray.Dataset 时，必须提供 years。")
 
     # -------------------------
     # 2. 年份筛选
     # -------------------------
-    years = np.array(years)
-    year_list = np.array(year_list)
+    years = np.asarray(years)
+    year_list = np.asarray(year_list)
 
     if data_np.shape[0] != len(years):
         raise ValueError("years 长度必须与 data 第一维长度一致。")
@@ -269,18 +280,24 @@ def composite_analysis(year_list, data, years=None, equal_var=True, var_name=Non
         raise ValueError("除 YEAR 外没有剩余年份，无法做显著性检验。")
 
     sample_sel = data_np[sel_mask]
+    sample_oth = data_np[oth_mask]
 
     # -------------------------
     # 3. 合成差值
     # -------------------------
+    # 方案1：合成年份 - 全部年份平均
     comp_diff_np = np.nanmean(sample_sel, axis=0) - np.nanmean(data_np, axis=0)
+
+    # 如果你更想要“合成年份 - 非合成年份”，改成：
+    # comp_diff_np = np.nanmean(sample_sel, axis=0) - np.nanmean(sample_oth, axis=0)
 
     # -------------------------
     # 4. 显著性检验
     # -------------------------
-    t_stat, p_val_np = ttest_ind(
+    # 建议和非合成年份比较，而不是和包含自身的全集比较
+    _, p_val_np = ttest_ind(
         sample_sel,
-        data_np,
+        sample_oth,
         axis=0,
         equal_var=equal_var,
         nan_policy="omit"
@@ -304,7 +321,7 @@ def composite_analysis(year_list, data, years=None, equal_var=True, var_name=Non
             p_val_np,
             dims=out_dims,
             coords=out_coords,
-            name=f"{original_name}" if original_name else "p_val"
+            name="p_val"
         )
 
         return comp_diff, p_val
@@ -357,11 +374,11 @@ w_clim = w.mean('year')
 tcc = xr.open_dataset(fr"{PYFILE}/p2/data/TCC.nc")
 tcc = tcc.transpose('year', 'lat', 'lon')  # 500hPa
 tcc_clim = tcc.mean('year')
-
+#%%
 time = [1961, 2022]
-t_budget = xr.open_dataset(fr'{DATA}/ERA5/ERA5_pressLev/single_var/t_budget_1961_2022.nc').sel(
+t_budget = xr.open_zarr(fr'{DATA}/ERA5/ERA5_pressLev/single_var/t_budget_1961_2022.zarr').sel(
     time=slice(str(time[0]) + '-01', str(time[1]) + '-12'))
-dTdt_78 = t_budget['dTdt'].sel(time=t_budget['time.month'].isin([6, 7]), level=900).groupby('time.year').mean('time')
+dTdt_78 = t_budget['dTdt'].sel(time=t_budget['time.month'].isin([7, 8]), level=900).groupby('time.year').mean('time')
 adv_T_78 = t_budget['adv_T'].sel(time=t_budget['time.month'].isin([7, 8]), level=900).groupby('time.year').mean('time')
 ver_78 = t_budget['ver'].sel(time=t_budget['time.month'].isin([7, 8]), level=900).groupby('time.year').mean('time')
 Q_78 = dTdt_78 - adv_T_78 - ver_78
@@ -369,37 +386,9 @@ Q_78 = dTdt_78 - adv_T_78 - ver_78
 surface_radio = xr.open_dataset(fr"{PYFILE}/p2/data/Surface_Radio.nc") # 为地面供能为正，放能为负
 
 #%%
-# 去趋势处理
-def detrend(obj, dim='year', deg=1):
-    if isinstance(obj, xr.DataArray):
-        coef = obj.polyfit(dim=dim, deg=deg, skipna=True)
-        trend = xr.polyval(obj[dim], coef.polyfit_coefficients)
-        return obj - trend
 
-    elif isinstance(obj, xr.Dataset):
-        out = xr.Dataset(coords=obj.coords, attrs=obj.attrs)
-        for name, da in obj.data_vars.items():
-            coef = da.polyfit(dim=dim, deg=deg, skipna=True)
-            trend = xr.polyval(da[dim], coef.polyfit_coefficients)
-            out[name] = da - trend
-        return out
-
-    else:
-        raise TypeError("obj 必须是 xarray.DataArray 或 xarray.Dataset")
-
-# adv_T_78 = detrend(adv_T_78, dim='year')
-# ver_78 = detrend(ver_78, dim='year')
-# Q_78 = detrend(Q_78, dim='year')
-# uvz = detrend(uvz, dim='year')
-# t2m = detrend(t2m, dim='year')
-# w = detrend(w, dim='year')
-# tcc = detrend(tcc, dim='year')
-# surface_radio = detrend(surface_radio, dim='time')
-
-#%%
-
-YEAR = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014]
-# YEAR = [2015]
+# YEAR = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014]
+YEAR = [2015]
 
 years_budget = dTdt_78['year'].data
 
@@ -425,16 +414,15 @@ comp_slhf = composite_analysis(YEAR, surface_radio['slhf'].data, surface_radio['
 
 comp_map = xr.Dataset(
     {
-        'adv_T': (['level', 'lat', 'lon'], comp_adv.data),
-        'ver': (['level', 'lat', 'lon'], comp_ver.data),
-        'Q': (['level', 'lat', 'lon'], comp_Q.data),
+        'adv_T': (['lat', 'lon'], comp_adv.data),
+        'ver': (['lat', 'lon'], comp_ver.data),
+        'Q': (['lat', 'lon'], comp_Q.data),
         'ssr': (['lat', 'lon'], comp_ssr[0].data),
         'str': (['lat', 'lon'], comp_str[0].data),
         'sshf': (['lat', 'lon'], comp_sshf[0].data),
         'slhf': (['lat', 'lon'], comp_slhf[0].data)
     },
     coords={
-        'level': dTdt_78['level'].data,
         'lat': dTdt_78['lat'].data,
         'lon': dTdt_78['lon'].data
     }
@@ -442,16 +430,15 @@ comp_map = xr.Dataset(
 
 p_map = xr.Dataset(
     {
-        'adv_T': (['level', 'lat', 'lon'], p_adv),
-        'ver': (['level', 'lat', 'lon'], p_ver),
-        'Q': (['level', 'lat', 'lon'], p_Q),
+        'adv_T': (['lat', 'lon'], p_adv),
+        'ver': (['lat', 'lon'], p_ver),
+        'Q': (['lat', 'lon'], p_Q),
         'ssr': (['lat', 'lon'], comp_ssr[1]),
         'str': (['lat', 'lon'], comp_str[1]),
         'sshf': (['lat', 'lon'], comp_sshf[1]),
         'slhf': (['lat', 'lon'], comp_slhf[1])
     },
     coords={
-        'level': dTdt_78['level'].data,
         'lat': dTdt_78['lat'].data,
         'lon': dTdt_78['lon'].data
     }
@@ -460,7 +447,7 @@ p_map = xr.Dataset(
 #%%
 fig = plt.figure(figsize=(11.5/3, 7))
 plt.subplots_adjust(wspace=0.05, hspace=0.4)
-title_head = 'Composite'
+title_head = '2015'
 # 柱状图
 
 comp_map_ = masked(comp_map, fr'{PYFILE}/map/self/长江_TP/长江_tp.shp')

@@ -12,12 +12,13 @@ import matplotlib.pyplot as plt
 
 PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
+
 # 字体为新罗马
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['mathtext.fontset'] = 'stix'
 
-# 合并后的夏季 t2m 数据
+# 合并后的 t2m 数据
 NC_FILE = "/Volumes/TiPlus7100/p4/data/ERA5_daily_t2m_sum.nc"
 
 # 长江流域 shp
@@ -28,7 +29,7 @@ OUT_DIR = fr"{PYFILE}/p4/pic/"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # 输出图片
-OUT_FIG = os.path.join(OUT_DIR, r"图3_t2m逐日实际场_三线")
+OUT_FIG = os.path.join(OUT_DIR, r"图3_t2m逐日实际场_三线_ERA5")
 
 # 参考气候态年份
 CLIM_START = 1961
@@ -39,6 +40,10 @@ COMPOSITE_YEARS = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014]
 
 # 单独分析年份
 TARGET_YEAR = 2015
+
+# 滤波窗口现在要完整覆盖 5-9 月
+FILTER_MONTHS = [5, 6, 7, 8, 9]
+PLOT_MONTHS = [6, 7, 8]
 
 
 # =========================================================
@@ -72,6 +77,7 @@ def standardize_latlon(ds: xr.Dataset) -> xr.Dataset:
 
 def area_weighted_mean(da: xr.DataArray) -> xr.DataArray:
     """流域平均"""
+    # 你原来这里其实不是面积加权，只是简单平均；先保持原逻辑不变
     mean_da = da.mean(dim=("lat", "lon"))
     return mean_da
 
@@ -89,6 +95,40 @@ def build_summer_day_index(time_index: pd.DatetimeIndex) -> np.ndarray:
     return offsets + day
 
 
+def build_warm_day_index(time_index: pd.DatetimeIndex) -> np.ndarray:
+    """
+    为 5/6/7/8/9 月构造统一 day index:
+    5月1日 -> 1
+    ...
+    9月30日 -> 153
+    """
+    month = time_index.month
+    day = time_index.day
+
+    offsets = np.select(
+        [
+            month == 5,
+            month == 6,
+            month == 7,
+            month == 8,
+            month == 9
+        ],
+        [
+            0,    # May
+            31,   # Jun
+            61,   # Jul
+            92,   # Aug
+            123   # Sep
+        ],
+        default=np.nan
+    )
+
+    if np.any(np.isnan(offsets)):
+        raise ValueError("build_warm_day_index 仅支持 5-9 月。")
+
+    return offsets.astype(int) + day
+
+
 def ensure_celsius(da: xr.DataArray) -> xr.DataArray:
     """如果像 Kelvin，就转成 Celsius"""
     vmin = float(da.min().values)
@@ -98,6 +138,18 @@ def ensure_celsius(da: xr.DataArray) -> xr.DataArray:
         da = da - 273.15
         da.attrs["units"] = "degC"
     return da
+
+
+def pad_filtered_result(original: np.ndarray, filtered: np.ndarray) -> np.ndarray:
+    """
+    将滤波后缩短的序列回填到原长度数组中，两端补 NaN
+    """
+    out = np.full(len(original), np.nan)
+    m = len(filtered)
+    pad_left = (len(original) - m) // 2
+    pad_right = len(original) - m - pad_left
+    out[pad_left: len(original) - pad_right] = filtered
+    return out
 
 
 # =========================================================
@@ -120,8 +172,8 @@ def main():
         else:
             raise ValueError("数据中没有 time 或 valid_time 坐标。")
 
-    # 只保留 1961-2023 夏季
-    da = da.sel(time=slice(f"{CLIM_START}-06-01", f"{CLIM_END}-08-31"))
+    # 只保留 1961-2022 的 5-9 月，用于滤波
+    da = da.sel(time=slice(f"{CLIM_START}-05-01", f"{CLIM_END}-09-30"))
 
     # 单位检查
     da = ensure_celsius(da)
@@ -138,34 +190,30 @@ def main():
     df["month"] = df["time"].dt.month
     df["day"] = df["time"].dt.day
 
-    # 只保留夏季
-    df = df[df["month"].isin([6, 7, 8])].copy()
+    # 只保留 5-9 月，供滤波使用
+    df = df[df["month"].isin(FILTER_MONTHS)].copy()
 
-    # 构造夏季日序
-    df["summer_day"] = build_summer_day_index(pd.DatetimeIndex(df["time"]))
+    # 构造 5-9 月日序
+    df["warm_day"] = build_warm_day_index(pd.DatetimeIndex(df["time"]))
 
-    # ================= 1) 1961-2023 气候态实际场 =================
-    print("4) 计算 1961-2023 夏季逐日气候态实际场...")
-    clim_df = (
+    # 仅对 6-8 月再构造夏季日序，供作图使用
+    df_plot = df[df["month"].isin(PLOT_MONTHS)].copy()
+    df_plot["summer_day"] = build_summer_day_index(pd.DatetimeIndex(df_plot["time"]))
+
+    # ================= 1) 1961-2022 5-9月逐日气候态实际场 =================
+    print("4) 计算 1961-2022 5-9月逐日气候态实际场...")
+    clim_warm_df = (
         df[(df["year"] >= CLIM_START) & (df["year"] <= CLIM_END)]
-        .groupby("summer_day", as_index=False)["t2m"]
+        .groupby("warm_day", as_index=False)["t2m"]
         .mean()
         .rename(columns={"t2m": "climatology_actual"})
     )
 
-    # ================= 2) 合成年份逐日实际场 =================
-    print("5) 计算合成年份逐日实际场...")
-    comp_df = (
+    # ================= 2) 合成年份 5-9月逐日实际场及标准差 =================
+    print("5) 计算合成年份 5-9月逐日实际场及逐日标准差...")
+    comp_warm_stat_df = (
         df[df["year"].isin(COMPOSITE_YEARS)]
-        .groupby("summer_day", as_index=False)["t2m"]
-        .mean()
-        .rename(columns={"t2m": "composite_actual"})
-    )
-
-    print("5) 计算合成年份逐日实际场及逐日标准差...")
-    comp_stat_df = (
-        df[df["year"].isin(COMPOSITE_YEARS)]
-        .groupby("summer_day")["t2m"]
+        .groupby("warm_day")["t2m"]
         .agg(["mean", "std"])
         .reset_index()
         .rename(columns={
@@ -173,61 +221,100 @@ def main():
             "std": "composite_std"
         })
     )
-    # 如果某些 summer_day 恰好只有一个值，std 会是 NaN，这里补成 0
-    comp_stat_df["composite_std"] = comp_stat_df["composite_std"].fillna(0.0)
+    comp_warm_stat_df["composite_std"] = comp_warm_stat_df["composite_std"].fillna(0.0)
 
-    # ================= 3) 2015 逐日实际场 =================
-    print(f"6) 计算 {TARGET_YEAR} 年逐日实际场...")
-    y2015_df = (
-        df[df["year"] == TARGET_YEAR][["summer_day", "t2m"]]
-        .groupby("summer_day", as_index=False)
+    # ================= 3) 2015 年 5-9月逐日实际场 =================
+    print(f"6) 计算 {TARGET_YEAR} 年 5-9月逐日实际场...")
+    y_target_warm_df = (
+        df[df["year"] == TARGET_YEAR][["warm_day", "t2m"]]
+        .groupby("warm_day", as_index=False)
         .mean()
         .rename(columns={"t2m": f"{TARGET_YEAR}_actual"})
     )
+
+    # ================= 先合并 5-9月数据，供滤波 =================
+    print("7) 合并 5-9月序列并滤波...")
+    warm_plot_df = clim_warm_df.merge(comp_warm_stat_df, on="warm_day", how="inner")
+    warm_plot_df = warm_plot_df.merge(y_target_warm_df, on="warm_day", how="inner")
+
+    # 给 warm_plot_df 补上 month/day，便于后面截取 6-8 月
+    calendar_df = (
+        df[df["year"] == TARGET_YEAR][["warm_day", "month", "day"]]
+        .drop_duplicates(subset=["warm_day"])
+        .sort_values("warm_day")
+    )
+    warm_plot_df = warm_plot_df.merge(calendar_df, on="warm_day", how="left")
+
+    x_warm = warm_plot_df["warm_day"].values
+    clim_y_warm = warm_plot_df["climatology_actual"].values
+    comp_y_warm = warm_plot_df["composite_actual"].values
+    comp_std_warm = warm_plot_df["composite_std"].values
+    y_target_y_warm = warm_plot_df[f"{TARGET_YEAR}_actual"].values
+
+    # ===== 在 5-9 月完整序列上做滤波 =====
+    y_target_anom_filt = LanczosFilter(
+        y_target_y_warm - clim_y_warm,
+        'bandpass',
+        [10, 30],
+        nwts=61
+    ).filted()
+
+    comp_anom_filt = LanczosFilter(
+        comp_y_warm - clim_y_warm,
+        'bandpass',
+        [10, 30],
+        nwts=61
+    ).filted()
+
+    y_target_anom_filt_full = pad_filtered_result(y_target_y_warm, y_target_anom_filt)
+    comp_anom_filt_full = pad_filtered_result(comp_y_warm, comp_anom_filt)
+
+    warm_plot_df["target_filt_plot"] = y_target_anom_filt_full + 24
+    warm_plot_df["comp_filt_plot"] = comp_anom_filt_full + 24
+
+    # ================= 再截取 6-8 月用于最终展示 =================
+    plot_df = warm_plot_df[warm_plot_df["month"].isin(PLOT_MONTHS)].copy()
+    plot_df["summer_day"] = build_summer_day_index(
+        pd.DatetimeIndex(
+            pd.to_datetime(
+                pd.DataFrame({
+                    "year": np.full(len(plot_df), TARGET_YEAR),
+                    "month": plot_df["month"].values,
+                    "day": plot_df["day"].values
+                })
+            )
+        )
+    )
+
+    plot_df = plot_df.sort_values("summer_day").reset_index(drop=True)
 
     # 横坐标
     tick_positions = [1, 16, 31, 46, 62, 77, 92]
     tick_labels = ["Jun-01", "Jun-16", "Jul-01", "Jul-16", "Aug-01", "Aug-16", "Aug-31"]
 
-    # ================= 作图：三根线一张图 =================
-    print("7) 绘图...")
-
-    # 先按 summer_day 合并，确保三条线逐日对齐
-    plot_df = clim_df.merge(comp_stat_df, on="summer_day", how="inner")
-    plot_df = plot_df.merge(y2015_df, on="summer_day", how="inner")
-
     x = plot_df["summer_day"].values
     clim_y = plot_df["climatology_actual"].values
     comp_y = plot_df["composite_actual"].values
     comp_std = plot_df["composite_std"].values
+    y_target_y = plot_df[f"{TARGET_YEAR}_actual"].values
+    y_target_y_filt = plot_df["target_filt_plot"].values
+    comp_y_filt = plot_df["comp_filt_plot"].values
 
-    y2015_y = plot_df[f"{TARGET_YEAR}_actual"].values
-    # 滤波
-    y2015_y_filt = LanczosFilter(y2015_y-clim_y, 'bandpass', [10, 30], nwts=9).filted()
-    y2015_y_nan = np.full(len(y2015_y), np.nan)
-
-    comp_y_filt = LanczosFilter(comp_y-clim_y, 'bandpass', [10, 30], nwts=9).filted()
-    comp_y_nan = np.full(len(comp_y), np.nan)
-
-    # 将滤波结果放在原数组中间，两端保持NAN值 计算左右各需要留多少个点
-    m = len(y2015_y_filt)
-    pad_left = (len(y2015_y) - m) // 2
-    pad_right = len(y2015_y) - m - pad_left
-    y2015_y_nan[pad_left:len(y2015_y) - pad_right] = y2015_y_filt
-    y2015_y_filt = y2015_y_nan*2+24+1
-    comp_y_nan[pad_left:len(comp_y) - pad_right] = comp_y_filt
-    comp_y_filt = comp_y_nan*2+24+1
+    # ================= 作图：三根线一张图 =================
+    print("8) 绘图...")
 
     fig, ax = plt.subplots(figsize=(6, 3))
 
-    # 研究区间 7月1日-8月31日的背景色
-    ax.axvspan(31, 92, color="#959595", alpha=0.3, zorder=0)
+    # 研究区间 7月1日-7月11日的背景色
+    ax.axvspan(31, 41, color="#959595", alpha=0.3, zorder=0)
+    # 7月15日-7月26日
+    ax.axvspan(45, 56, color="#959595", alpha=0.3, zorder=0)
 
     # ------------- 填色 -------------
     # 1) 2015 > 气候态：浅红
     ax.fill_between(
-        x, y2015_y, clim_y,
-        where=(y2015_y > clim_y),
+        x, y_target_y, clim_y,
+        where=(y_target_y > clim_y),
         interpolate=True,
         color="lightcoral",
         alpha=0.35,
@@ -236,18 +323,18 @@ def main():
 
     # 2) 2015 < 气候态：浅蓝
     ax.fill_between(
-        x, y2015_y, clim_y,
-        where=(y2015_y < clim_y),
+        x, y_target_y, clim_y,
+        where=(y_target_y < clim_y),
         interpolate=True,
         color="deepskyblue",
         alpha=0.35,
         zorder=1
     )
 
-    # 3) 2015 < 低值年：更深蓝
+    # 3) 2015 < 合成年：更深蓝
     ax.fill_between(
-        x, y2015_y, comp_y,
-        where=(y2015_y < comp_y),
+        x, y_target_y, comp_y,
+        where=(y_target_y < comp_y),
         interpolate=True,
         color="#007bbb",
         alpha=0.6,
@@ -261,11 +348,11 @@ def main():
         color="black",
         linestyle="-",
         linewidth=1,
-        label=f"Clim.",
+        label="Clim.",
         zorder=4
     )
 
-    # 低值年：蓝色虚线
+    # 合成年：蓝色虚线
     ax.plot(
         x, comp_y,
         color="blue",
@@ -275,16 +362,16 @@ def main():
         zorder=4
     )
 
-    # 2015：可用红色实线，便于区分
+    # 2015 原始场
     ax.plot(
-        x, y2015_y,
+        x, y_target_y,
         color="#959595",
         linestyle="-",
         linewidth=0,
         zorder=5
     )
 
-    # ------------- 低值年逐日标准差绿色阴影 -------------
+    # ------------- 合成年逐日标准差绿色阴影 -------------
     y_base = 19.5
     ax.bar(
         x, comp_std,
@@ -295,13 +382,13 @@ def main():
         zorder=1.5
     )
 
-    mask_gt = (y2015_y_filt > comp_y_filt)  # 大于 comp_y_filt
-    mask_lt = (y2015_y_filt <= comp_y_filt)  # 小于 comp_y_filt
+    mask_gt = (y_target_y_filt > comp_y_filt)
+    mask_lt = (y_target_y_filt <= comp_y_filt)
 
     ax.plot(
         x,
-        np.ma.masked_where(~mask_gt, y2015_y_filt),
-        color="orangered",  # 橘红色
+        np.ma.masked_where(~mask_gt, y_target_y_filt),
+        color="orangered",
         linestyle="-",
         linewidth=1.3,
         zorder=5
@@ -309,8 +396,8 @@ def main():
 
     ax.plot(
         x,
-        y2015_y_filt,
-        color="green",  # 草绿色
+        y_target_y_filt,
+        color="green",
         linestyle="-",
         linewidth=1.3,
         zorder=4
@@ -318,13 +405,10 @@ def main():
 
     secax = ax.secondary_yaxis('right')
     secax.set_yticks(np.arange(20, 29, 2))
-    secax.set_yticklabels(np.arange(-3, 1.5, 1), fontsize=14)
+    secax.set_yticklabels(np.arange(-4, 5, 2), fontsize=14)
     secax.tick_params(axis='y', labelsize=14)
 
-    # 绘制台风标志在x轴上 若有两个则y轴堆叠
-    # tp1 6.30-7.13
-    # tp2 7.2-7.10
-    # tp3 7.30-8.10
+    # 绘制台风标志在x轴上
     def month_day_to_summer_day(month: int, day: int) -> int:
         """把月日转换为夏季日序: 6/1 -> 1, 8/31 -> 92"""
         if month == 6:
@@ -342,18 +426,16 @@ def main():
         {"start": (7, 30), "end": (8, 10)},
     ]
 
-    # 转为 summer_day
     _ty_index = 0
     for tp in typhoons:
         tp["start_day"] = month_day_to_summer_day(*tp["start"])
         tp["end_day"] = month_day_to_summer_day(*tp["end"])
 
         for iday in range(tp["start_day"], tp["end_day"] + 1):
-            # 中间放台风符号
             ax.text(
                 iday,
-                19.6 if _ty_index == 0 else (19.6 if _ty_index == 2 else 19.8),  # 堆叠放置
-                "·",  # 台风符号
+                19.6 if _ty_index == 0 else (19.6 if _ty_index == 2 else 19.8),
+                "·",
                 ha="center",
                 va="center",
                 color='red',
@@ -362,8 +444,6 @@ def main():
                 zorder=10
             )
         _ty_index += 1
-
-
 
     ax.set_xlim(1, 92)
     ax.set_ylim(y_base, 28.5)
@@ -378,17 +458,15 @@ def main():
     from matplotlib.lines import Line2D
     from matplotlib.patches import Rectangle
     from matplotlib.legend_handler import HandlerBase
+
     class HandlerBiColorLine(HandlerBase):
         def create_artists(self, legend, orig_handle,
                            x0, y0, width, height, fontsize, trans):
-            # 中间位置
             xm = x0 + width / 2.0
 
-            # 左半段（红）
             line1 = Line2D([x0, xm], [y0 + height / 2, y0 + height / 2],
                            color="orangered", linewidth=1.5)
 
-            # 右半段（绿）
             line2 = Line2D([xm, x0 + width], [y0 + height / 2, y0 + height / 2],
                            color="green", linewidth=1.5)
 
@@ -399,7 +477,6 @@ def main():
 
     class HandlerBiColorPatch(HandlerBase):
         """双色填色图例：左红右蓝"""
-
         def create_artists(self, legend, orig_handle,
                            x0, y0, width, height, fontsize, trans):
             w2 = width / 2.0
@@ -416,7 +493,6 @@ def main():
             )
             return [patch1, patch2]
 
-    # ===== 主图例：线图 =====
     plt.rcParams['legend.fontsize'] = 8
     line_clim = Line2D([0], [0], color="black", lw=1, linestyle="-", label="Clim.")
     line_comp = Line2D([0], [0], color="blue", lw=1.5, linestyle="--", label="Cool sum. comp.")
@@ -431,7 +507,6 @@ def main():
     )
     ax.add_artist(legend1)
 
-    # ===== 右侧附加图例 =====
     bar_handle = Rectangle(
         (0, 0), 1, 1,
         facecolor="limegreen",
@@ -460,10 +535,9 @@ def main():
         borderaxespad=0.0
     )
 
-    for ax in fig.axes:
-        # 遍历每个子图中的所有艺术家对象 (artist)
-        for spine in ax.spines.values():
-            spine.set_linewidth(1.5)  # 设置边框线宽
+    for _ax in fig.axes:
+        for spine in _ax.spines.values():
+            spine.set_linewidth(1.5)
 
     plt.rcParams['legend.fontsize'] = 8
 
@@ -473,24 +547,6 @@ def main():
     plt.close()
 
     print(f"绘图完成，已保存：{OUT_FIG}")
-
-    # ================= 导出数据 =================
-    data_out_dir = f"{PYFILE}/p4/data/"
-    os.makedirs(data_out_dir, exist_ok=True)
-
-    clim_out = os.path.join(data_out_dir, "yangtze_t2m_daily_climatology_actual_1961_2023.csv")
-    comp_out = os.path.join(data_out_dir, "yangtze_t2m_composite_actual_std.csv")
-    y2015_out = os.path.join(data_out_dir, f"yangtze_t2m_{TARGET_YEAR}_actual.csv")
-
-    clim_df.to_csv(clim_out, index=False, encoding="utf-8-sig")
-    comp_stat_df.to_csv(comp_out, index=False, encoding="utf-8-sig")
-    y2015_df.to_csv(y2015_out, index=False, encoding="utf-8-sig")
-
-    print("已导出数据文件：")
-    print(clim_out)
-    print(comp_out)
-    print(y2015_out)
-
     ds.close()
 
 
