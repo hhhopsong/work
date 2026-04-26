@@ -323,105 +323,169 @@ t2m_bp = t2m_bp_full.sel(time=slice(analysis_start, analysis_end))
 # =========================
 # 作图
 # =========================
-fig = plt.figure(figsize=(12, 5))
-plt.subplots_adjust(wspace=0, hspace=0)
-title_head = 'OLR'
+title_head = '850UVZ'
 
 # lev = np.array([0., .08, .16, .24, .32, .4, .48, .56])
-lev = np.array([-3, -2.5, -2, -1.5, -1, -0.5, .5, 1, 1.5, 2, 2.5, 3])*10   # olr
-# lev = np.array([-500, -400, -300, -200, -100, -50, 50, 100, 200, 300, 400, 500])    # 500z
+# lev = np.array([-3, -2.5, -2, -1.5, -1, -0.5, .5, 1, 1.5, 2, 2.5, 3])*10   # olr
+lev = np.array([-500, -400, -300, -200, -100, -50, 50, 100, 200, 300, 400, 500])    # 500z
 # lev = np.array([-500, -400, -300, -200, -100, -50, 50, 100, 200, 300, 400, 500])*2  # 200z
 # lev = np.array([-5, -4, -3, -2, -1, -0.5, 0.5, 1, 2, 3, 4, 5]) * 2  # 200v
+import matplotlib.animation as animation
+from matplotlib.animation import PillowWriter, FFMpegWriter
+from matplotlib.patheffects import withStroke
 
-index = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p']
+# =========================
+# 动画参数
+# =========================
 
-for i in range(9):
-    iday = f"{year}-06-{27 + 2*i}" if i < 2 else f"{year}-07-{-1 + 2*i}"
-    mmdd = pd.Timestamp(iday).strftime("%m-%d")
+center_day = pd.Timestamp(f"{year}-07-05")   # 这里改成你的 Day 0
+day_offsets = np.arange(-8, 9, 1)
+date_list = [center_day + pd.Timedelta(days=int(d)) for d in day_offsets]
 
-    Uc_day = u_clim.sel(mmdd=mmdd).transpose("level", "lat", "lon")
-    Vc_day = v_clim.sel(mmdd=mmdd).transpose("level", "lat", "lon")
-    Tc_day = t_clim.sel(mmdd=mmdd).transpose("level", "lat", "lon")
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180 - 70))
 
-    GEOa_day = z_bp.sel(time=iday).transpose("level", "lat", "lon")
+global_cbar = {"obj": None}
 
-    WAF = TN_WAF_3D(Uc_day, Vc_day, GEOa_day, Tc_day)
+def draw_base(ax, title=''):
+    ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
+    ax.set_aspect('auto')
+    ax.set_title(title, loc='left', fontsize=18)
 
-    if i == 0:
-        ax, cont = pic(
-            fig, (3, 3, i + 1),
-            z_bp['lat'], z_bp['lon'],
-            None, None,
-            lev,
-            olr_bp.sel(time=iday),
-            f'{year} {title_head}',
-            lat_tick=None, lon_tick=None, key=False
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
+
+    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
+
+    ax.add_geometries(
+        Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(),
+        ccrs.PlateCarree(),
+        facecolor='none',
+        edgecolor='black',
+        linewidth=.5
+    )
+    ax.add_geometries(
+        Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
+        ccrs.PlateCarree(),
+        facecolor='gray',
+        edgecolor='black',
+        linewidth=.5
+    )
+
+    lon_tick = np.arange(60, 160, 20)
+    lat_tick = np.arange(0, 60, 15)
+    ax.set_xticks(lon_tick, crs=ccrs.PlateCarree())
+    ax.set_yticks(lat_tick, crs=ccrs.PlateCarree())
+
+    ax.xaxis.set_major_formatter(LongitudeFormatter())
+    ax.yaxis.set_major_formatter(LatitudeFormatter())
+
+    ax.xaxis.set_major_locator(MultipleLocator(20))
+    ax.xaxis.set_minor_locator(MultipleLocator(5))
+    ax.yaxis.set_major_locator(MultipleLocator(15))
+    ax.yaxis.set_minor_locator(MultipleLocator(5))
+
+    ax.tick_params(which='major', length=4, width=.5, color='black')
+    ax.tick_params(which='minor', length=2, width=.2, color='black')
+    ax.tick_params(axis='both', labelsize=10, colors='black')
+    ax.tick_params(which='both', bottom=True, top=False, left=True,
+                   labelbottom=True, labeltop=False)
+
+def update(frame):
+    ax.clear()
+    draw_base(ax, title=f'{year} {title_head}')
+
+    current_day = date_list[frame]
+    iday = current_day.strftime("%Y-%m-%d")
+    day = day_offsets[frame]
+    day_str = f"+{day}" if day > 0 else f"{day}"
+
+    cont = ax.contourf(
+        z_bp['lon'],
+        z_bp['lat'],
+        z_bp.sel(time=iday, level=850),
+        cmap=cmaps.BlueWhiteOrangeRed[10:-10],
+        levels=lev,
+        transform=ccrs.PlateCarree(central_longitude=0),
+        extend='both',
+        alpha=0.8
+    )
+
+    vec =   ax.Curlyquiver(
+            u_bp['lon'], u_bp['lat'], u_bp.sel(time=iday, level=850), v_bp.sel(time=iday, level=850),
+            scale=2,
+            linewidth=0.9,
+            arrowsize=1.8,
+            transform=ccrs.PlateCarree(central_longitude=0),
+            MinDistance=[0.2, 0.5],
+            regrid=16,
+            color='#454545',
+            nanmax=5,
+            thinning=[['20%', '100%'], 'range']
         )
-    elif i == 2:
-        ax, cont = pic(
-            fig, (3, 3, i + 1),
-            z_bp['lat'], z_bp['lon'],
-            None, None,
-            lev,
-            olr_bp.sel(time=iday),
-            '',
-            lat_tick=None, lon_tick=None, key=True
-        )
-    else:
-        ax, cont = pic(
-            fig, (3, 3, i + 1),
-            z_bp['lat'], z_bp['lon'],
-            None, None,
-            lev,
-            olr_bp.sel(time=iday),
-            '',
-            key=False,
-            lat_tick=None, lon_tick=None,
-        )
-
-    # ===== 当前子图日期 =====
-    from matplotlib.patheffects import withStroke
-    date_text = u_bp['time'].sel(time=iday).dt.strftime('%m/%d').item()
-    day = i * 2 - 8
-    day_str = f"+{day:.0f}" if day > 0 else f"{day:.0f}"
 
     ax.text(
-        0.05, 0.95, f"Day {day_str}",
+        0.03, 0.96, f"Day {day_str}",
         transform=ax.transAxes,
-        fontsize=10,
+        fontsize=13,
         color='red',
         ha='left',
         va='top',
-        bbox=dict(facecolor='none', edgecolor='none'),
-        path_effects=[withStroke(linewidth=1.5, foreground='white')]
+        path_effects=[withStroke(linewidth=2, foreground='white')]
     )
 
-# =========================
-# 全局 colorbar
-# =========================
-cbar_ax = inset_axes(
-    ax,
-    width="4%",
-    height="100%",
-    loc='lower left',
-    bbox_to_anchor=(1.025, 0., 1, 1),
-    bbox_transform=ax.transAxes,
-    borderpad=0
+    ax.text(
+        0.97, 0.96, current_day.strftime('%Y/%m/%d'),
+        transform=ax.transAxes,
+        fontsize=12,
+        color='black',
+        ha='right',
+        va='top',
+        path_effects=[withStroke(linewidth=2, foreground='white')]
+    )
+
+    if global_cbar["obj"] is None:
+        cbar_ax = inset_axes(
+            ax,
+            width="4%",
+            height="100%",
+            loc='lower left',
+            bbox_to_anchor=(1.025, 0., 1, 1),
+            bbox_transform=ax.transAxes,
+            borderpad=0
+        )
+        cb = fig.colorbar(cont, cax=cbar_ax, orientation='vertical', drawedges=True)
+        cb.locator = ticker.FixedLocator(lev)
+        cb.set_ticklabels([f"{i:.0f}" for i in lev])
+        global_cbar["obj"] = cb
+
+    # blit=False 时这里返回值不会被使用
+    return []
+
+ani = animation.FuncAnimation(
+    fig,
+    update,
+    frames=len(date_list),
+    interval=600,
+    blit=False,
+    repeat=True
 )
-cbar = fig.colorbar(cont, cax=cbar_ax, orientation='vertical', drawedges=True)
-cbar.locator = ticker.FixedLocator(lev)
-cbar.set_ticklabels([f"{i:.0f}" for i in lev])
 
-for spine in ax.spines.values():
-    spine.set_linewidth(1.5)
+mp4_path = fr"{PYFILE}/p4/pic/{title_head}_daily_evolution_day-8_to_8.mp4"
+gif_path = fr"{PYFILE}/p4/pic/{title_head}_daily_evolution_day-8_to_8.gif"
 
-ax.set_aspect('auto')
+# 先判断 ffmpeg 是否存在
+import shutil
+if shutil.which("ffmpeg") is not None:
+    writer_mp4 = FFMpegWriter(fps=2, bitrate=6000)
+    ani.save(mp4_path, writer=writer_mp4, dpi=600)
+    print(f"MP4 saved: {mp4_path}")
+else:
+    print("ffmpeg not found, skip MP4 export.")
 
-for ax in fig.axes:
-    for artist in ax.get_children():
-        if hasattr(artist, "set_clip_on"):
-            artist.set_clip_on(True)
+# GIF 不依赖 ffmpeg
+writer_gif = PillowWriter(fps=2)
+ani.save(gif_path, writer=writer_gif, dpi=600)
+print(f"GIF saved: {gif_path}")
 
-plt.savefig(fr"{PYFILE}/p4/pic/90天滤波环流场_{title_head}.pdf", bbox_inches='tight')
-plt.savefig(fr"{PYFILE}/p4/pic/90天滤波环流场_{title_head}.png", bbox_inches='tight', dpi=600)
 plt.show()

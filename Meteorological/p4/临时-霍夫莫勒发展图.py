@@ -319,14 +319,14 @@ lev_dim_t = get_level_dim(t_bp)
 
 u850 = u_bp.sel({lev_dim_u: 850})
 v850 = v_bp.sel({lev_dim_v: 850})
-z500 = z_bp.sel({lev_dim_z: 500})
+z850 = z_bp.sel({lev_dim_z: 850})
 t925 = t_bp.sel({lev_dim_t: 925})
 u925 = u_bp.sel({lev_dim_u: 925})
 v925 = v_bp.sel({lev_dim_v: 925})
 
 # ERA5 z 一般是 geopotential (m^2/s^2)，转成位势高度 gpm
-z500_hgt = z500 / g
-z500_hgt.attrs["units"] = "gpm"
+z850_hgt = z850 / g
+z850_hgt.attrs["units"] = "gpm"
 
 # ---------------------------
 # 2. 计算 925 hPa 温度平流
@@ -336,12 +336,12 @@ tadv925 = calc_temp_advection_925(t925, u925, v925)
 # ---------------------------
 # 3. 100°–120°E 平均
 # ---------------------------
-z500_hov = lon_mean_100_120(z500_hgt)
+z850_hov = lon_mean_100_120(z850_hgt)
 v850_hov = lon_mean_100_120(v850)
 tadv925_hov = lon_mean_100_120(tadv925)
 
 # 若纬度是降序，这里统一成升序，方便作图
-z500_hov = z500_hov.sortby("lat")
+z850_hov = z850_hov.sortby("lat")
 v850_hov = v850_hov.sortby("lat")
 tadv925_hov = tadv925_hov.sortby("lat")
 
@@ -356,9 +356,9 @@ ax = fig.add_subplot(111)
 # 填色：500 hPa 高度异常
 cf_lev = np.arange(-20, 22, 2)
 cf = ax.contourf(
-    z500_hov["time"].values,
-    z500_hov["lat"].values,
-    z500_hov.transpose("lat", "time").values,
+    z850_hov["time"].values,
+    z850_hov["lat"].values,
+    z850_hov.transpose("lat", "time").values,
     levels=cf_lev,
     cmap=cmaps.BlueWhiteOrangeRed[10:-10],
     extend="both"
@@ -398,7 +398,7 @@ ax.quiver(
 )
 
 # 坐标轴与标题
-ax.set_title("(a) 500Z&850V over 100°–125°E", loc="left", fontsize=18)
+ax.set_title("(a) 850ZV over 100°–125°E", loc="left", fontsize=18)
 
 ax.set_ylim(0, 60)
 ax.set_yticks(np.arange(0, 61, 10))
