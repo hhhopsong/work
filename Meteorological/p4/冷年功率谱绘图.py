@@ -2,7 +2,9 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-COOL_YEAR = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014, 2015]
+# COOL_YEAR = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014, 2015] #1 std
+COOL_YEAR = [1965, 1966, 1968, 1974, 1976, 1980, 1982, 1983, 1986, 1987, 1989, 1992, 1993, 1997, 1999, 2004, 2008, 2014, 2015] # 0.5 std
+# COOL_YEAR = range(1961, 2023)
 
 wavelet = xr.open_dataset(
     "/Volumes/TiPlus7100/p4/data/ERA5_CPC_daily_ano_all_JJA_wavelet.nc"
@@ -33,7 +35,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["axes.unicode_minus"] = False
 plt.rcParams["mathtext.fontset"] = "stix"
 
-fig, ax = plt.subplots(figsize=(4, 6))
+fig, ax = plt.subplots(figsize=(4, 0.6*len(COOL_YEAR)))
 
 offset = 0.0
 offset_step = 1.25

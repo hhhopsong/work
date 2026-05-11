@@ -265,7 +265,7 @@ def normalize_lon(da):
 def lon_mean_100_120(da):
     """取 100E-120E 的经向平均"""
     da = normalize_lon(da)
-    return da.sel(lon=slice(100, 125)).mean("lon")
+    return da.sel(lon=slice(105, 140)).mean("lon")
 
 def calc_temp_advection_925(t_da, u_da, v_da):
     """
@@ -348,20 +348,24 @@ tadv925_hov = tadv925_hov.sortby("lat")
 # ---------------------------
 # 4. 画 Hovmöller 图
 # ---------------------------
-title_head = "2015夏季_10to30d_Hovmoller_100E120E"
+title_head = "2015夏季_10to30d_Hovmoller_105E140E"
 
 fig = plt.figure(figsize=(8, 4))
 ax = fig.add_subplot(111)
 
 # 填色：500 hPa 高度异常
-cf_lev = np.arange(-20, 22, 2)
+cf_lev = np.array([-30, -20, -10, -5, 5, 10, 20, 30])
+cmap = cmaps.BlueWhiteOrangeRed[40:-40]
+norm = mcolors.BoundaryNorm(cf_lev, ncolors=cmap.N, clip=True)
+
 cf = ax.contourf(
     z850_hov["time"].values,
     z850_hov["lat"].values,
     z850_hov.transpose("lat", "time").values,
     levels=cf_lev,
-    cmap=cmaps.BlueWhiteOrangeRed[10:-10],
-    extend="both"
+    cmap=cmap,
+    norm=norm,
+    extend="both",
 )
 
 # 矢量箭头：850 hPa 经向风异常
@@ -377,36 +381,42 @@ Tq, Yq = np.meshgrid(time_vals[::t_skip], lat_vals[::y_skip])
 Vq = v850_hov.isel(time=slice(None, None, t_skip), lat=slice(None, None, y_skip)).transpose("lat", "time").values
 Uq = np.zeros_like(Vq)
 
-# 正异常红色
-Vq_pos = np.where(Vq > 0, Vq, np.nan)
-ax.quiver(
-    Tq, Yq, Uq, Vq_pos,
-    angles="xy", scale_units="height", scale=50,
-    color="red", width=0.0022,
-    headwidth=3.5, headlength=4.5, headaxislength=4.2,
-    pivot="middle", zorder=4
-)
-
-# 负异常蓝色
-Vq_neg = np.where(Vq < 0, Vq, np.nan)
-ax.quiver(
-    Tq, Yq, Uq, Vq_neg,
-    angles="xy", scale_units="height", scale=50,
-    color="blue", width=0.0022,
-    headwidth=3.5, headlength=4.5, headaxislength=4.2,
-    pivot="middle", zorder=4
-)
+# # 正异常红色
+# Vq_pos = np.where(Vq > 0, Vq, np.nan)
+# ax.quiver(
+#     Tq, Yq, Uq, Vq_pos,
+#     angles="xy", scale_units="height", scale=50,
+#     color="red", width=0.0022,
+#     headwidth=3.5, headlength=4.5, headaxislength=4.2,
+#     pivot="middle", zorder=4
+# )
+#
+# # 负异常蓝色
+# Vq_neg = np.where(Vq < 0, Vq, np.nan)
+# ax.quiver(
+#     Tq, Yq, Uq, Vq_neg,
+#     angles="xy", scale_units="height", scale=50,
+#     color="blue", width=0.0022,
+#     headwidth=3.5, headlength=4.5, headaxislength=4.2,
+#     pivot="middle", zorder=4
+# )
 
 # 坐标轴与标题
-ax.set_title("(a) 850ZV over 100°–125°E", loc="left", fontsize=18)
+ax.set_title("JJA 850Z over 105°–140°E", loc="left", fontsize=18)
 
 ax.set_ylim(0, 60)
 ax.set_yticks(np.arange(0, 61, 10))
 ax.set_yticklabels(['0°', '10°N', '20°N', '30°N', '40°N', '50°N', '60°N'])
 ax.tick_params(axis="both", labelsize=12)
 
-ax.axhline(35, color='purple', linestyle='-', linewidth=1)
-ax.axhline(25, color='purple', linestyle='-', linewidth=1)
+ax.axhline(35, color='green', linestyle='-', linewidth=1.5)
+ax.axhline(25, color='green', linestyle='-', linewidth=1.5)
+
+
+# 研究区间背景色
+# ax.axvspan(pd.Timestamp("2015-07-02"), pd.Timestamp("2015-07-09"), color="#959595", alpha=0.3, zorder=10)
+# ax.axvspan(pd.Timestamp("2015-07-17"), pd.Timestamp("2015-07-27"), color="#959595", alpha=0.3, zorder=10)
+# ax.axvspan(pd.Timestamp("2015-08-06"), pd.Timestamp("2015-08-11"), color="#959595", alpha=0.3, zorder=10)
 
 # x 轴日期格式
 import matplotlib.dates as mdates
@@ -417,11 +427,14 @@ plt.setp(ax.get_xticklabels(), rotation=0, ha="center")
 
 # 边框加粗
 for spine in ax.spines.values():
-    spine.set_linewidth(1.5)
+    spine.set_linewidth(2.5)
 
 # 色标
-cbar = plt.colorbar(cf, ax=ax, orientation="vertical", pad=0.02, aspect=28, shrink=0.95)
-cbar.ax.tick_params(labelsize=11)
+cbar = plt.colorbar(cf, ax=ax, orientation="vertical", pad=0.02, aspect=28, shrink=0.95, drawedges=True)
+cbar.ax.tick_params(length=0, labelsize=11, direction='in')
+cbar.dividers.set_linewidth(2)
+cbar.outline.set_linewidth(2)
+
 
 plt.tight_layout()
 

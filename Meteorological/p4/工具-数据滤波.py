@@ -165,7 +165,7 @@ def smart_chunk(da: xr.DataArray, time_full: bool = True) -> xr.DataArray:
 
 
 def daily_clim_by_mmdd(da: xr.DataArray, time_dim: str = "time", drop_feb29: bool = True) -> xr.DataArray:
-    """按 MM-DD 计算逐日气候态（避免闰年 dayofyear 错位）"""
+    """按 MM-DD 计算逐日气候态，避免闰年 dayofyear 错位"""
     if time_dim not in da.dims:
         raise ValueError(f"{da.name or 'DataArray'} 缺少时间维 {time_dim}。")
 
@@ -183,9 +183,7 @@ def daily_clim_by_mmdd(da: xr.DataArray, time_dim: str = "time", drop_feb29: boo
 
 
 def anomaly_by_mmdd(da: xr.DataArray, clim: xr.DataArray, start: str, end: str) -> xr.DataArray:
-    """
-    根据 MM-DD 气候态计算异常。
-    """
+    """根据 MM-DD 气候态计算异常"""
     sub = da.sel(time=slice(start, end))
     sub = smart_chunk(sub, time_full=True)
     clim = smart_chunk(clim, time_full=True)
@@ -220,8 +218,12 @@ def prepare_output_dir(path: str):
     os.makedirs(path, exist_ok=True)
 
 
-def regrid_to_target_grid(da: xr.DataArray, target_lon: xr.DataArray, target_lat: xr.DataArray,
-                          method: str = "linear") -> xr.DataArray:
+def regrid_to_target_grid(
+    da: xr.DataArray,
+    target_lon: xr.DataArray,
+    target_lat: xr.DataArray,
+    method: str = "linear"
+) -> xr.DataArray:
     """
     将 da 插值到目标 lon/lat 网格。
     这里只传纯净的 1D lon/lat，避免 time/level 标量坐标冲突。
@@ -245,9 +247,7 @@ def regrid_to_target_grid(da: xr.DataArray, target_lon: xr.DataArray, target_lat
 
 
 def assert_same_horizontal_grid(ref: xr.DataArray, da: xr.DataArray, name: str):
-    """
-    检查水平网格是否完全一致，防止 Dataset 合并时自动对齐出错。
-    """
+    """检查水平网格是否完全一致，防止 Dataset 合并时自动对齐出错"""
     if "lat" not in ref.coords or "lon" not in ref.coords:
         raise ValueError("参考场缺少 lat/lon 坐标。")
     if "lat" not in da.coords or "lon" not in da.coords:
@@ -281,8 +281,8 @@ def print_grid_info(name: str, da: xr.DataArray):
 year = 2015
 
 # 气候态基期
-clim_start = "1961"
-clim_end = "2022"
+clim_start = "1991"
+clim_end = "2020"
 
 # 为 61 点滤波预留边界
 filter_start = f"{year}-05-01"
@@ -377,38 +377,45 @@ print_grid_info("t2m_regridded", t2m.isel(time=0))
 
 
 # =========================
-# 读取 ssr str slhf sshf tcc tp，并插值到 ERA5 网格
+# 读取 ssr str slhf sshf tcc tp ttr tsr，并插值到 ERA5 网格
 # =========================
-ds = xr.open_zarr(
+print("读取 single level 数据...")
+ds_single = xr.open_zarr(
     r"/Volumes/TiPlus7100/p4/data/single_level_sum.zarr",
     chunks="auto"
 )
 
-ds = standardize_time_ds(ds)
-ds = normalize_lonlat_ds(ds)
+ds_single = standardize_time_ds(ds_single)
+ds_single = normalize_lonlat_ds(ds_single)
 
-required_vars = ["ssr", "str", "slhf", "sshf", "tcc", "tp"]
-missing_vars = [v for v in required_vars if v not in ds.data_vars]
+# 新增 ttr 和 tsr
+required_vars = ["ssr", "str", "slhf", "sshf", "tcc", "tp", "ttr", "tsr"]
+missing_vars = [v for v in required_vars if v not in ds_single.data_vars]
 if missing_vars:
-    raise ValueError(f"数据中缺少变量: {missing_vars}；当前变量有: {list(ds.data_vars)}")
+    raise ValueError(
+        f"single_level_sum.zarr 中缺少变量: {missing_vars}；"
+        f"当前变量有: {list(ds_single.data_vars)}"
+    )
 
-ds = ds[required_vars].sel(time=slice(clim_start, clim_end))
+ds_single = ds_single[required_vars].sel(time=slice(clim_start, clim_end))
 
 chunk_map_ds = {}
-if "time" in ds.dims:
+if "time" in ds_single.dims:
     chunk_map_ds["time"] = -1
-if "lat" in ds.dims:
+if "lat" in ds_single.dims:
     chunk_map_ds["lat"] = 45
-if "lon" in ds.dims:
+if "lon" in ds_single.dims:
     chunk_map_ds["lon"] = 90
-ds = ds.chunk(chunk_map_ds)
+ds_single = ds_single.chunk(chunk_map_ds)
 
-ssr = ds['ssr']
-str = ds['str']
-slhf = ds['slhf']
-sshf = ds['sshf']
-tcc = ds['tcc']
-tp = ds['tp']
+ssr = ds_single["ssr"]
+str = ds_single["str"]
+slhf = ds_single["slhf"]
+sshf = ds_single["sshf"]
+tcc = ds_single["tcc"]
+tp = ds_single["tp"]
+ttr = ds_single["ttr"]
+tsr = ds_single["tsr"]
 
 print("将 single level 插值到 ERA5 网格...")
 ssr = regrid_to_target_grid(ssr, era5_lon, era5_lat, method="linear")
@@ -417,8 +424,11 @@ slhf = regrid_to_target_grid(slhf, era5_lon, era5_lat, method="linear")
 sshf = regrid_to_target_grid(sshf, era5_lon, era5_lat, method="linear")
 tcc = regrid_to_target_grid(tcc, era5_lon, era5_lat, method="linear")
 tp = regrid_to_target_grid(tp, era5_lon, era5_lat, method="linear")
+ttr = regrid_to_target_grid(ttr, era5_lon, era5_lat, method="linear")
+tsr = regrid_to_target_grid(tsr, era5_lon, era5_lat, method="linear")
 
 print_grid_info("single level_regridded", ssr.isel(time=0))
+
 
 # =========================
 # 各要素按“月-日”计算逐日气候态
@@ -429,14 +439,18 @@ v_clim = daily_clim_by_mmdd(v)
 z_clim = daily_clim_by_mmdd(z)
 t_clim = daily_clim_by_mmdd(t)
 w_clim = daily_clim_by_mmdd(w)
+
 olr_clim = daily_clim_by_mmdd(olr)
 t2m_clim = daily_clim_by_mmdd(t2m)
+
 ssr_clim = daily_clim_by_mmdd(ssr)
 str_clim = daily_clim_by_mmdd(str)
 slhf_clim = daily_clim_by_mmdd(slhf)
 sshf_clim = daily_clim_by_mmdd(sshf)
 tcc_clim = daily_clim_by_mmdd(tcc)
 tp_clim = daily_clim_by_mmdd(tp)
+ttr_clim = daily_clim_by_mmdd(ttr)
+tsr_clim = daily_clim_by_mmdd(tsr)
 
 
 # =========================
@@ -448,47 +462,59 @@ v_ano = anomaly_by_mmdd(v, v_clim, filter_start, filter_end)
 z_ano = anomaly_by_mmdd(z, z_clim, filter_start, filter_end)
 t_ano = anomaly_by_mmdd(t, t_clim, filter_start, filter_end)
 w_ano = anomaly_by_mmdd(w, w_clim, filter_start, filter_end)
+
 olr_ano = anomaly_by_mmdd(olr, olr_clim, filter_start, filter_end)
 t2m_ano = anomaly_by_mmdd(t2m, t2m_clim, filter_start, filter_end)
+
 ssr_ano = anomaly_by_mmdd(ssr, ssr_clim, filter_start, filter_end)
 str_ano = anomaly_by_mmdd(str, str_clim, filter_start, filter_end)
 slhf_ano = anomaly_by_mmdd(slhf, slhf_clim, filter_start, filter_end)
 sshf_ano = anomaly_by_mmdd(sshf, sshf_clim, filter_start, filter_end)
 tcc_ano = anomaly_by_mmdd(tcc, tcc_clim, filter_start, filter_end)
 tp_ano = anomaly_by_mmdd(tp, tp_clim, filter_start, filter_end)
+ttr_ano = anomaly_by_mmdd(ttr, ttr_clim, filter_start, filter_end)
+tsr_ano = anomaly_by_mmdd(tsr, tsr_clim, filter_start, filter_end)
 
 
 # =========================
 # 61 点 Lanczos 滤波后，再裁剪回 6-8 月
 # =========================
 print("进行 10-30 天 Lanczos 带通滤波...")
-u_bp = LanczosFilter(u_ano,   'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-v_bp = LanczosFilter(v_ano,   'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-z_bp = LanczosFilter(z_ano,   'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-t_bp = LanczosFilter(t_ano,   'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-w_bp = LanczosFilter(w_ano,   'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-olr_bp = LanczosFilter(olr_ano, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-t2m_bp = LanczosFilter(t2m_ano, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-ssr_bp = LanczosFilter(ssr_ano, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-str_bp = LanczosFilter(str_ano, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-slhf_bp = LanczosFilter(slhf_ano, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-sshf_bp = LanczosFilter(sshf_ano, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-tcc_bp = LanczosFilter(tcc_ano, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
-tp_bp = LanczosFilter(tp_ano, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+u_bp = LanczosFilter(u_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+v_bp = LanczosFilter(v_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+z_bp = LanczosFilter(z_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+t_bp = LanczosFilter(t_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+w_bp = LanczosFilter(w_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+
+olr_bp = LanczosFilter(olr_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+t2m_bp = LanczosFilter(t2m_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+
+ssr_bp = LanczosFilter(ssr_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+str_bp = LanczosFilter(str_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+slhf_bp = LanczosFilter(slhf_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+sshf_bp = LanczosFilter(sshf_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+tcc_bp = LanczosFilter(tcc_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+tp_bp = LanczosFilter(tp_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+ttr_bp = LanczosFilter(ttr_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
+tsr_bp = LanczosFilter(tsr_ano, "bandpass", period=[10, 30], nwts=61).filted().sel(time=slice(plot_start, plot_end))
 
 u_bp = smart_chunk(u_bp, time_full=True)
 v_bp = smart_chunk(v_bp, time_full=True)
 z_bp = smart_chunk(z_bp, time_full=True)
 t_bp = smart_chunk(t_bp, time_full=True)
 w_bp = smart_chunk(w_bp, time_full=True)
+
 olr_bp = smart_chunk(olr_bp, time_full=True)
 t2m_bp = smart_chunk(t2m_bp, time_full=True)
+
 ssr_bp = smart_chunk(ssr_bp, time_full=True)
 str_bp = smart_chunk(str_bp, time_full=True)
 slhf_bp = smart_chunk(slhf_bp, time_full=True)
 sshf_bp = smart_chunk(sshf_bp, time_full=True)
 tcc_bp = smart_chunk(tcc_bp, time_full=True)
 tp_bp = smart_chunk(tp_bp, time_full=True)
+ttr_bp = smart_chunk(ttr_bp, time_full=True)
+tsr_bp = smart_chunk(tsr_bp, time_full=True)
 
 
 # =========================
@@ -507,6 +533,8 @@ assert_same_horizontal_grid(ref_clim, slhf_clim, "slhf_clim")
 assert_same_horizontal_grid(ref_clim, sshf_clim, "sshf_clim")
 assert_same_horizontal_grid(ref_clim, tcc_clim, "tcc_clim")
 assert_same_horizontal_grid(ref_clim, tp_clim, "tp_clim")
+assert_same_horizontal_grid(ref_clim, ttr_clim, "ttr_clim")
+assert_same_horizontal_grid(ref_clim, tsr_clim, "tsr_clim")
 
 assert_same_horizontal_grid(ref_ano, olr_ano, "olr_ano")
 assert_same_horizontal_grid(ref_ano, t2m_ano, "t2m_ano")
@@ -516,6 +544,8 @@ assert_same_horizontal_grid(ref_ano, slhf_ano, "slhf_ano")
 assert_same_horizontal_grid(ref_ano, sshf_ano, "sshf_ano")
 assert_same_horizontal_grid(ref_ano, tcc_ano, "tcc_ano")
 assert_same_horizontal_grid(ref_ano, tp_ano, "tp_ano")
+assert_same_horizontal_grid(ref_ano, ttr_ano, "ttr_ano")
+assert_same_horizontal_grid(ref_ano, tsr_ano, "tsr_ano")
 
 assert_same_horizontal_grid(ref_bp, olr_bp, "olr_bp")
 assert_same_horizontal_grid(ref_bp, t2m_bp, "t2m_bp")
@@ -525,6 +555,8 @@ assert_same_horizontal_grid(ref_bp, slhf_bp, "slhf_bp")
 assert_same_horizontal_grid(ref_bp, sshf_bp, "sshf_bp")
 assert_same_horizontal_grid(ref_bp, tcc_bp, "tcc_bp")
 assert_same_horizontal_grid(ref_bp, tp_bp, "tp_bp")
+assert_same_horizontal_grid(ref_bp, ttr_bp, "ttr_bp")
+assert_same_horizontal_grid(ref_bp, tsr_bp, "tsr_bp")
 
 print("网格检查通过。")
 
@@ -535,64 +567,77 @@ print("网格检查通过。")
 print("准备导出 NetCDF...")
 prepare_output_dir(OUT_DIR)
 
-# climatology（按 mmdd）
+# climatology：按 mmdd
 clim_ds = xr.Dataset({
     "u_clim": u_clim,
     "v_clim": v_clim,
     "z_clim": z_clim,
     "t_clim": t_clim,
     "w_clim": w_clim,
+
     "olr_clim": olr_clim,
     "t2m_clim": t2m_clim,
+
     "ssr_clim": ssr_clim,
     "str_clim": str_clim,
     "slhf_clim": slhf_clim,
     "sshf_clim": sshf_clim,
     "tcc_clim": tcc_clim,
     "tp_clim": tp_clim,
+    "ttr_clim": ttr_clim,
+    "tsr_clim": tsr_clim,
 })
+clim_ds.attrs["description"] = f"Daily climatology by MM-DD, from {clim_start} to {clim_end}"
 
-# anomaly（5-9月异常）
+# anomaly：5-9 月异常
 ano_ds = xr.Dataset({
     "u_ano": u_ano,
     "v_ano": v_ano,
     "z_ano": z_ano,
     "t_ano": t_ano,
     "w_ano": w_ano,
+
     "olr_ano": olr_ano,
     "t2m_ano": t2m_ano,
+
     "ssr_ano": ssr_ano,
     "str_ano": str_ano,
     "slhf_ano": slhf_ano,
     "sshf_ano": sshf_ano,
     "tcc_ano": tcc_ano,
     "tp_ano": tp_ano,
+    "ttr_ano": ttr_ano,
+    "tsr_ano": tsr_ano,
 })
 ano_ds.attrs["description"] = f"Daily anomaly by MM-DD, from {filter_start} to {filter_end}"
 
-# bandpass（10-30天，61点Lanczos，最终裁剪到6-8月）
+# bandpass：10-30 天，61 点 Lanczos，最终裁剪到 6-8 月
 bp_ds = xr.Dataset({
     "u_bp": u_bp,
     "v_bp": v_bp,
     "z_bp": z_bp,
     "t_bp": t_bp,
     "w_bp": w_bp,
+
     "olr_bp": olr_bp,
     "t2m_bp": t2m_bp,
+
     "ssr_bp": ssr_bp,
     "str_bp": str_bp,
     "slhf_bp": slhf_bp,
     "sshf_bp": sshf_bp,
     "tcc_bp": tcc_bp,
     "tp_bp": tp_bp,
+    "ttr_bp": ttr_bp,
+    "tsr_bp": tsr_bp,
 })
 bp_ds.attrs["description"] = f"Lanczos bandpass filtered anomaly (10-30 days, nwts=61), from {plot_start} to {plot_end}"
 
 # 文件名
 clim_file = f"{OUT_DIR}/ERA5_CPC_daily_clim_{clim_start}_{clim_end}.nc"
-ano_file  = f"{OUT_DIR}/ERA5_CPC_daily_ano_{year}_MJJAS.nc"
-ano_all_filr = f"{OUT_DIR}/ERA5_CPC_daily_ano_all_MJJAS.nc"
-bp_file   = f"{OUT_DIR}/ERA5_CPC_daily_bp_{year}_JJA_10-30d.nc"
+ano_file = f"{OUT_DIR}/ERA5_CPC_daily_ano_{year}_MJJAS.nc"
+ano_all_file = f"{OUT_DIR}/ERA5_CPC_daily_ano_all_MJJAS.nc"
+bp_file = f"{OUT_DIR}/ERA5_CPC_daily_bp_{year}_JJA_10-30d.nc"
 
 print("写出 climatology...")
 clim_ds.to_netcdf(clim_file, encoding=make_encoding(clim_ds, complevel=1))

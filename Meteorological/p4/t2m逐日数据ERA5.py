@@ -32,11 +32,12 @@ os.makedirs(OUT_DIR, exist_ok=True)
 OUT_FIG = os.path.join(OUT_DIR, r"图3_t2m逐日实际场_三线_ERA5")
 
 # 参考气候态年份
-CLIM_START = 1961
-CLIM_END = 2022
+CLIM_START = 1991
+CLIM_END = 2020
 
 # 合成年份
-COMPOSITE_YEARS = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014]
+# COMPOSITE_YEARS = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014] #1 std
+COMPOSITE_YEARS = [1965, 1966, 1968, 1974, 1976, 1980, 1982, 1983, 1986, 1987, 1989, 1992, 1993, 1997, 1999, 2004, 2008, 2014] # 0.5 std
 
 # 单独分析年份
 TARGET_YEAR = 2015
@@ -305,10 +306,16 @@ def main():
 
     fig, ax = plt.subplots(figsize=(6, 3))
 
-    # 研究区间 7月1日-7月11日的背景色
-    ax.axvspan(31, 41, color="#959595", alpha=0.3, zorder=0)
-    # 7月15日-7月26日
-    ax.axvspan(45, 56, color="#959595", alpha=0.3, zorder=0)
+    # 研究区间
+    # 7月2日-7月11日的背景色
+    ax.axvspan(30+2, 30+9, color="#959595", alpha=0.3, zorder=0)
+    ax.text(30 + 5.5, 28, "P1", ha="center", va="center", color='blue', fontsize=10, clip_on=False, zorder=10)
+    # 7月17日-7月27日
+    ax.axvspan(30+17, 30+27, color="#959595", alpha=0.3, zorder=0)
+    ax.text(30 + 22, 28, "P2", ha="center", va="center", color='blue', fontsize=10, clip_on=False, zorder=10)
+    # 8月6日-7月11日
+    ax.axvspan(61+6, 61+11, color="#959595", alpha=0.3, zorder=0)
+    ax.text(61 + 8.5, 28, "P3", ha="center", va="center", color='blue', fontsize=10, clip_on=False, zorder=10)
 
     # ------------- 填色 -------------
     # 1) 2015 > 气候态：浅红
@@ -382,13 +389,13 @@ def main():
         zorder=1.5
     )
 
-    mask_gt = (y_target_y_filt > comp_y_filt)
-    mask_lt = (y_target_y_filt <= comp_y_filt)
+    mask_gt = (y_target_y_filt > np.full_like(comp_y_filt, 24))
+    mask_lt = (y_target_y_filt <= np.full_like(comp_y_filt, 24))
 
     ax.plot(
         x,
-        np.ma.masked_where(~mask_gt, y_target_y_filt),
-        color="orangered",
+        np.ma.masked_where(~mask_lt, y_target_y_filt),
+        color="green",
         linestyle="-",
         linewidth=1.3,
         zorder=5
@@ -397,11 +404,13 @@ def main():
     ax.plot(
         x,
         y_target_y_filt,
-        color="green",
+        color="orangered",
         linestyle="-",
         linewidth=1.3,
         zorder=4
     )
+
+
 
     secax = ax.secondary_yaxis('right')
     secax.set_yticks(np.arange(20, 29, 2))

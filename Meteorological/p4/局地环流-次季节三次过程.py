@@ -71,12 +71,11 @@ def pic(fig, pic_loc, lat, lon, lev, lev_t, corr_u, corr_v, corr_z, corr_t2m, ti
     cont = ax.contour(lon, lat, corr_z, colors='red', levels=lev[1], linewidths=0.8, transform=ccrs.PlateCarree(central_longitude=0))
     cont_ = ax.contour(lon, lat, corr_z, colors='blue', levels=lev[0], linestyles='--', linewidths=0.8,
                        transform=ccrs.PlateCarree(central_longitude=0))
-    cont.clabel(inline=1, fontsize=4)
-    cont_.clabel(inline=1, fontsize=4)
+
     #cont_clim = ax.contour(lon, lat, uvz_clim['z'], colors='k', levels=20, linewidths=0.6, transform=ccrs.PlateCarree(central_longitude=0))
 
     Cq = ax.Curlyquiver(lon, lat, corr_u, corr_v, center_lon=110, scale=5, linewidth=1, arrowsize=1., transform=ccrs.PlateCarree(central_longitude=0), MinDistance=[0.2, 0.5],
-                     regrid=12, color='#454545', nanmax=nanmax)
+                     regrid=12, color='#555555', thinning=["20%", "min"], nanmax=nanmax)
 
     Cq.key(U=2, label='2 m/s', color='k', fontproperties={'size': 8}, linewidth=.7, arrowsize=3., facecolor='#FFFFFF')
     nanmax = Cq.nanmax
@@ -85,68 +84,9 @@ def pic(fig, pic_loc, lat, lon, lev, lev_t, corr_u, corr_v, corr_z, corr_t2m, ti
                       facecolor='none', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
                       ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
-
-    # 刻度线设置
-    xticks1 = np.arange(60, 160, 20)
-    yticks1 = np.arange(0, 60, 15)
-    ax.set_yticks(yticks1, crs=ccrs.PlateCarree())
-    ax.set_xticks(xticks1, crs=ccrs.PlateCarree())
-    lon_formatter = LongitudeFormatter()
-    lat_formatter = LatitudeFormatter()
-    ax.yaxis.set_major_formatter(lat_formatter)
-    ax.xaxis.set_major_formatter(lon_formatter)
-
-    ymajorLocator = MultipleLocator(15)  # 先定义xmajorLocator，再进行调用
-    ax.yaxis.set_major_locator(ymajorLocator)  # x轴最大刻度
-    yminorLocator = MultipleLocator(5)
-    ax.yaxis.set_minor_locator(yminorLocator)  # x轴最小刻度
-    xmajorLocator = MultipleLocator(20)  # 先定义xmajorLocator，再进行调用
-    xminorLocator = MultipleLocator(5)
-    ax.xaxis.set_major_locator(xmajorLocator)  # x轴最大刻度
-    ax.xaxis.set_minor_locator(xminorLocator)  # x轴最小刻度
-    # ax1.axes.xaxis.set_ticklabels([]) ##隐藏刻度标签
-    # 最大刻度、最小刻度的刻度线长短，粗细设置
-    ax.tick_params(which='major', length=4, width=.5, color='black')  # 最大刻度长度，宽度设置，
-    ax.tick_params(which='minor', length=2, width=.2, color='black')  # 最小刻度长度，宽度设置
-    ax.tick_params(which='both', bottom=True, top=False, left=True, labelbottom=True, labeltop=False)
-    plt.rcParams['ytick.direction'] = 'out'  # 将x轴的刻度线方向设置向内或者外
-    # 调整刻度值字体大小
-    ax.tick_params(axis='both', labelsize=10, colors='black')
-
-    return contf, ax
-
-def pic2(fig, pic_loc, lat, lon, lat_f, lon_f, contour_1, contourf_1, lev, lev_f, color, clabel_tf, cmap, title):
-    ax = fig.add_subplot(pic_loc, projection=ccrs.PlateCarree(central_longitude=180-70))
-    # 统一加粗所有四个边框
-    for spine in ax.spines.values():
-        spine.set_linewidth(1.5)  # 设置边框线宽
-    ax.set_aspect('auto')
-    ax.set_title(f'{title}', loc='left', fontsize=12)
-    ax.set_extent([60, 160, 0, 60], crs=ccrs.PlateCarree())
-
-    da_contour = xr.DataArray(
-        contourf_1,
-        coords={'lat': lat_f, 'lon': lon_f},
-        dims=('lat', 'lon')
-    )
-    roi_shape = ((60, 0), (160, 60))
-    contf = ax.contourf(lon_f, lat_f, da_contour.salem.roi(corners=roi_shape), cmap=cmap,
-                        levels=lev_f, extend='both', transform=ccrs.PlateCarree(central_longitude=0))
-
-    cont = ax.contour(lon, lat, contour_1, colors=color[1], levels=lev[1], linestyles='--', linewidths=0.8,
-                      transform=ccrs.PlateCarree(central_longitude=0))
-    cont_ = ax.contour(lon, lat, contour_1, colors=color[0], levels=lev[0], linestyles='solid', linewidths=0.8,
-                       transform=ccrs.PlateCarree(central_longitude=0))
-    if clabel_tf:
-        cont.clabel(inline=1, fontsize=8)
-        cont_.clabel(inline=1, fontsize=8)
-
-
-    ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.4)
-    ax.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
-    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
-                      ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
+    ax.add_geometries(
+        Reader(f'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
+        ccrs.PlateCarree(), facecolor='#909090', edgecolor='#909090', linewidth=0, hatch='.', zorder=10)
 
     # 刻度线设置
     xticks1 = np.arange(60, 160, 20)
@@ -679,8 +619,6 @@ budget_ds_ori_full = calc_daily_temperature_budget(
     v.sel(time=slice(filter_start, filter_end)),
     w.sel(time=slice(filter_start, filter_end))
 )
-
-# 2015 年 5–9 月对应时间轴
 target_time_full = t.sel(time=slice(filter_start, filter_end)).time
 
 t_clim_2015_full = clim_to_time(t_clim, target_time_full)
@@ -695,6 +633,27 @@ budget_ds_clim_full = calc_daily_temperature_budget(
     w_clim_2015_full
 )
 
+# 2015 年 5–9 月对应时间轴
+budget_ds_bp_full = calc_daily_temperature_budget(
+    t_bp,
+    u_bp,
+    v_bp,
+    w_bp
+)
+
+target_time_full = t.sel(time=slice(filter_start, filter_end)).time
+
+t_clim_2015_full = clim_to_time(t_clim, target_time_full)
+u_clim_2015_full = clim_to_time(u_clim, target_time_full)
+v_clim_2015_full = clim_to_time(v_clim, target_time_full)
+w_clim_2015_full = clim_to_time(w_clim, target_time_full)
+
+budget_ds_clim_bp_full = calc_daily_temperature_budget(
+    LanczosFilter(t_clim_2015_full, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(analysis_start, analysis_end)),
+    LanczosFilter(u_clim_2015_full, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(analysis_start, analysis_end)),
+    LanczosFilter(v_clim_2015_full, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(analysis_start, analysis_end)),
+    LanczosFilter(w_clim_2015_full, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(analysis_start, analysis_end))
+)
 # =========================================================
 # 2. 925 hPa 温度收支异常（5–9 月）
 # =========================================================
@@ -703,6 +662,10 @@ adv_full  = budget_ds_ori_full['adv_T'].sel(level=925) - budget_ds_clim_full['ad
 ver_full  = budget_ds_ori_full['ver'].sel(level=925) - budget_ds_clim_full['ver'].sel(level=925)
 Q_full    = budget_ds_ori_full['Q'].sel(level=925) - budget_ds_clim_full['Q'].sel(level=925)
 
+dTdt_bp = LanczosFilter(dTdt_full, 'bandpass', period=[10, 30], nwts=61).filted()
+adv_bp  = LanczosFilter(adv_full, 'bandpass', period=[10, 30], nwts=61).filted()
+ver_bp  = LanczosFilter(ver_full, 'bandpass', period=[10, 30], nwts=61).filted()
+Q_bp    = LanczosFilter(Q_full, 'bandpass', period=[10, 30], nwts=61).filted()
 # =========================================================
 # 3. 长江流域平均，先保留 5–9 月完整序列
 # =========================================================
@@ -711,36 +674,14 @@ adv_yz_925_full  = region_mean_series(adv_full,  yangtze_shp) * 86400.0
 ver_yz_925_full  = region_mean_series(ver_full,  yangtze_shp) * 86400.0
 Q_yz_925_full    = region_mean_series(Q_full,    yangtze_shp) * 86400.0
 
+dTdt_yz_925_bp_full = region_mean_series(dTdt_bp, yangtze_shp) * 86400.0
+adv_yz_925_bp_full  = region_mean_series(adv_bp, yangtze_shp) * 86400.0
+ver_yz_925_bp_full  = region_mean_series(ver_bp, yangtze_shp) * 86400.0
+Q_yz_925_bp_full    = region_mean_series(Q_bp, yangtze_shp) * 86400.0
+
 # =========================================================
 # 4. 对 5–9 月区域平均序列做 10–30 天带通滤波（nwts=61）
 # =========================================================
-dTdt_yz_925_bp_full = xr.DataArray(
-    LanczosFilter(dTdt_yz_925_full.values, 'bandpass', period=[10, 30], nwts=61).filted(),
-    coords=dTdt_yz_925_full.coords,
-    dims=dTdt_yz_925_full.dims,
-    name='dTdt_bp'
-)
-
-adv_yz_925_bp_full = xr.DataArray(
-    LanczosFilter(adv_yz_925_full.values, 'bandpass', period=[10, 30], nwts=61).filted(),
-    coords=adv_yz_925_full.coords,
-    dims=adv_yz_925_full.dims,
-    name='adv_bp'
-)
-
-ver_yz_925_bp_full = xr.DataArray(
-    LanczosFilter(ver_yz_925_full.values, 'bandpass', period=[10, 30], nwts=61).filted(),
-    coords=ver_yz_925_full.coords,
-    dims=ver_yz_925_full.dims,
-    name='ver_bp'
-)
-
-Q_yz_925_bp_full = xr.DataArray(
-    LanczosFilter(Q_yz_925_full.values, 'bandpass', period=[10, 30], nwts=61).filted(),
-    coords=Q_yz_925_full.coords,
-    dims=Q_yz_925_full.dims,
-    name='Q_bp'
-)
 
 # =========================================================
 # 5. 再裁回 6–8 月，供展示使用
@@ -754,163 +695,172 @@ dTdt_yz_925_bp = dTdt_yz_925_bp_full.sel(time=slice(analysis_start, analysis_end
 adv_yz_925_bp  = adv_yz_925_bp_full.sel(time=slice(analysis_start, analysis_end))
 ver_yz_925_bp  = ver_yz_925_bp_full.sel(time=slice(analysis_start, analysis_end))
 Q_yz_925_bp    = Q_yz_925_bp_full.sel(time=slice(analysis_start, analysis_end))
-
+#%%
 # =========================================================
 # 6. 事件期
 # =========================================================
-event_start = "2015-07-01"
-event_end   = "2015-07-11"
+event1_start = "2015-07-02"
+event1_end   = "2015-07-9"
 
+event2_start = "2015-07-17"
+event2_end   = "2015-07-27"
+
+event3_start = "2015-08-06"
+event3_end   = "2015-08-11"
 # =========================================================
 # 7. 平流分解（如果你后面还要继续用，可保留）
 #    这里也改成在 5–9 月上做，再裁到需要时段
 # =========================================================
-adv925_full = decompose_temperature_advection(
-    u=u.sel(time=slice(filter_start, filter_end)),
-    v=v.sel(time=slice(filter_start, filter_end)),
-    t=t.sel(time=slice(filter_start, filter_end)),
-    u_clim=u_clim,
-    v_clim=v_clim,
-    t_clim=t_clim,
-    start=filter_start,
-    end=filter_end,
-    level=925
-)
-
-adv925_full *= 86400.0
-
-adv925_series_full = xr.Dataset({
-    'adv_clim': region_mean_series(adv925_full['adv_clim'], yangtze_shp),
-    'adv_a_wind_on_climT': region_mean_series(adv925_full['adv_a_wind_on_climT'], yangtze_shp),
-    'adv_clim_wind_on_aT': region_mean_series(adv925_full['adv_clim_wind_on_aT'], yangtze_shp),
-    'adv_nonlinear': region_mean_series(adv925_full['adv_nonlinear'], yangtze_shp),
-    'adv_ano_out_subseason': region_mean_series(
-        adv925_full['adv_anom']
-        - adv925_full['adv_a_wind_on_climT'].data
-        - adv925_full['adv_clim_wind_on_aT'].data
-        - adv925_full['adv_nonlinear'].data,
-        yangtze_shp
-    ),
-    'adv_anom': region_mean_series(
-        adv925_full['adv_total'] - adv925_full['adv_clim'].data,
-        yangtze_shp
-    )
-})
-
-adv925_series = adv925_series_full.sel(time=slice(analysis_start, analysis_end))
 
 # =========================================================
-# 8. 柱状图数值：左 3 个原始，右 3 个带通
+# 9. 作图：3个事件，每列一个事件；上柱状图，下空间图
 # =========================================================
-adv_X_dTdt = float(np.nanmean(adv_yz_925.sel(time=slice(event_start, event_end)).values))
-ver_X_dTdt = float(np.nanmean(ver_yz_925.sel(time=slice(event_start, event_end)).values))
-Q_X_dTdt   = float(np.nanmean(Q_yz_925.sel(time=slice(event_start, event_end)).values))
-
-adv_X_dTdt_bp = float(np.nanmean(adv_yz_925_bp.sel(time=slice(event_start, event_end)).values))
-ver_X_dTdt_bp = float(np.nanmean(ver_yz_925_bp.sel(time=slice(event_start, event_end)).values))
-Q_X_dTdt_bp   = float(np.nanmean(Q_yz_925_bp.sel(time=slice(event_start, event_end)).values))
-
-#%%
-# =========================================================
-# 9. 作图
-# =========================================================
-fig = plt.figure(figsize=(3, 5))
-plt.subplots_adjust(wspace=0.2, hspace=0.5)
-title_head = '2015'
-
-# -------------------------
-# (a) 柱状图
-# -------------------------
-ax = fig.add_subplot(211)
-for spine in ax.spines.values():
-    spine.set_linewidth(1.5)
-
-ax.set_aspect('auto')
-ax.set_title(f'(a) {title_head} Temp_budget', fontsize=12, loc='left')
-ax.grid(True, linestyle='--', zorder=0, axis='y')
-
-values = [
-    adv_X_dTdt, ver_X_dTdt, Q_X_dTdt,
-    adv_X_dTdt_bp, ver_X_dTdt_bp, Q_X_dTdt_bp
+events = [
+    ("2015-07-02", "2015-07-09", "P1", "(a)", "(b)"),
+    ("2015-07-17", "2015-07-27", "P2", "(c)", "(d)"),
+    ("2015-08-06", "2015-08-11", "P3", "(e)", "(f)"),
 ]
-colors = ['#ff7373' if val > 0 else '#7373ff' for val in values]
 
-bars = ax.bar(range(6), values, width=0.3, color=colors, edgecolor='black', zorder=2)
+fig = plt.figure(figsize=(12, 5))
+plt.subplots_adjust(wspace=0.2, hspace=0.35)
 
-ax.set_xticks(range(6))
-ax.set_xticklabels([
-    r'$-(\mathbf{V} \cdot \nabla T)^{\prime}$',
-    r'$(\omega \sigma)^{\prime}$',
-    r'${Q}^{\prime}$',
-    r'$-(\mathbf{V} \cdot \nabla T)^{\prime}_{10\!-\!30d}$',
-    r'$(\omega \sigma)^{\prime}_{10\!-\!30d}$',
-    r'${Q}^{\prime}_{10\!-\!30d}$',
-], fontsize=9.0)
+level = 850
+last_contourfs = None
+last_ax_map = None
 
-# 上下交错排列
-for i, tick in enumerate(ax.xaxis.get_major_ticks()):
-    label_y = 0 if i % 2 == 0 else -0.12
-    tick_len = 6 if i % 2 == 0 else 14
+for i, (event_start, event_end, title_head, label_bar, label_map) in enumerate(events):
 
-    tick.label1.set_y(label_y)
-    tick.tick1line.set_markersize(tick_len)
-    tick.tick1line.set_markeredgewidth(1.0)
+    # =====================================================
+    # 每个事件对应的柱状图数值
+    # =====================================================
+    adv_X_dTdt_bp = float(np.nanmean(
+        adv_yz_925_bp.sel(time=slice(event_start, event_end)).values
+    ))
+    ver_X_dTdt_bp = float(np.nanmean(
+        ver_yz_925_bp.sel(time=slice(event_start, event_end)).values
+    ))
+    Q_X_dTdt_bp = float(np.nanmean(
+        Q_yz_925_bp.sel(time=slice(event_start, event_end)).values
+    ))
 
-# 右侧三个加浅蓝底，表示带通结果
-ax.axvspan(2.5, 5.5, color="deepskyblue", alpha=0.15, zorder=0)
+    values = [adv_X_dTdt_bp, ver_X_dTdt_bp, Q_X_dTdt_bp]
+    colors = ['#ff7373' if val > 0 else '#7373ff' for val in values]
 
-ax.set_ylim(-2.0, 2.0)
-ax.set_xlim(-0.5, 5.5)
-ax.axhline(0, color='#454545', lw=0.7)
+    # =====================================================
+    # 上排：柱状图
+    # =====================================================
+    ax = fig.add_subplot(2, 3, i + 1)
 
-ax.set_yticks(np.arange(-2.0, 2.01, 0.4))
-ax.set_yticklabels(
-    [f'{v:.1f}' if abs(v) > 1e-8 else '0' for v in np.arange(-2.0, 2.01, 0.4)],
-    fontsize=12, color='#000000'
-)
-ax.tick_params(axis='y', labelsize=12, color='#000000')
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
 
-# -------------------------
-# (b) 空间图
-# 这里仍展示带通场
-# -------------------------
-level = 500
-contourfs1, ax1 = pic(
-    fig, 212,
-    u_bp['lat'], u_bp['lon'],
-    np.array([[-40, -20, -10], [10, 20, 40]]) * 4 * 2,
-    np.array([-3, -2, -1, -.5, .5, 1, 2, 3]),
-    u_bp.sel(time=slice(event_start, event_end), level=level).mean('time'),
-    v_bp.sel(time=slice(event_start, event_end), level=level).mean('time'),
-    z_bp.sel(time=slice(event_start, event_end), level=level).mean('time'),
-    t2m_bp.sel(time=slice(event_start, event_end)).mean('time'),
-    f'(b) {title_head} 500UVZ&T2M',
-    5
-)
+    ax.set_title(f'{label_bar} {title_head} Temp_budget',
+                 fontsize=12, loc='left')
 
-# -------------------------
-# colorbar
-# -------------------------
+    ax.grid(True, linestyle='--', zorder=0, axis='y')
+
+    ax.bar(
+        range(3), values,
+        width=0.4,
+        color=colors,
+        edgecolor='black',
+        zorder=2
+    )
+
+    ax.set_xticks(range(3))
+    ax.set_xticklabels([
+        r'$-(\mathbf{V} \cdot \nabla T)^{\prime}$',
+        r'$(\omega \sigma)^{\prime}$',
+        r'${Q}^{\prime}$',
+    ], fontsize=11)
+
+    ax.set_xlim(-0.5, 2.5)
+    ax.set_ylim(-0.5, 0.5)
+    ax.axhline(0, color='#454545', lw=0.7)
+
+    yticks = np.arange(-0.5, 0.51, 0.1)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(
+        [f'{v:.1f}' if abs(v) > 1e-8 else '0' for v in yticks],
+        fontsize=11,
+        color='#000000'
+    )
+
+    ax.tick_params(axis='y', labelsize=11, color='#000000')
+
+    if i == 0:
+        ax.set_ylabel(' ', fontsize=12)
+
+    # =====================================================
+    # 下排：空间图
+    # =====================================================
+    contourfs1, ax1 = pic(
+        fig, 230 + i + 4,
+        u_bp['lat'], u_bp['lon'],
+             np.array([[-40, -20, -10], [10, 20, 40]]) * 4 * 2,
+        np.array([-3, -2, -1, -.5, .5, 1, 2, 3]),
+        u_bp.sel(time=slice(event_start, event_end), level=level).mean('time'),
+        v_bp.sel(time=slice(event_start, event_end), level=level).mean('time'),
+        z_bp.sel(time=slice(event_start, event_end), level=level).mean('time'),
+        t2m_bp.sel(time=slice(event_start, event_end)).mean('time'),
+        f'{label_map} {title_head} 850UVZ&T2M',
+        5
+    )
+
+    last_contourfs = contourfs1
+    last_ax_map = ax1
+
+
+# =========================================================
+# colorbar：放在最右侧空间图旁边
+# =========================================================
 ax_colorbar = inset_axes(
-    ax1, width="4%", height="100%", loc='center right',
-    bbox_to_anchor=(0.08, 0, 1, 1),
-    bbox_transform=ax1.transAxes, borderpad=0
+    last_ax_map,
+    width="4%",
+    height="100%",
+    loc='center right',
+    bbox_to_anchor=(0.10, 0, 1, 1),
+    bbox_transform=last_ax_map.transAxes,
+    borderpad=0
 )
-cb1 = plt.colorbar(contourfs1, cax=ax_colorbar, orientation='vertical', drawedges=True)
-cb1.locator = ticker.FixedLocator(np.array([-3, -2, -1, -.5, .5, 1, 2, 3]))
-cb1.set_ticklabels(['-3.0', '-2.0', '-1.0', '-0.5', ' 0.5', ' 1.0', ' 2.0', ' 3.0'])
+
+cb1 = plt.colorbar(
+    last_contourfs,
+    cax=ax_colorbar,
+    orientation='vertical',
+    drawedges=True
+)
+
+cb1.locator = ticker.FixedLocator(
+    np.array([-3, -2, -1, -.5, .5, 1, 2, 3])
+)
+
+cb1.set_ticklabels([
+    '-3.0', '-2.0', '-1.0', '-0.5',
+    ' 0.5', ' 1.0', ' 2.0', ' 3.0'
+])
+
 cb1.ax.tick_params(length=0, labelsize=12, direction='in')
 cb1.dividers.set_linewidth(1.25)
 cb1.outline.set_linewidth(1.25)
 
-# -------------------------
+
+# =========================================================
 # 强制裁剪
-# -------------------------
+# =========================================================
 for ax_ in fig.axes:
     for artist in ax_.get_children():
         if hasattr(artist, "set_clip_on"):
             artist.set_clip_on(True)
 
-plt.savefig(fr"{PYFILE}/p4/pic/局地环流_2015次季节上旬.pdf", bbox_inches='tight')
-plt.savefig(fr"{PYFILE}/p4/pic/局地环流_2015次季节上旬.png", bbox_inches='tight', dpi=600)
+plt.savefig(
+    fr"{PYFILE}/p4/pic/局地环流_2015次季节三次过程.pdf",
+    bbox_inches='tight'
+)
+plt.savefig(
+    fr"{PYFILE}/p4/pic/局地环流_2015次季节三次过程.png",
+    bbox_inches='tight',
+    dpi=600
+)
+
 plt.show()

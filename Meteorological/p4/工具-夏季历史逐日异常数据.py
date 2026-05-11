@@ -260,8 +260,8 @@ def print_grid_info(name: str, da: xr.DataArray):
 # =========================
 # 参数区
 # =========================
-clim_start = "1961"
-clim_end = "2022"
+clim_start = "1991"
+clim_end = "2020"
 
 target_start = "1961-05-01"
 target_end = "2022-09-30"

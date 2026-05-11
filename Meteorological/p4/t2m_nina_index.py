@@ -66,11 +66,21 @@ t2m = t2m.mean(dim=['lat', 'lon'])
 t2m678 = t2m.groupby('time.year').mean('time')
 
 # 未去趋势原始距平
-t2m_ano_raw = t2m678 - t2m678.mean('year')
+# =========================
+# 气候态基准：1990–2020
+# =========================
+base_period = slice(1991, 2020)
 
-# 线性趋势（基于原始距平）
+# 1990–2020 气候态平均
+t2m_clim_1990_2020 = t2m678.sel(year=base_period).mean('year')
+
+# 未去趋势原始距平：相对于 1990–2020 气候态
+t2m_ano_raw = t2m678 - t2m_clim_1990_2020
+
+# 线性趋势（基于 1990–2020 基准下的原始距平）
 years = t2m_ano_raw['year'].values
 y_raw = t2m_ano_raw['t2m'].values
+
 coeffs = np.polyfit(years, y_raw, 1)
 trend_values = np.polyval(coeffs, years)
 trend = xr.DataArray(trend_values, coords={'year': years}, dims=['year'])
@@ -78,8 +88,9 @@ trend = xr.DataArray(trend_values, coords={'year': years}, dims=['year'])
 # 去趋势后的距平
 t2m_ano = t2m_ano_raw - trend
 
-# 标准差（基于去趋势后的序列）
-sigma = t2m_ano.std('year')
+# 标准差：基于 1990–2020 年的去趋势后距平
+sigma = t2m_ano.sel(year=base_period).std('year')
+
 
 # =========================
 # 整理数据
@@ -147,7 +158,7 @@ ax.axhline(0, color='k', linewidth=1)
 
 # ±1 sigma
 # ax.axhline(sigma['t2m'].data, color='purple', ls='--', linewidth=1)
-ax.axhline(-sigma['t2m'].data, color='green', ls='--', linewidth=2)
+ax.axhline(-0.5*sigma['t2m'].data, color='green', ls='--', linewidth=2)
 
 # ENSO 标记偏移量
 offset = 0.03 * (np.nanmax(vals) - np.nanmin(vals))
