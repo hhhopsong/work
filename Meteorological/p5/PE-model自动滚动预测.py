@@ -1648,7 +1648,7 @@ DATA = r"/volumes/TiPlus7100/data"
 
 EHCI = xr.open_dataset(f"{PYFILE}/p5/data/EHCI_daily.nc")
 EHCI = EHCI.groupby('time.year')
-EHCI30 = EHCI.apply(lambda x: (x > 0.6).sum())
+EHCI30 = EHCI.apply(lambda x: (x > 0.5).sum())
 EHCI30 = (EHCI30 - EHCI30.mean()) / EHCI30.std('year')
 EHCI30 = EHCI30['EHCI']
 
@@ -1697,7 +1697,7 @@ X_train_all_dict, X_pre_all_dict, X_roll_all_dict, meta_df, TS, TS_pre, TS_all =
     TR_time=TR_time,
     PR_time=PR_time,
     predict_month=predict_month,
-    elements=('sst', 'slp', 't2m', 'sic', 'swvl'),
+    elements=('sst', 'sic', 'swvl'),
     alpha=0.1,
     min_size=40,
     cross_month=9,

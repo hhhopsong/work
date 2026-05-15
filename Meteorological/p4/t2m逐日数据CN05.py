@@ -295,15 +295,9 @@ def main():
     fig, ax = plt.subplots(figsize=(6, 3))
 
     # 研究区间背景色
-    # 7月2日-7月9日的背景色
-    ax.axvspan(30+2, 30+9, color="#959595", alpha=0.3, zorder=0)
-    ax.text(30 + 5.5, 28, "P1", ha="center", va="center", color='blue', fontsize=10, clip_on=False, zorder=10)
-    # 7月17日-7月27日
-    ax.axvspan(30+17, 30+27, color="#959595", alpha=0.3, zorder=0)
-    ax.text(30 + 22, 28, "P2", ha="center", va="center", color='blue', fontsize=10, clip_on=False, zorder=10)
-    # 8月6日-8月11日
-    ax.axvspan(61+6, 61+11, color="#959595", alpha=0.3, zorder=0)
-    ax.text(61 + 8.5, 28, "P3", ha="center", va="center", color='blue', fontsize=10, clip_on=False, zorder=10)
+    # 6月15日-7月31日的背景色
+    ax.axvspan(0+14, 30+31, color="#959595", alpha=0.3, zorder=0)
+
 
     # ------------- 填色 -------------
     # 1) 2015 > 气候态：浅红

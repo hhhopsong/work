@@ -569,7 +569,7 @@ default_rec_Set = [{'point': [105, 120, 20, 30], 'color': 'blue', 'ls': '--', 'l
 
 EHCI = xr.open_dataset(f"{PYFILE}/p5/data/EHCI_daily.nc")
 EHCI = EHCI.groupby('time.year')
-EHCI30 = EHCI.apply(lambda x: (x > 0.6).sum())
+EHCI30 = EHCI.apply(lambda x: (x > 0.5).sum())
 EHCI30 = (EHCI30 - EHCI30.mean()) / EHCI30.std('year')
 EHCI30 = EHCI30['EHCI']
 
@@ -596,7 +596,7 @@ swvl = prepare_swvl_dataset((swvl1_da + swvl2_da).rename('swvl'))
 # ============================================================
 # 计算
 # ============================================================
-TR_time = [1962, 2004]  # 训练时间段
+TR_time = [1961, 2004]  # 训练时间段
 PR_time = [2005, 2022]
 
 def detrend(data):
@@ -611,6 +611,16 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
 
     if predictor_zone is None:
         predictor_zone = []
+
+    def _ordered_slice(coord, a, b):
+        """Build a slice that respects coord ordering (ascending/descending)."""
+        coord_vals = coord.values
+        if coord_vals[0] <= coord_vals[-1]:
+            return slice(min(a, b), max(a, b))
+        return slice(max(a, b), min(a, b))
+
+    def _safe_mean(da, dims):
+        return da.mean(dims, skipna=True)
 
     def seasonal_mean_same_year(da, months, start_year, end_year):
         """不跨年的月份平均，例如 [3,4,5]"""
@@ -742,8 +752,9 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
     # 训练/预测时间序列
     # ============================================================
     timeSerie_train = timeSerie.sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}')).data
-    train_years = pd.to_datetime(np.arange(TR_time[0], TR_time[1] + 1), format='%Y')
-    pre_years = pd.to_datetime(np.arange(PR_time[0], PR_time[1] + 1), format='%Y')
+    train_years = np.arange(TR_time[0], TR_time[1] + 1)
+    pre_years = np.arange(PR_time[0], PR_time[1] + 1)
+    all_years = np.arange(TR_time[0], PR_time[1] + 1)
 
     # ============================================================
     # 回归 / 相关场
@@ -790,7 +801,7 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
 
     timeSerie_all = timeSerie.sel(year=slice(f'{TR_time[0]}', f'{PR_time[1]}'))
     timeSerie_all = (timeSerie_all - nor_mean) / nor_std
-    TS_all = pd.Series(timeSerie_all, index=np.arange(TR_time[0], PR_time[1] + 1), name='TS_all')
+    TS_all = pd.Series(timeSerie_all, index=all_years, name='TS_all')
 
     # ============================================================
     # 场统一管理
@@ -868,42 +879,41 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
             pre_da_ = transform(pre_da, 'lon', '180->360')
             all_da_ = transform(all_da, 'lon', '180->360')
 
+        lat_slice = _ordered_slice(train_da_['lat'], X_zone[0], X_zone[1])
+        lon_slice = _ordered_slice(train_da_['lon'], X_zone[2], X_zone[3])
+
         # 权重场
-        weight = corr_da_.sel(
-            lat=slice(X_zone[0], X_zone[1]),
-            lon=slice(X_zone[2], X_zone[3])
-        )
+        weight = corr_da_.sel(lat=lat_slice, lon=lon_slice)
+
+        if weight.size == 0:
+            raise ValueError(f"Empty predictor region for {elem}: {X_zone}")
 
         sig_mask = np.abs(weight) > r_test(TR_time[1] - TR_time[0] + 1, 0.1)
+        weight_masked = xr.where(sig_mask, weight, np.nan)
+        if (weight_masked.count() == 0) or (weight_masked.size == 0):
+            weight_masked = xr.ones_like(weight)
 
         # train
-        X_train = train_da_[var_name].sel(
-            lat=slice(X_zone[0], X_zone[1]),
-            lon=slice(X_zone[2], X_zone[3])
-        ) * xr.where(sig_mask, weight, np.nan)
+        X_train = train_da_[var_name].sel(lat=lat_slice, lon=lon_slice) * weight_masked
 
-        X_train = X_train.mean(['lat', 'lon'])
+        X_train = _safe_mean(X_train, ['lat', 'lon'])
         X_mean, X_std = X_train.mean(), X_train.std()
+        if not np.isfinite(X_std) or X_std == 0:
+            X_std = 1.0
         X_train = (X_train - X_mean) / X_std
         X_train = pd.Series(X_train.data, index=train_years, name=f'X{index}_train')
 
         # pre
-        X_pre = pre_da_[var_name].sel(
-            lat=slice(X_zone[0], X_zone[1]),
-            lon=slice(X_zone[2], X_zone[3])
-        ) * xr.where(sig_mask, weight, np.nan)
+        X_pre = pre_da_[var_name].sel(lat=lat_slice, lon=lon_slice) * weight_masked
 
-        X_pre = X_pre.mean(['lat', 'lon'])
+        X_pre = _safe_mean(X_pre, ['lat', 'lon'])
         X_pre = (X_pre - X_mean) / X_std
         X_pre = pd.Series(X_pre.data, index=pre_years, name=f'X{index}_pre')
 
         # all / rolling corr
-        X_all = all_da_[var_name].sel(
-            lat=slice(X_zone[0], X_zone[1]),
-            lon=slice(X_zone[2], X_zone[3])
-        ) * xr.where(sig_mask, weight, np.nan)
+        X_all = all_da_[var_name].sel(lat=lat_slice, lon=lon_slice) * weight_masked
 
-        X_all = X_all.mean(['lat', 'lon'])
+        X_all = _safe_mean(X_all, ['lat', 'lon'])
         X_all = (X_all - X_mean) / X_std
         X_all = pd.Series(X_all.data, index=np.arange(TR_time[0], PR_time[1] + 1), name=f'X{index}_all')
 
@@ -927,56 +937,26 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
 # ============================================================
 # 第一组预测因子
 # ============================================================
-X1 = ['sic', 76, 68, 35, 50]
-X2 = ['sst', 70,	10,	-70,	-6]
+X2 = ['swvl', 70,	50,	100,	130]
 
 X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, \
 t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr, swvlReg, swvlCorr = predictor(
-    timeSerie, [1962, 2004], [2005, 2022],
-    month1=[3, 4], month2=[11, 12],
-    predictor_zone=[],
+    timeSerie, [1961, 2004], [2005, 2022],
+    month1=[5, 6], month2=None,
+    predictor_zone=[X2],
     cross_month=9
 )
 
 # ============================================================
 # 第二组预测因子
 # ============================================================
-X1_b = ['sst', 62.0,	52.0,	162.0,	188.0]
-X2_b = ['slp', 34.0,	-20,	210,	290]
-X3_b = ['sst', 65, 10, -65, -10]
+X1_b = ['sst', 9,	-9,	170,	170+110]
 
 X_train_dict2, X_pre_dict2, X_rollingCorr_dict2, _, _, _, \
 t2mReg2, t2mCorr2, slpReg2, slpCorr2, sstReg2, sstCorr2, sicReg2, sicCorr2, swvlReg2, swvlCorr2 = predictor(
-    timeSerie, [1962, 2004], [2005, 2022],
-    month1=[5], month2=[12],
-    predictor_zone=[X2_b],
-    cross_month=9
-)
-
-# ============================================================
-# 第三组预测因子
-# ============================================================
-X1_c = ['sst', 30.0, 10.0, 194.0, 242.0]
-X2_c = ['sic', 85.5, 81.5, -165.5, -142.5]
-
-X_train_dict3, X_pre_dict3, X_rollingCorr_dict3, _, _, _, \
-t2mReg3, t2mCorr3, slpReg3, slpCorr3, sstReg3, sstCorr3, sicReg3, sicCorr3, swvlReg3, swvlCorr3 = predictor(
-    timeSerie, [1962, 2004], [2005, 2022],
-    month1=[4], month2=[2],
-    predictor_zone=[X1_c],
-    cross_month=9
-)
-
-# ============================================================
-# 第四组预测因子：土壤湿度
-# ============================================================
-X4 = ['swvl', 30.500000000001000,	22.00000000000090,	104.49999999999800,	121.49999999999700]
-
-X_train_dict4, X_pre_dict4, X_rollingCorr_dict4, _, _, _, \
-t2mReg4, t2mCorr4, slpReg4, slpCorr4, sstReg4, sstCorr4, sicReg4, sicCorr4, swvlReg4, swvlCorr4 = predictor(
-    timeSerie, [1962, 2004], [2005, 2022],
-    month1=[3], month2=[12],
-    predictor_zone=[],
+    timeSerie, [1961, 2004], [2005, 2022],
+    month1=[5, 6], month2=[2, 3],
+    predictor_zone=[X1_b],
     cross_month=9
 )
 
@@ -984,31 +964,69 @@ t2mReg4, t2mCorr4, slpReg4, slpCorr4, sstReg4, sstCorr4, sicReg4, sicCorr4, swvl
 # 作图
 # 7 行：SIC / SST / SLP / SST / SWVL / rollingCorr / forecast
 # ============================================================
-fig = plt.figure(figsize=(5, 16))
+fig = plt.figure(figsize=(5, 8))
 fig.subplots_adjust(hspace=0.4)
-gs = gridspec.GridSpec(7, 1, height_ratios=[2, 1, 1, 1, 1, 1, 1])
+gs = gridspec.GridSpec(4, 1, height_ratios=[1, 1, 1, 1])
 
-# (a) SIC
-ax_sic = fig.add_subplot(gs[0], projection=ccrs.NorthPolarStereo(central_longitude=110))
-plot_sea_ice(
-    ax_sic,
-    "(a) 3+4_mean_SIC",
-    sic.lon,
-    sic.lat,
-    sicCorr,
-    np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
-    rec_Set=[
-        {'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
-        {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': 'brown', 'ls': (0, (1, 1)), 'lw': 1.6}
-    ],
-    ice_corr=sicCorr,
-    sig_draw_set={'N': TR_time[1] - TR_time[0] + 1, 'alpha': 0.1, 'hatch': '..', 'lw': 0.2, 'color': '#303030'}
-)
+# # (a) SIC
+# ax_sic = fig.add_subplot(gs[0], projection=ccrs.NorthPolarStereo(central_longitude=110))
+# plot_sea_ice(
+#     ax_sic,
+#     "(a) 56_mean_SIC",
+#     sic.lon,
+#     sic.lat,
+#     sicCorr,
+#     np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
+#     rec_Set=[
+#         {'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
+#         {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': 'brown', 'ls': (0, (1, 1)), 'lw': 1.6}
+#     ],
+#     ice_corr=sicCorr,
+#     sig_draw_set={'N': TR_time[1] - TR_time[0] + 1, 'alpha': 0.1, 'hatch': '..', 'lw': 0.2, 'color': '#303030'}
+# )
 
 # (b) SST
+ax = fig.add_subplot(gs[0], projection=ccrs.PlateCarree(central_longitude=180 - 70))
+sub_pic(
+    ax, title='(a) 56_mean_SM', extent=[-20, 170, 15, 80],
+    geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
+    fontsize_times=default_fontsize_times,
+    shading=swvlCorr,
+    shading_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
+    shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+    shading_corr=swvlCorr,
+    p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw=False,
+    cb_draw=True,
+    shading2=None,
+    shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
+    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+    shading2_corr=None,
+    p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw2=False,
+    cb_draw2=True,
+    contour=None,
+    contour_levels=np.array([[-50, -20], [20, 50]]) * 0.0005,
+    contour_cmap=default_contour_cmap,
+    contour_corr=None,
+    p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
+    wind_1=default_wind_1,
+    wind_1_set=default_wind_1_set,
+    wind_1_key_set=default_wind_1_key_set,
+    bbox_to_anchor_1=None,
+    loc1='upper right',
+    wind_2=default_wind_2,
+    wind_2_set=default_wind_2_set,
+    wind_2_key_set=default_wind_2_key_set,
+    bbox_to_anchor_2=None,
+    loc2='upper right',
+    rec_Set=[
+        {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}]
+)
+
 ax = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180 - 70))
 sub_pic(
-    ax, title='(b) 6_minus_4_SST', extent=[-180, 180, -50, 80],
+    ax, title='(b) 56_minus_23_SST', extent=[-180, 180, -30, 80],
     geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
     fontsize_times=default_fontsize_times,
     shading=None,
@@ -1018,10 +1036,10 @@ sub_pic(
     p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
     edgedraw=False,
     cb_draw=True,
-    shading2=sstCorr,
+    shading2=sstCorr2,
     shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
     shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-    shading2_corr=sstCorr,
+    shading2_corr=sstCorr2,
     p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
     edgedraw2=False,
     cb_draw2=True,
@@ -1040,121 +1058,8 @@ sub_pic(
     wind_2_key_set=default_wind_2_key_set,
     bbox_to_anchor_2=None,
     loc2='upper right',
-    rec_Set=[{'point': [X2[3], X2[4], X2[1], X2[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}]
-)
-
-# (c) SLP
-ax = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=180 - 70))
-sub_pic(
-    ax, title='(c) 5_minus_12_SLP', extent=[-180, 180, -50, 80],
-    geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
-    fontsize_times=default_fontsize_times,
-    shading=None,
-    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
-    shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-    shading_corr=None,
-    p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-    edgedraw=False,
-    cb_draw=True,
-    shading2=slpCorr2,
-    shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
-    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-    shading2_corr=slpCorr2,
-    p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-    edgedraw2=False,
-    cb_draw2=True,
-    contour=None,
-    contour_levels=np.array([[-50, -20], [20, 50]]) * 0.0005,
-    contour_cmap=default_contour_cmap,
-    contour_corr=None,
-    p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
-    wind_1=default_wind_1,
-    wind_1_set=default_wind_1_set,
-    wind_1_key_set=default_wind_1_key_set,
-    bbox_to_anchor_1=None,
-    loc1='upper right',
-    wind_2=default_wind_2,
-    wind_2_set=default_wind_2_set,
-    wind_2_key_set=default_wind_2_key_set,
-    bbox_to_anchor_2=None,
-    loc2='upper right',
-    rec_Set=[{'point': [X2_b[3], X2_b[4], X2_b[1], X2_b[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}]
-)
-
-# (d) SST
-ax = fig.add_subplot(gs[3], projection=ccrs.PlateCarree(central_longitude=180 - 70))
-sub_pic(
-    ax, title='(d) 4_minus_2_SST', extent=[-180, 180, -50, 80],
-    geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
-    fontsize_times=default_fontsize_times,
-    shading=None,
-    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
-    shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-    shading_corr=None,
-    p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-    edgedraw=False,
-    cb_draw=True,
-    shading2=sstCorr3,
-    shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
-    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-    shading2_corr=sstCorr3,
-    p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-    edgedraw2=False,
-    cb_draw2=True,
-    contour=None,
-    contour_levels=np.array([[-50, -20], [20, 50]]) * 0.0005,
-    contour_cmap=default_contour_cmap,
-    contour_corr=None,
-    p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
-    wind_1=default_wind_1,
-    wind_1_set=default_wind_1_set,
-    wind_1_key_set=default_wind_1_key_set,
-    bbox_to_anchor_1=None,
-    loc1='upper right',
-    wind_2=default_wind_2,
-    wind_2_set=default_wind_2_set,
-    wind_2_key_set=default_wind_2_key_set,
-    bbox_to_anchor_2=None,
-    loc2='upper right',
-    rec_Set=[{'point': [X1_c[3], X1_c[4], X1_c[1], X1_c[2]], 'color': 'darkgreen', 'ls': (0, (1, 1)), 'lw': 1.6}]
-)
-
-# (e) SWVL
-ax = fig.add_subplot(gs[4], projection=ccrs.PlateCarree(central_longitude=180 - 70))
-sub_pic(
-    ax, title='(e) 5_minus_3_SWVL', extent=[-180, 180, -50, 80],
-    geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
-    fontsize_times=default_fontsize_times,
-    shading=None,
-    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
-    shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-    shading_corr=None,
-    p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-    edgedraw=False,
-    cb_draw=True,
-    shading2=swvlCorr4,
-    shading2_levels=np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
-    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-    shading2_corr=swvlCorr4,
-    p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-    edgedraw2=False,
-    cb_draw2=True,
-    contour=None,
-    contour_levels=np.array([[-50, -20], [20, 50]]) * 0.0005,
-    contour_cmap=default_contour_cmap,
-    contour_corr=None,
-    p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
-    wind_1=default_wind_1,
-    wind_1_set=default_wind_1_set,
-    wind_1_key_set=default_wind_1_key_set,
-    bbox_to_anchor_1=None,
-    loc1='upper right',
-    wind_2=default_wind_2,
-    wind_2_set=default_wind_2_set,
-    wind_2_key_set=default_wind_2_key_set,
-    bbox_to_anchor_2=None,
-    loc2='upper right',
-    rec_Set=[{'point': [X4[3], X4[4], X4[1], X4[2]], 'color': 'purple', 'ls': (0, (1, 1)), 'lw': 1.6}]
+    rec_Set=[
+        {'point': [X1_b[3], X1_b[4], X1_b[1], X1_b[2]], 'color': '#e91e63', 'ls': (0, (1, 1)), 'lw': 1.6}]
 )
 
 # ============================================================
@@ -1167,8 +1072,6 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 predictor_results = [
     (X_train_dict,  X_pre_dict,  X_rollingCorr_dict),
     (X_train_dict2, X_pre_dict2, X_rollingCorr_dict2),
-    (X_train_dict3, X_pre_dict3, X_rollingCorr_dict3),
-    (X_train_dict4, X_pre_dict4, X_rollingCorr_dict4),
 ]
 
 # 构建因子池
@@ -1202,9 +1105,10 @@ df_pre = pd.concat(
 df_train_step = df_train.iloc[1:].copy()
 
 step_cols = ['TS'] + candidate_predictors
-df_step = df_train_step[step_cols].replace([np.inf, -np.inf], np.nan).dropna().copy()
+# Keep NaNs here; each trial model will be cleaned per feature
+df_step = df_train_step[step_cols].replace([np.inf, -np.inf], np.nan).copy()
 
-print("Training rows used for stepwise regression:", len(df_step))
+print("Training rows used for stepwise regression:", df_step['TS'].dropna().shape[0])
 print("Candidate predictors:", candidate_predictors)
 
 def calc_vif(df, features):
@@ -1223,15 +1127,36 @@ def calc_vif(df, features):
         vif_values.append(variance_inflation_factor(X_const.values, i))
     return pd.Series(vif_values, index=features, dtype=float)
 
+def _clean_for_model(df, response, features, min_samples=8):
+    cols = [response] + features
+    df_clean = df[cols].replace([np.inf, -np.inf], np.nan).dropna()
+    if len(df_clean) < min_samples:
+        return None
+    if df_clean[response].std() == 0:
+        return None
+    for feat in features:
+        if df_clean[feat].std() == 0:
+            return None
+    return df_clean
+
+# Filter out predictors that are all-NaN/constant after cleaning
+min_samples = 8
+candidate_predictors = [
+    p for p in candidate_predictors
+    if _clean_for_model(df_step, 'TS', [p], min_samples=min_samples) is not None
+]
+print("Valid predictors after cleaning:", candidate_predictors)
+
 def stepwise_selection(
     df,
     response='TS',
     candidates=None,
-    p_enter=0.05,
-    p_remove=0.10,
+    p_enter=0.10,
+    p_remove=0.15,
     vif_thres=5.0,
     max_steps=100,
-    verbose=True
+    verbose=True,
+    min_samples=8
 ):
     if candidates is None:
         candidates = [c for c in df.columns if c != response]
@@ -1252,13 +1177,17 @@ def stepwise_selection(
             trial_features = selected + [feature]
             formula = response + " ~ " + " + ".join(trial_features)
             try:
-                model = smf.ols(formula=formula, data=df).fit()
+                df_clean = _clean_for_model(df, response, trial_features, min_samples=min_samples)
+                if df_clean is None:
+                    continue
+                model = smf.ols(formula=formula, data=df_clean).fit()
                 pval = model.pvalues.get(feature, np.nan)
                 if np.isfinite(pval):
                     if (best_pval is None) or (pval < best_pval):
                         best_pval = pval
                         best_feature = feature
-            except Exception:
+            except Exception as e:
+                print(f"[OLS failed] {feature}: {repr(e)}")
                 continue
 
         if (best_feature is not None) and (best_pval < p_enter):
@@ -1271,7 +1200,10 @@ def stepwise_selection(
         # backward by p
         while len(selected) > 0:
             formula = response + " ~ " + " + ".join(selected)
-            model = smf.ols(formula=formula, data=df).fit()
+            df_clean = _clean_for_model(df, response, selected, min_samples=min_samples)
+            if df_clean is None:
+                break
+            model = smf.ols(formula=formula, data=df_clean).fit()
             pvalues = model.pvalues.drop('Intercept', errors='ignore')
 
             if len(pvalues) == 0:
@@ -1292,7 +1224,10 @@ def stepwise_selection(
 
         # backward by vif
         while len(selected) >= 2:
-            vif = calc_vif(df, selected)
+            df_clean = _clean_for_model(df, response, selected, min_samples=min_samples)
+            if df_clean is None:
+                break
+            vif = calc_vif(df_clean, selected)
             max_vif_feature = vif.idxmax()
             max_vif_value = vif.max()
 
@@ -1314,7 +1249,10 @@ def stepwise_selection(
         cleaned = False
 
         formula = response + " ~ " + " + ".join(selected)
-        model = smf.ols(formula=formula, data=df).fit()
+        df_clean = _clean_for_model(df, response, selected, min_samples=min_samples)
+        if df_clean is None:
+            break
+        model = smf.ols(formula=formula, data=df_clean).fit()
         pvalues = model.pvalues.drop('Intercept', errors='ignore')
         if len(pvalues) > 0 and pvalues.max() > p_remove:
             worst_feature = pvalues.idxmax()
@@ -1326,7 +1264,7 @@ def stepwise_selection(
             continue
 
         if len(selected) >= 2:
-            vif = calc_vif(df, selected)
+            vif = calc_vif(df_clean, selected)
             if vif.max() > vif_thres:
                 worst_feature = vif.idxmax()
                 worst_vif = vif.max()
@@ -1341,15 +1279,16 @@ model_predictors = stepwise_selection(
     df=df_step,
     response='TS',
     candidates=candidate_predictors,
-    p_enter=0.05,
-    p_remove=0.10,
+    p_enter=0.10,
+    p_remove=0.15,
     vif_thres=5.0,
     max_steps=100,
-    verbose=True
+    verbose=True,
+    min_samples=min_samples
 )
 
 if len(model_predictors) == 0:
-    raise ValueError("No predictors survived stepwise selection. Please relax thresholds or check data quality.")
+    print("No predictors survived stepwise selection. Falling back to intercept-only model.")
 
 print("Selected predictors:", model_predictors)
 
@@ -1370,7 +1309,7 @@ df_pre = pd.concat(
 # ============================================================
 # (f) rolling correlation
 # ============================================================
-ax_rollingCorr = fig.add_subplot(gs[5])
+ax_rollingCorr = fig.add_subplot(gs[2])
 ax_rollingCorr.set_ylim(-0.5, 1.0)
 
 n_factor = len(selected_predictors)
@@ -1438,13 +1377,16 @@ for txt in leg.get_texts()[:-1]:
 leg.get_texts()[-1].set_fontweight('normal')
 leg.get_texts()[-1].set_alpha(0.8)
 
-ax_rollingCorr.set_title('(f) Rolling correlation', loc='left', fontsize=8)
+ax_rollingCorr.set_title('(c) Rolling correlation', loc='left', fontsize=8)
 ax_rollingCorr.tick_params(labelsize=6)
 
 # ============================================================
 # 最终回归建模
 # ============================================================
-formula = "TS ~ " + " + ".join(model_predictors)
+if len(model_predictors) == 0:
+    formula = "TS ~ 1"
+else:
+    formula = "TS ~ " + " + ".join(model_predictors)
 print("Final formula:", formula)
 
 model = smf.ols(formula=formula, data=df_train).fit()
@@ -1468,7 +1410,7 @@ TS_all_plot = pd.concat([TS.rename('TS'), TS_pre.rename('TS')])
 # ============================================================
 # (g) 预测图
 # ============================================================
-ax_predict = fig.add_subplot(gs[6])
+ax_predict = fig.add_subplot(gs[3])
 ax_predict.set_ylim(-3, 3)
 
 ax_predict.plot(TS_all_plot.index, TS_all_plot.values, color='black', linestyle='-', linewidth=1.5, label='Obs')
@@ -1476,7 +1418,7 @@ ax_predict.plot(df_train.index, df_train['predicted_TS'], color='blue', linestyl
 ax_predict.plot(df_pre.index, df_pre['inDependent_pre'], color='red', linestyle=(0, (1, 1)), linewidth=1.5, label='Independent forecast')
 ax_predict.axhline(y=0, color='#999999', linestyle='-', linewidth=0.5, alpha=0.5)
 ax_predict.legend(loc='lower right', fontsize=6 * default_fontsize_times, ncol=3, frameon=False)
-ax_predict.axvline(x=pd.to_datetime(f'{TR_time[1]}-6-30'), color='orange', linestyle='-', linewidth=1)
+ax_predict.axvline(x=TR_time[1], color='orange', linestyle='-', linewidth=1)
 
 tcc_text_train = f"TCC={df_train['TS'].corr(df_train['predicted_TS']):.2f}"
 rmse_text_train = f"RMSE={np.sqrt(np.mean((df_train['TS'] - df_train['predicted_TS'])**2)):.2f}"
@@ -1514,7 +1456,7 @@ ax_predict.text(
     zorder=10
 )
 
-ax_predict.set_title('(g) Forecast', loc='left', fontsize=8)
+ax_predict.set_title('(d) Forecast', loc='left', fontsize=8)
 ax_predict.tick_params(labelsize=6)
 
 # ============================================================

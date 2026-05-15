@@ -11,7 +11,7 @@ PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
 EHCI = xr.open_dataset(f"{PYFILE}/p5/data/EHCI_daily.nc")
 EHCI = EHCI.groupby('time.year')
-EHCI = EHCI.apply(lambda x: (x > 0.6).sum())
+EHCI = EHCI.apply(lambda x: (x > 0.5).sum())
 
 EHCI = EHCI['EHCI'].data
 

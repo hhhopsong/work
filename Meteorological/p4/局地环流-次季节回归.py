@@ -553,7 +553,6 @@ w_clim = CLIM["w_clim"]
 olr_clim = CLIM["olr_clim"]
 t2m_clim = CLIM["t2m_clim"]
 
-time = [1961, 2022]
 # YEAR = [1965, 1974, 1980, 1982, 1987, 1989, 1993, 1999, 2004, 2014]
 YEAR = [2015]
 
@@ -565,8 +564,8 @@ YEAR = [2015]
 filter_start = "2015-05-01"
 filter_end   = "2015-09-30"
 
-analysis_start = "2015-06-01"
-analysis_end   = "2015-08-31"
+analysis_start = "2015-06-15"
+analysis_end   = "2015-07-31"
 
 # 1) 先在 5–9 月上计算逐日异常
 ANO = xr.open_dataset("/Volumes/TiPlus7100/p4/data/ERA5_CPC_daily_ano_2015_MJJAS.nc")
@@ -640,10 +639,10 @@ adv_yz_925 = region_mean_series(adv, yangtze_shp)*86400
 ver_yz_925 = region_mean_series(ver, yangtze_shp)*86400
 Q_yz_925 = region_mean_series(Q, yangtze_shp)*86400
 
-dTdt_yz_925 = LanczosFilter(dTdt_yz_925, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice("2015-06-01", "2015-08-31"))
-adv_yz_925 = LanczosFilter(adv_yz_925, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice("2015-06-01", "2015-08-31"))
-ver_yz_925 = LanczosFilter(ver_yz_925, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice("2015-06-01", "2015-08-31"))
-Q_yz_925 = LanczosFilter(Q_yz_925, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice("2015-06-01", "2015-08-31"))
+dTdt_yz_925 = LanczosFilter(dTdt_yz_925, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(analysis_start, analysis_end))
+adv_yz_925 = LanczosFilter(adv_yz_925, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(analysis_start, analysis_end))
+ver_yz_925 = LanczosFilter(ver_yz_925, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(analysis_start, analysis_end))
+Q_yz_925 = LanczosFilter(Q_yz_925, 'bandpass', period=[10, 30], nwts=61).filted().sel(time=slice(analysis_start, analysis_end))
 
 
 

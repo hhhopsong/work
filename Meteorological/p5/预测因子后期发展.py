@@ -76,7 +76,7 @@ default_wind_1 = False # 风矢量No.1数据
 default_wind_1_set = {'regrid': 15, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.15,
                       'color': 'black', 'thinning': ['25%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.1]}
 default_wind_1_key_set = {'U': 1, 'label': '1 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 0.5, 'edgecolor': 'none', 'lw': 0.5}
-## 风矢量_2
+## 风��量_2
 default_wind_2 = False # 风矢量No.2数据
 default_wind_2_set = {'regrid': 12, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
                       'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.1]}
@@ -363,10 +363,67 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
     print(f"子图 '{title}' 绘制完成, 耗时: {duration:.2f}秒")
     return 0
 
+def prepare_swvl_dataset(swvl_like):
+    """
+    Normalize soil moisture field to a stable {'swvl': [time, lat, lon]} schema.
+    支持 DataArray / Dataset
+    """
+    if isinstance(swvl_like, xr.DataArray):
+        da = swvl_like.copy()
+        if da.name is None:
+            da = da.rename('swvl')
+        elif da.name != 'swvl':
+            da = da.rename('swvl')
+        ds = da.to_dataset()
+
+    elif isinstance(swvl_like, xr.Dataset):
+        ds = swvl_like.copy()
+
+        rename_map = {}
+        if 'latitude' in ds.coords and 'lat' not in ds.coords:
+            rename_map['latitude'] = 'lat'
+        if 'longitude' in ds.coords and 'lon' not in ds.coords:
+            rename_map['longitude'] = 'lon'
+        if len(rename_map) > 0:
+            ds = ds.rename(rename_map)
+
+        if 'swvl' not in ds.data_vars:
+            for cand in ('swvl1', 'soil_moisture', 'sm'):
+                if cand in ds.data_vars:
+                    ds = ds.rename({cand: 'swvl'})
+                    break
+    else:
+        raise TypeError("swvl_like must be xarray.DataArray or xarray.Dataset")
+
+    rename_map = {}
+    if 'latitude' in ds.coords and 'lat' not in ds.coords:
+        rename_map['latitude'] = 'lat'
+    if 'longitude' in ds.coords and 'lon' not in ds.coords:
+        rename_map['longitude'] = 'lon'
+    if len(rename_map) > 0:
+        ds = ds.rename(rename_map)
+
+    if 'swvl' not in ds.data_vars:
+        raise ValueError(f"SWVL variable not found in dataset. Available vars: {list(ds.data_vars)}")
+
+    out = xr.Dataset({'swvl': ds['swvl']})
+    out = out.sortby('lat').sortby('lon')
+    return out
+
 TR_time = [1961, 2004]
 sst = ersst(f"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
 # SLP
 slp = era5_s(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
+swvl1 = era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl1')
+swvl2 = era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl2')
+if isinstance(swvl1, xr.Dataset):
+    swvl1_da = swvl1['swvl1']
+else:
+    swvl1_da = swvl1
+if isinstance(swvl2, xr.Dataset):
+    swvl2_da = swvl2['swvl2']
+else: swvl2_da = swvl2
+sm = prepare_swvl_dataset((swvl1_da + swvl2_da).rename('swvl'))
 #—————————————————————————————————————————————————————预测因子指数————————————————————————————————————————————————————————
 EHCI = xr.open_dataset(f"{PYFILE}/p5/data/EHCI_daily.nc")
 EHCI = EHCI.groupby('time.year')
@@ -376,33 +433,31 @@ EHCI30 = EHCI30['EHCI'].sel(year=slice(f'1961', f'{TR_time[1]}'))
 timeSerie = EHCI30.values
 
 #———————————————————因子1——————————————————
-slp_1_0 = slp.sel(time=slp['time.month'].isin([12])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').shift(year=1).sel(year=slice(f'{TR_time[0]+1}', f'{TR_time[1]}'))
-slp_1_1 = slp.sel(time=slp['time.month'].isin([5])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]+1}', f'{TR_time[1]}'))
-slp_1 = slp_1_1 - slp_1_0
+sm_1 = sm.sel(time=sm['time.month'].isin([5, 6])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
 
-X1_zone = [34.0,	-20,	210,	290]
-slpReg1, slpCorr1 = regress(timeSerie[1:], slp_1['msl'].data), corr(timeSerie[1:], slp_1['msl'].data)
-slpReg1 = xr.DataArray(slpReg1, coords=[slp_1['lat'], slp_1['lon']],
+X1_zone = [50, 70, 100, 130]
+slpReg1, slpCorr1 = regress(timeSerie, sm_1['swvl'].data), corr(timeSerie, sm_1['swvl'].data)
+slpReg1 = xr.DataArray(slpReg1, coords=[sm_1['lat'], sm_1['lon']],
                        dims=['lat', 'lon'], name='slp_reg')
-slpCorr1 = xr.DataArray(slpCorr1, coords=[slp_1['lat'], slp_1['lon']],
+slpCorr1 = xr.DataArray(slpCorr1, coords=[sm_1['lat'], sm_1['lon']],
                         dims=['lat', 'lon'], name='slp_corr')
 slpWeight_1 = slpCorr1.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3]))
-X1 = slp_1.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3])) * np.where(np.abs(slpWeight_1) > r_test(TR_time[1] - TR_time[0] + 1 - 1, 0.1), slpWeight_1, np.nan)
+X1 = sm_1.sel(lat=slice(X1_zone[0], X1_zone[1]), lon=slice(X1_zone[2], X1_zone[3])) * np.where(np.abs(slpWeight_1) > r_test(TR_time[1] - TR_time[0] + 1, 0.1), slpWeight_1, np.nan)
 X1 = X1.mean(['lat', 'lon'])
 X1_mean, X1_std = X1.mean(), X1.std()  # 均值和标准差
 X1 = (X1 - X1_mean) / X1_std  # 标准化
 #———————————————————因子2——————————————————
-sst_2_0 = sst.sel(time=sst['time.month'].isin([2])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]+1}', f'{TR_time[1]}'))
-sst_2_1 = sst.sel(time=sst['time.month'].isin([4])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]+1}', f'{TR_time[1]}'))
+sst_2_0 = sst.sel(time=sst['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+sst_2_1 = sst.sel(time=sst['time.month'].isin([5, 6])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
 sst_2 = sst_2_1 - sst_2_0
-X2_zone = [30.0, 10.0, 194.0, 242.0]
-sstReg2, sstCorr2 = regress(timeSerie[1:], sst_2['sst'].data), corr(timeSerie[1:], sst_2['sst'].data)
+X2_zone = [9, -9, 170, 170+110]
+sstReg2, sstCorr2 = regress(timeSerie, sst_2['sst'].data), corr(timeSerie, sst_2['sst'].data)
 sstReg2 = xr.DataArray(sstReg2, coords=[sst_2['lat'], sst_2['lon']],
                       dims=['lat', 'lon'], name='sst_reg')
 sstCorr2 = xr.DataArray(sstCorr2, coords=[sst_2['lat'], sst_2['lon']],
                       dims=['lat', 'lon'], name='sst_corr')
 sstWeight_2 = sstCorr2.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3]))
-X2 = sst_2.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3])) * np.where(np.abs(sstWeight_2)>r_test(TR_time[1]-TR_time[0]+1-1, 0.1), sstWeight_2, np.nan)
+X2 = sst_2.sel(lat=slice(X2_zone[0], X2_zone[1]), lon=slice(X2_zone[2], X2_zone[3])) * np.where(np.abs(sstWeight_2)>r_test(TR_time[1]-TR_time[0]+1, 0.1), sstWeight_2, np.nan)
 X2 = X2.mean(['lat', 'lon'])
 X2_mean, X2_std = X2.mean(), X2.std()  # 均值和标准差
 X2 = (X2 - X2_mean) / X2_std  # 标准化
@@ -415,18 +470,18 @@ gs = gridspec.GridSpec(2, 3)  # 设置子图的高度比例
 for imonth in [6, 7, 8]:
     i = imonth-6
     ax1 = fig.add_subplot(gs[i], projection=ccrs.PlateCarree(central_longitude=180-70))
-    X1_slpReg, X1_slpCorr = (regress(X1["msl"].values, slp['msl'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0] + 1}-01-01", f"{TR_time[1]}-12-31")).values),
-                             corr(X1["msl"].values, slp['msl'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]+1}-01-01", f"{TR_time[1]}-12-31")).values))
-    X1_slpReg = xr.DataArray(X1_slpReg, coords=[slp['lat'], slp['lon']],
+    X1_slpReg, X1_slpCorr = (regress(X1["swvl"].values, sm['swvl'].sel(time=sm['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values),
+                             corr(X1["swvl"].values, sm['swvl'].sel(time=sm['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values))
+    X1_slpReg = xr.DataArray(X1_slpReg, coords=[sm['lat'], sm['lon']],
                              dims=['lat', 'lon'], name='slp_reg')
-    X1_slpCorr = xr.DataArray(X1_slpCorr, coords=[slp['lat'], slp['lon']],
+    X1_slpCorr = xr.DataArray(X1_slpCorr, coords=[sm['lat'], sm['lon']],
                               dims=['lat', 'lon'], name='slp_corr')
-    sub_pic(ax1, title=f'({chr(ord('a')+i)}) Reg_{imonth}_SLP onto X1', extent=[-180, 180, -50, 80],
+    sub_pic(ax1, title=f'({chr(ord('a')+i)}) Reg_{imonth}_SM onto X1', extent=[-180, 180, -50, 80],
             geoticks={'x': np.arange(-180, 181, 60), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
             shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
             shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-            shading2=X1_slpCorr, shading2_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-            shading2_corr=X1_slpCorr, p_test_drawSet2={'N': TR_time[1] - TR_time[0] + 1 - 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True if i == 2 else False,
+            shading2=X1_slpReg, shading2_levels=np.array([-.04, -.03, -.02, -.01, .01, .02, .03, .04]), shading2_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+            shading2_corr=X1_slpCorr, p_test_drawSet2={'N': TR_time[1] - TR_time[0], 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True if i == 2 else False,
             contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
             contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
             wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
@@ -435,8 +490,8 @@ for imonth in [6, 7, 8]:
 
     ii = imonth-6+3
     ax2 = fig.add_subplot(gs[ii], projection=ccrs.PlateCarree(central_longitude=180-70))
-    X2_sstReg, X2_sstCorr = (regress(X2["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]+1}-01-01", f"{TR_time[1]}-12-31")).values),
-                             corr(X2["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]+1}-01-01", f"{TR_time[1]}-12-31")).values))
+    X2_sstReg, X2_sstCorr = (regress(X2["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values),
+                             corr(X2["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values))
     X2_sstReg = xr.DataArray(X2_sstReg, coords=[sst['lat'], sst['lon']],
                            dims=['lat', 'lon'], name='sst_reg')
     X2_sstCorr = xr.DataArray(X2_sstCorr, coords=[sst['lat'], sst['lon']],
@@ -444,9 +499,9 @@ for imonth in [6, 7, 8]:
     sub_pic(ax2, title=f'({chr(ord('a')+ii)}) Reg_{imonth}_SST onto X2', extent=[-180, 180, -50, 80],
             geoticks={'x': np.arange(-180, 181, 60), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
             shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-            shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-            shading2=X2_sstCorr, shading2_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-            shading2_corr=X2_sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True if ii==5 else False,
+            shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0], 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
+            shading2=X2_sstReg, shading2_levels=np.array([-.3, -.25, -.2, -.15, -.1, .1, .15, .2, .25, .3]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
+            shading2_corr=X2_sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0], 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True if ii==5 else False,
             contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
             contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
             wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
