@@ -110,7 +110,7 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
     plt.rcParams['hatch.linewidth'] = p_test_drawSet['lw']
     plt.rcParams['hatch.color'] = p_test_drawSet['color']
     axes_sub.set_aspect('auto')
-    axes_sub.set_title(title, fontsize=8*fontsize_times, loc='left')
+    axes_sub.set_title(title, fontsize=10*fontsize_times, loc='left')
     latlon_fmt(axes_sub, geoticks['x'], geoticks['y'],  MultipleLocator(geoticks['xminor']),
                MultipleLocator(geoticks['yminor']))
     axes_sub.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.7, color='#757575', alpha=0.75)
@@ -510,7 +510,7 @@ def prepare_swvl_dataset(swvl_like):
     out = out.sortby('lat').sortby('lon')
     return out
 
-plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
+plt.rcParams['font.family'] = ['Times New Roman']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
 plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
 xticks = np.arange(-180, 181, 30)
 yticks = np.arange(-30, 81, 30)
@@ -596,8 +596,8 @@ swvl = prepare_swvl_dataset((swvl1_da + swvl2_da).rename('swvl'))
 # ============================================================
 # 计算
 # ============================================================
-TR_time = [1961, 2004]  # 训练时间段
-PR_time = [2005, 2022]
+TR_time = [1961, 2006]  # 训练时间段
+PR_time = [2007, 2022]
 
 def detrend(data):
     return data - np.polyval(np.polyfit(range(len(data)), data, 1), range(len(data)))
@@ -937,11 +937,11 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
 # ============================================================
 # 第一组预测因子
 # ============================================================
-X2 = ['swvl', 70,	50,	100,	130]
+X2 = ['swvl', 68,  50,  96,  136]
 
 X_train_dict, X_pre_dict, X_rollingCorr_dict, TS, TS_pre, TS_all, \
 t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr, swvlReg, swvlCorr = predictor(
-    timeSerie, [1961, 2004], [2005, 2022],
+    timeSerie, [1962, 2006], [2007, 2022],
     month1=[5, 6], month2=None,
     predictor_zone=[X2],
     cross_month=9
@@ -950,12 +950,12 @@ t2mReg, t2mCorr, slpReg, slpCorr, sstReg, sstCorr, sicReg, sicCorr, swvlReg, swv
 # ============================================================
 # 第二组预测因子
 # ============================================================
-X1_b = ['sst', 9,	-9,	170,	170+110]
+X1_b = ['sst', 10, -10, -150,  -80]
 
 X_train_dict2, X_pre_dict2, X_rollingCorr_dict2, _, _, _, \
 t2mReg2, t2mCorr2, slpReg2, slpCorr2, sstReg2, sstCorr2, sicReg2, sicCorr2, swvlReg2, swvlCorr2 = predictor(
-    timeSerie, [1961, 2004], [2005, 2022],
-    month1=[5, 6], month2=[2, 3],
+    timeSerie, [1962, 2006], [2007, 2022],
+    month1=[5, 6], month2=None,
     predictor_zone=[X1_b],
     cross_month=9
 )
@@ -964,31 +964,14 @@ t2mReg2, t2mCorr2, slpReg2, slpCorr2, sstReg2, sstCorr2, sicReg2, sicCorr2, swvl
 # 作图
 # 7 行：SIC / SST / SLP / SST / SWVL / rollingCorr / forecast
 # ============================================================
-fig = plt.figure(figsize=(5, 8))
+fig = plt.figure(figsize=(5, 6))
 fig.subplots_adjust(hspace=0.4)
-gs = gridspec.GridSpec(4, 1, height_ratios=[1, 1, 1, 1])
-
-# # (a) SIC
-# ax_sic = fig.add_subplot(gs[0], projection=ccrs.NorthPolarStereo(central_longitude=110))
-# plot_sea_ice(
-#     ax_sic,
-#     "(a) 56_mean_SIC",
-#     sic.lon,
-#     sic.lat,
-#     sicCorr,
-#     np.array([-.4, -.3, -.2, -.1, -.05, .05, .1, .2, .3, .4]),
-#     rec_Set=[
-#         {'point': [X1[3], X1[4], X1[1], X1[2]], 'color': 'green', 'ls': (0, (1, 1)), 'lw': 1.6},
-#         {'point': [X2[3], X2[4], X2[1], X2[2]], 'color': 'brown', 'ls': (0, (1, 1)), 'lw': 1.6}
-#     ],
-#     ice_corr=sicCorr,
-#     sig_draw_set={'N': TR_time[1] - TR_time[0] + 1, 'alpha': 0.1, 'hatch': '..', 'lw': 0.2, 'color': '#303030'}
-# )
+gs = gridspec.GridSpec(3, 1, height_ratios=[1, 1, 1])
 
 # (b) SST
 ax = fig.add_subplot(gs[0], projection=ccrs.PlateCarree(central_longitude=180 - 70))
 sub_pic(
-    ax, title='(a) 56_mean_SM', extent=[-20, 170, 15, 80],
+    ax, title='(a) 5+6_mean_SM', extent=[-20, 170, 15, 80],
     geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
     fontsize_times=default_fontsize_times,
     shading=swvlCorr,
@@ -1026,7 +1009,7 @@ sub_pic(
 
 ax = fig.add_subplot(gs[1], projection=ccrs.PlateCarree(central_longitude=180 - 70))
 sub_pic(
-    ax, title='(b) 56_minus_23_SST', extent=[-180, 180, -30, 80],
+    ax, title='(b) 5+6_mean_SST', extent=[-180, 180, -30, 80],
     geoticks={'x': np.arange(-180, 181, 30), 'y': yticks, 'xminor': 10, 'yminor': 10},
     fontsize_times=default_fontsize_times,
     shading=None,
@@ -1280,7 +1263,7 @@ model_predictors = stepwise_selection(
     response='TS',
     candidates=candidate_predictors,
     p_enter=0.10,
-    p_remove=0.15,
+    p_remove=0.10,
     vif_thres=5.0,
     max_steps=100,
     verbose=True,
@@ -1305,80 +1288,6 @@ df_pre = pd.concat(
     [TS_pre.rename('TS')] + [all_X_pre[x].rename(x) for x in selected_predictors],
     axis=1
 )
-
-# ============================================================
-# (f) rolling correlation
-# ============================================================
-ax_rollingCorr = fig.add_subplot(gs[2])
-ax_rollingCorr.set_ylim(-0.5, 1.0)
-
-n_factor = len(selected_predictors)
-try:
-    cmap_amwg = plt.get_cmap(cmaps.amwg)
-except Exception:
-    cmap_amwg = cmaps.amwg
-color_list = cmap_amwg(np.linspace(0, 1, max(n_factor, 1)))
-
-line_handles = []
-line_labels = []
-
-for i, xname in enumerate(selected_predictors):
-    is_selected = xname in model_predictors
-
-    line, = ax_rollingCorr.plot(
-        all_X_rollingCorr[xname].index,
-        all_X_rollingCorr[xname].values,
-        color=color_list[i],
-        linewidth=1.5 if is_selected else 0.9,
-        linestyle='-' if is_selected else '--',
-        alpha=1.0,
-        zorder=2 if is_selected else 1,
-        label=xname
-    )
-
-    line_handles.append(line)
-    line_labels.append(xname)
-
-h1 = ax_rollingCorr.axhline(
-    y=r_test(11, 0.1),
-    color='black',
-    linestyle='--',
-    linewidth=1,
-    label='90%',
-    alpha=0.7
-)
-ax_rollingCorr.axhline(
-    y=0,
-    color='#999999',
-    linestyle='-',
-    linewidth=0.5,
-    alpha=0.7
-)
-
-legend_ncol = min(4, max(1, int(np.ceil(n_factor / 2))))
-leg = ax_rollingCorr.legend(
-    handles=line_handles + [h1],
-    labels=line_labels + ['90%'],
-    loc='lower right',
-    fontsize=6 * default_fontsize_times,
-    ncol=legend_ncol,
-    frameon=False
-)
-
-for txt in leg.get_texts()[:-1]:
-    label = txt.get_text()
-    if label in model_predictors:
-        txt.set_fontweight('bold')
-        txt.set_alpha(1.0)
-    else:
-        txt.set_fontweight('normal')
-        txt.set_alpha(0.8)
-
-leg.get_texts()[-1].set_fontweight('normal')
-leg.get_texts()[-1].set_alpha(0.8)
-
-ax_rollingCorr.set_title('(c) Rolling correlation', loc='left', fontsize=8)
-ax_rollingCorr.tick_params(labelsize=6)
 
 # ============================================================
 # 最终回归建模
@@ -1410,13 +1319,36 @@ TS_all_plot = pd.concat([TS.rename('TS'), TS_pre.rename('TS')])
 # ============================================================
 # (g) 预测图
 # ============================================================
-ax_predict = fig.add_subplot(gs[3])
-ax_predict.set_ylim(-3, 3)
+ax_predict = fig.add_subplot(gs[2])
+ax_predict.set_ylim(-3, 5)
 
-ax_predict.plot(TS_all_plot.index, TS_all_plot.values, color='black', linestyle='-', linewidth=1.5, label='Obs')
-ax_predict.plot(df_train.index, df_train['predicted_TS'], color='blue', linestyle='--', linewidth=1.5, label='Reforecast')
-ax_predict.plot(df_pre.index, df_pre['inDependent_pre'], color='red', linestyle=(0, (1, 1)), linewidth=1.5, label='Independent forecast')
-ax_predict.axhline(y=0, color='#999999', linestyle='-', linewidth=0.5, alpha=0.5)
+ax_predict.bar(
+    TS_all_plot.index,
+    TS_all_plot.values,
+    color='#AAAAAA',
+    width=0.85,
+    label='Observation')
+
+ax_predict.plot(
+    df_train.index,
+    df_train['predicted_TS'],
+    color='red',
+    linestyle='-',
+    linewidth=0.8,
+    marker='o',
+    markersize=1.5,
+    label='Simulation')
+
+ax_predict.plot(
+    df_pre.index,
+    df_pre['inDependent_pre'],
+    color='red',
+    linestyle=(0, (1, 1)),
+    linewidth=0.8,
+    marker='o',
+    markersize=1.5,
+    label='Prediction')
+ax_predict.axhline(y=0, color='#353535', linestyle='-', linewidth=0.5, alpha=0.5)
 ax_predict.legend(loc='lower right', fontsize=6 * default_fontsize_times, ncol=3, frameon=False)
 ax_predict.axvline(x=TR_time[1], color='orange', linestyle='-', linewidth=1)
 
@@ -1440,13 +1372,21 @@ ax_predict.text(
     zorder=10
 )
 
-equation_terms = [f'{intercept:.2f}']
+equation_terms = [f'']
+sign = []
 for x in model_predictors:
     coef = coef_dict[x]
-    sign = '+' if coef >= 0 else '-'
-    equation_terms.append(f' {sign} {abs(coef):.2f}*{x}')
+    sign.append('+' if coef >= 0 else '-')
+if sign[0] == '+':
+    sign[0] = ''
 
-func = 'Days = ' + ''.join(equation_terms)
+sign_index = 0
+for x in model_predictors:
+    coef = coef_dict[x]
+    equation_terms.append(f' {sign[sign_index]} {abs(coef):.2f}×{x}')
+    sign_index += 1
+
+func = 'Days =' + ''.join(equation_terms)
 
 ax_predict.text(
     0.5, 0.88, func,
@@ -1456,7 +1396,7 @@ ax_predict.text(
     zorder=10
 )
 
-ax_predict.set_title('(d) Forecast', loc='left', fontsize=8)
+ax_predict.set_title('(c) Prediction', loc='left', fontsize=10)
 ax_predict.tick_params(labelsize=6)
 
 # ============================================================

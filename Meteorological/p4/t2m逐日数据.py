@@ -19,7 +19,7 @@ plt.rcParams["mathtext.fontset"] = "stix"
 
 # ERA5 and CN05.1 input files
 ERA5_NC_FILE = "/Volumes/TiPlus7100/p4/data/ERA5_daily_t2m_sum.nc"
-CN05_NC_FILE = "/Volumes/TiPlus7100/data/CHN_GRID_DATA/tem/Tmean_19510101-20250714_0.5.nc"
+CN05_NC_FILE = "/Volumes/TiPlus7100/data/CN05.1/CN05.1_Tm_1961_2023_daily.nc"
 
 # Yangtze River basin shapefile
 SHP_FILE = fr"{PYFILE}/map/self/长江_TP/长江_tp.shp"

@@ -45,6 +45,11 @@ plt.rcParams['mathtext.fontset'] = 'stix'
 PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
 
+TIME_SLICE = slice("1961-01-01", "2022-12-31")
+LEVELS_USE = [200, 850]
+LAT_SLICE = slice(-20, 80)
+REGION_180 = {"lon": slice(-90, 180), "lat": slice(-20, 80)}
+
 
 # =========================
 # Utility functions
@@ -57,10 +62,16 @@ def regress_map(field, pc):
 
 def select_jja_1961_2022(da):
     """
-    Select 1961-2022 and keep only JJA.
-    If the input file is already JJA, this keeps it unchanged except for the year range.
+    Select 1961-2022 and keep only Jun 15 - Jul 31.
     """
     da = da.sel(time=TIME_SLICE)
+
+    if "time" in da.coords and np.issubdtype(da.time.dtype, np.datetime64):
+        month = da.time.dt.month
+        day = da.time.dt.day
+        in_window = ((month == 6) & (day >= 15)) | ((month == 7) & (day <= 31))
+        da = da.where(in_window, drop=True)
+
     return da
 
 
@@ -310,6 +321,32 @@ def lag_corr(x, y=None, max_lag=30, use_neff=True, within_same_summer=True):
     return lags, np.asarray(rs), np.asarray(r95s)
 
 
+def open_var(path, var_name, *, time_slice=None, level=None, lat_slice=None, lon_slice=None,
+             scale=1.0, dtype="float32"):
+    """Open and subset a DataArray early to reduce peak memory."""
+    da = xr.open_dataset(path)[var_name]
+
+    if time_slice is not None and "time" in da.coords:
+        da = da.sel(time=time_slice)
+
+    if level is not None and "level" in da.coords:
+        da = da.sel(level=level)
+
+    if lat_slice is not None and "lat" in da.coords:
+        da = da.sel(lat=lat_slice)
+
+    if lon_slice is not None and "lon" in da.coords:
+        da = da.sel(lon=lon_slice)
+
+    if scale != 1.0:
+        da = da * scale
+
+    if dtype:
+        da = da.astype(dtype)
+
+    return da
+
+
 # =========================
 # Read data: 1961-2022 JJA
 # =========================
@@ -317,37 +354,58 @@ CLIM = xr.open_dataset(
     "/Volumes/TiPlus7100/p4/data/ERA5_CPC_daily_clim_1991_2020.nc"
 ).sel(mmdd=slice("06-01", "08-31"))
 
-u_clim = CLIM["u_clim"].mean(dim="mmdd")
-v_clim = CLIM["v_clim"].mean(dim="mmdd")
+u_clim = CLIM["u_clim"].sel(level=LEVELS_USE).mean(dim="mmdd").astype("float32")
+v_clim = CLIM["v_clim"].sel(level=LEVELS_USE).mean(dim="mmdd").astype("float32")
 
-u_bp = xr.open_dataset(
-    "/Volumes/TiPlus7100/p4/data/u_bp_JJA_10-30d.nc"
-)["u_bp"]
+u_clim = transform(u_clim, "lon", "360->180").sel(**REGION_180)
+v_clim = transform(v_clim, "lon", "360->180").sel(**REGION_180)
 
-v_bp = xr.open_dataset(
-    "/Volumes/TiPlus7100/p4/data/v_bp_JJA_10-30d.nc"
-)["v_bp"]
+u_bp = open_var(
+    "/Volumes/TiPlus7100/p4/data/u_bp_JJA_10-30d.nc",
+    "u_bp",
+    time_slice=TIME_SLICE,
+    level=LEVELS_USE,
+    lat_slice=LAT_SLICE
+)
 
-z_bp = xr.open_dataset(
-    "/Volumes/TiPlus7100/p4/data/z_bp_JJA_10-30d.nc"
-)["z_bp"]
+v_bp = open_var(
+    "/Volumes/TiPlus7100/p4/data/v_bp_JJA_10-30d.nc",
+    "v_bp",
+    time_slice=TIME_SLICE,
+    level=LEVELS_USE,
+    lat_slice=LAT_SLICE
+)
 
-olr_bp = xr.open_dataset(
-    "/Volumes/TiPlus7100/p4/data/ttr_bp_JJA_10-30d.nc"
-)["ttr_bp"] / 86400
+z_bp = open_var(
+    "/Volumes/TiPlus7100/p4/data/z_bp_JJA_10-30d.nc",
+    "z_bp",
+    time_slice=TIME_SLICE,
+    level=LEVELS_USE,
+    lat_slice=LAT_SLICE
+)
 
-t2m_bp = xr.open_dataset(
-    "/Volumes/TiPlus7100/p4/data/t2m_bp_JJA_10-30d.nc"
-)["t2m_bp"]
+olr_bp = open_var(
+    "/Volumes/TiPlus7100/p4/data/ttr_bp_JJA_10-30d.nc",
+    "ttr_bp",
+    time_slice=TIME_SLICE,
+    lat_slice=slice(-20, 30),
+    lon_slice=slice(40, 180),
+    scale=1 / 86400
+)
 
-TIME_SLICE = slice("1961-01-01", "2022-12-31")
+t2m_bp = open_var(
+    "/Volumes/TiPlus7100/p4/data/t2m_bp_JJA_10-30d.nc",
+    "t2m_bp",
+    time_slice=TIME_SLICE
+)
+
 # TIME_SLICE = u_bp.time.dt.year.isin([1965, 1966, 1968, 1974, 1976, 1980, 1982, 1983, 1986, 1987, 1989, 1992, 1993, 1997, 1999, 2004, 2008, 2014, 2015])
 
 u_bp = select_jja_1961_2022(u_bp)
 v_bp = select_jja_1961_2022(v_bp)
 z_bp = select_jja_1961_2022(z_bp)
 olr_bp = select_jja_1961_2022(olr_bp)
-t2m_bp = select_jja_1961_2022(t2m_bp.sel(time=slice("1961-01-01", "2022-12-31")))
+t2m_bp = select_jja_1961_2022(t2m_bp)
 
 u_bp, v_bp, z_bp, olr_bp, t2m_bp = align_on_common_time(
     u_bp, v_bp, z_bp, olr_bp, t2m_bp
@@ -368,7 +426,7 @@ svd_t2m_v200 = xeofs.cross.MCA(
     use_coslat=True
 ).fit(
     t2m_bp,
-    transform(v_bp, "lon", "360->180").sel(level=200, lon=slice(-80, 160), lat=slice(36, 75)),
+    transform(v_bp, "lon", "360->180").sel(level=200, lon=slice(0, 160), lat=slice(36, 75)),
     dim="time"
 )
 
@@ -378,7 +436,7 @@ svd_t2m_olr = xeofs.cross.MCA(
     use_coslat=True
 ).fit(
     t2m_bp,
-    transform(olr_bp, "lon", "360->180").sel(lon=slice(40, 160), lat=slice(-10, 24)),
+    transform(olr_bp, "lon", "360->180").sel(lon=slice(40, 180), lat=slice(-10, 24)),
     dim="time"
 )
 
@@ -386,9 +444,9 @@ svd_t2m_olr = xeofs.cross.MCA(
 # =========================
 # Pre-transform longitude once
 # =========================
-z_bp_180 = transform(z_bp, "lon", "360->180")
-u_bp_180 = transform(u_bp, "lon", "360->180")
-v_bp_180 = transform(v_bp, "lon", "360->180")
+z_bp_180 = transform(z_bp, "lon", "360->180").sel(**REGION_180)
+u_bp_180 = transform(u_bp, "lon", "360->180").sel(**REGION_180)
+v_bp_180 = transform(v_bp, "lon", "360->180").sel(**REGION_180)
 olr_bp_180 = transform(olr_bp, "lon", "360->180")
 
 
@@ -402,9 +460,9 @@ fig = plt.figure(figsize=(18, 6.5))
 gs = gridspec.GridSpec(
     nrows=2,
     ncols=3,
-    width_ratios=[1.05, 1.05, 0.85],
+    width_ratios=[1.05, 1.05, 0.8],
     height_ratios=[1, 1],
-    wspace=0.18,
+    wspace=0.25,
     hspace=0.3
 )
 
@@ -415,7 +473,19 @@ clevs_t2m = np.array([
 cmap_t2m = cmaps.GMT_polar[2:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-2]
 
 # 右场模态填色使用另一套发散色表，并设透明度，避免完全盖住 T2m 模态
-cmap_right = cmaps.MPL_PuOr[10:64-10:5] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PuOr[64+10:-10:5]
+cmap_right = (
+    cmaps.MPL_PuOr[10:64-10:5]
+    + cmaps.CBR_wet[0]
+    + cmaps.CBR_wet[0]
+    + cmaps.CBR_wet[0]
+    + cmaps.MPL_PuOr[64+10:-10:5]
+)
+
+# 右场模态共用 levels，后面用于共享竖直 colorbar
+right_levels = np.array([
+    -0.4, -0.3, -0.2, -0.1, -0.05,
+     0.05, 0.1, 0.2, 0.3, 0.4
+])
 
 cf_last_t2m = None
 
@@ -460,13 +530,14 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
     else:
         raise ValueError("Only level <= 500 or level == 850 is supported.")
 
+    t2m_score_raw = t2m_score
+    atm_score_raw = atm_score
+
     # 右场模态只画在右场 MCA 分析区域 / 当前地图范围内
     right_mode = right_mode.where(
         (right_mode.lon >= map_extent[0]) & (right_mode.lon <= map_extent[1]) &
         (right_mode.lat >= map_extent[2]) & (right_mode.lat <= map_extent[3])
     )
-
-    right_levels = np.array([-0.4, -0.3, -0.2, -0.1, -0.05, 0.05, 0.1, 0.2, 0.3, 0.4])
 
     # ================= regression fields =================
     z_reg = regress(atm_score, z_bp_180.sel(level=level))
@@ -512,11 +583,17 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
     )
 
     # ================= left map =================
-    ax = fig.add_subplot(gs[row, 0], projection=proj)
+    ax = fig.add_subplot(gs[row, 0], projection=ccrs.PlateCarree(central_longitude=110))
     ax.set_aspect("auto")
 
-    extent = [-90, 170, 0, 80] if level == 200 else [20, 180, -20, 50]
-    ax.set_extent(extent, crs=ccrs.PlateCarree())
+    if level == 200:
+        extent = [-10, 170, 10, 80]
+        extent_crs = ccrs.PlateCarree(central_longitude=0)
+    else:
+        extent = [20, 200, -20, 50]
+        extent_crs = ccrs.PlateCarree(central_longitude=0)
+
+    ax.set_extent(extent, crs=extent_crs)
 
     ax.add_feature(
         cfeature.COASTLINE.with_scale("110m"),
@@ -562,7 +639,7 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
     ax.yaxis.set_major_formatter(LatitudeFormatter())
     ax.tick_params(labelsize=12)
 
-    # ---- 左场 T2m 模态填色：保留原来的绘制 ----
+    # ---- 左场 T2m 模态填色 ----
     cf_t2m = ax.contourf(
         t2m_mode.lon,
         t2m_mode.lat,
@@ -576,9 +653,7 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
 
     cf_last_t2m = cf_t2m
 
-    # ---- 新增：右场模态填色 ----
-    # row=0: V200 mode
-    # row=1: OLR mode
+    # ---- 右场模态填色：row=0 为 V200 mode，row=1 为 OLR mode ----
     cf_right = ax.contourf(
         right_mode.lon,
         right_mode.lat,
@@ -591,27 +666,7 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
         zorder=2
     )
 
-    # 右场模态的小色标，放在每个地图内部右下角
-    cax_right = inset_axes(
-        ax,
-        width="42%",
-        height="4%",
-        loc="lower right",
-        bbox_to_anchor=(-0.02, 0.05, 1, 1),
-        bbox_transform=ax.transAxes,
-        borderpad=0
-    )
-
-    cb_right = fig.colorbar(
-        cf_right,
-        cax=cax_right,
-        orientation="horizontal"
-    )
-
-    cb_right.set_ticks(right_levels)
-    cb_right.ax.tick_params(length=0, labelsize=7, pad=1)
-    cb_right.outline.set_linewidth(0.7)
-    # cb_right.ax.set_title(f"{score_label}", fontsize=8, pad=2)
+    # 注意：这里已经删除图内右场 colorbar，改为外部共享竖直 colorbar
 
     # ---- Z regression contours ----
     zlev_pos = [6, 18] if level == 200 else [17]
@@ -677,11 +732,10 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
             u_reg.lat,
             waf_x,
             waf_y,
-            integration_direction="stick_both",
-            arrowsize=1,
+            arrowsize=1.5,
             transform=ccrs.PlateCarree(central_longitude=0),
-            scale=500,
-            linewidth=1.5,
+            scale=1e3,
+            linewidth=2,
             regrid=12,
             color="purple",
             thinning=["70%", "min"],
@@ -713,7 +767,7 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
             linewidth=1,
             regrid=18,
             color="#555555",
-            thinning=["50%", "min"],
+            thinning=["25%", "min"],
             nanmax=2,
             MinDistance=[0.2, 0.4]
         )
@@ -750,35 +804,75 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
     ax2 = fig.add_subplot(gs[row, 1])
     ax2.set_aspect("auto")
 
-    xscore = (t2m_score - t2m_score.mean()) / t2m_score.std()
-    yscore = (atm_score - atm_score.mean()) / atm_score.std()
+    t2m_std = t2m_score.groupby("time.year").std("time", skipna=True)
+    atm_std = atm_score.groupby("time.year").std("time", skipna=True)
+    t2m_std, atm_std = xr.align(t2m_std, atm_std, join="inner")
 
-    xpos, unique_years, year_starts, year_centers, tick_pos, tick_years = build_compact_summer_axis(
-        t2m_score.time.values,
-        tick_step=10
+    years = t2m_std["year"].values
+
+    ax2.bar(
+        years,
+        t2m_std.values,
+        color="red",
+        alpha=0.7,
+        width=0.6,
+        label="T2m",
+        zorder=0
     )
 
-    ax2.plot(xpos, xscore, color="red", lw=0.4, label="T2m")
-    ax2.plot(xpos, yscore, color="blue", lw=0.3, label=score_label)
-
-    ax2.set_xlim(xpos[0], xpos[-1])
+    ax2.set_xlim(years[0] - 0.5, years[-1] + 0.5)
     ax2.axhline(0, color="0.75", lw=0.7)
 
-    ax2.set_ylim(-6, 6)
-    ax2.set_yticks(np.arange(-4, 4.1, 2))
-    ax2.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.0f"))
-
-    # Draw year separators; useful for checking that summers are adjacent.
-    for s in year_starts[1:]:
-        ax2.axvline(s - 0.5, color="0.88", lw=0.35, zorder=0)
-
-    ax2.set_xticks(tick_pos)
-    ax2.set_xticklabels(tick_years, fontsize=10)
+    xticks = years[::10] if len(years) > 10 else years
+    ax2.set_xticks(xticks)
+    ax2.set_xticklabels(xticks, fontsize=10)
 
     ax2.tick_params(labelsize=12)
+    ax2.set_ylabel("", fontsize=11, color="red")
+    ax2.set_ylim(0, 2)
+    ax2.spines["left"].set_color("red")
+    ax2.yaxis.label.set_color("red")
+
+    ax2b = ax2.twinx()
+
+    ax2b.bar(
+        years,
+        atm_std.values,
+        facecolor="none",
+        edgecolor="black",
+        alpha=1.,
+        width=0.6,
+        label=f"{score_label}",
+        zorder=1000
+    )
+
+    if 2015 in years:
+        i2015 = int(np.where(years == 2015)[0][0])
+        ax2b.scatter(
+            years[i2015],
+            atm_std.values[i2015] + 3
+            if atm_std.values[i2015] > 2
+            else atm_std.values[i2015] + .8,
+            color="blue",
+            s=90,
+            marker="*",
+            zorder=1200
+        )
+
+    ax2b.tick_params(labelsize=12)
+    ax2b.set_ylabel("", fontsize=11)
+    ax2b.spines["left"].set_color("red")
+    ax2b.set_ylim(0, 20 if row == 0 else 2)
+    ax2b.set_xlim(years[0] - 0.5, years[-1] + 0.5)
+
+    handles_a, labels_a = ax2.get_legend_handles_labels()
+    handles_b, labels_b = ax2b.get_legend_handles_labels()
+
     ax2.legend(
+        handles_a + handles_b,
+        labels_a + labels_b,
         frameon=False,
-        fontsize=12,
+        fontsize=11,
         bbox_to_anchor=(-0.01, 1.03),
         loc="upper left"
     )
@@ -788,10 +882,11 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
     except Exception:
         corvar = float(svd_obj.explained_variance_ratio().sel(mode=1) * 100)
 
-    mask = np.isfinite(xscore.values) & np.isfinite(yscore.values)
+    t2m_score_raw, atm_score_raw = xr.align(t2m_score_raw, atm_score_raw, join="inner")
+    score_mask = np.isfinite(t2m_score_raw.values) & np.isfinite(atm_score_raw.values)
 
-    if mask.sum() > 3:
-        r, p = pearsonr(xscore.values[mask], yscore.values[mask])
+    if score_mask.sum() > 3:
+        r, p = pearsonr(t2m_score_raw.values[score_mask], atm_score_raw.values[score_mask])
     else:
         r, p = np.nan, np.nan
 
@@ -818,7 +913,7 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
 
     ax2.set_title(title_right, loc="left", fontsize=16)
 
-    return ax, ax2, xscore, yscore, cf_right
+    return ax, ax2, t2m_score_raw, atm_score_raw, cf_right
 
 
 # ================= first row: 200 hPa =================
@@ -828,11 +923,11 @@ ax200, ax200_ts, t2m200_score, v200_score, cf_v200_mode = draw_one(
     svd_obj=svd_t2m_v200,
     left_score_name="T2m",
     right_score_name="V200",
-    map_extent=[-90, 170, 20, 80],
-    box_blue=[-80, 160, 36, 75],
+    map_extent=[-10, 170, 20, 80],
+    box_blue=[0, 160, 36, 75],
     box_orange=[-70, 0, -20, 45],
     title_left="(a) SVD (T2m&V200)",
-    title_right="(b) Time series",
+    title_right="(b) Annual STD",
     vector_label="1.5 m/s",
     score_label="V200"
 )
@@ -845,14 +940,50 @@ ax850, ax850_ts, t2m850_score, olr_score, cf_olr_mode = draw_one(
     svd_obj=svd_t2m_olr,
     left_score_name="T2m",
     right_score_name="OLR",
-    map_extent=[20, 180, -20, 50],
-    box_blue=[40, 160, -10, 24],
+    map_extent=[20, 200, -20, 50],
+    box_blue=[40, 180, -10, 24],
     box_orange=[90, 122, 20, 35],
     title_left="(c) SVD (T2m&OLR)",
-    title_right="(d) Time series",
+    title_right="(d) Annual STD",
     vector_label="1.5 m/s",
     score_label="OLR"
 )
+
+
+# ================= shared vertical colorbar for right-field modes =================
+# 放在 (a)(c) 右侧，不写 title
+fig.canvas.draw()
+
+pos_a = ax200.get_position()
+pos_c = ax850.get_position()
+pos_b = ax200_ts.get_position()
+
+map_right = max(pos_a.x1, pos_c.x1)
+gap = pos_b.x0 - map_right
+
+cbar_width = min(0.006, gap * 0.12)
+cbar_x = map_right + gap * 0.08
+cbar_y = pos_c.y0
+cbar_h = pos_a.y1 - pos_c.y0
+
+cax_right_shared = fig.add_axes([
+    cbar_x,
+    cbar_y,
+    cbar_width,
+    cbar_h
+])
+
+cb_right_shared = fig.colorbar(
+    cf_v200_mode,
+    cax=cax_right_shared,
+    orientation="vertical",
+    drawedges=True
+)
+
+cb_right_shared.set_ticks(right_levels)
+cb_right_shared.ax.tick_params(length=0, labelsize=10, pad=2)
+cb_right_shared.dividers.set_linewidth(2.5)
+cb_right_shared.outline.set_linewidth(2.5)
 
 
 # ================= third column: lag correlations =================
@@ -888,9 +1019,9 @@ lag_olr, r_olr, sig_olr = lag_corr(
 )
 
 lag_panels = [
-    (lag_v200, r_v200, sig_v200, "(e) auto-V200"),
+    (lag_v200, r_v200, sig_v200, "(e) Auto-V200"),
     (lag_cross, r_cross, sig_cross, "(f) V200&OLR"),
-    (lag_olr, r_olr, sig_olr, "(g) auto-OLR"),
+    (lag_olr, r_olr, sig_olr, "(g) Auto-OLR"),
 ]
 
 for i, (lags, rs, rsig, title) in enumerate(lag_panels):
@@ -953,7 +1084,7 @@ cb = fig.colorbar(
 )
 
 cb.set_ticks(clevs_t2m)
-cb.ax.tick_params(length=0, labelsize=9)
+cb.ax.tick_params(length=0, labelsize=10)
 cb.dividers.set_linewidth(2.5)
 cb.outline.set_linewidth(2.5)
 cb.ax.set_title("", fontsize=9, pad=3)

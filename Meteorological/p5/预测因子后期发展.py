@@ -34,8 +34,9 @@ from climkit.lonlat_transform import transform
 #—————————————————————————————————————————————————————绘图默认配置————————————————————————————————————————————————————————
 PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
-plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey
-plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['mathtext.fontset'] = 'stix'
 xticks = np.arange(-180, 181, 30)
 yticks = np.arange(-30, 81, 30)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -410,8 +411,8 @@ def prepare_swvl_dataset(swvl_like):
     out = out.sortby('lat').sortby('lon')
     return out
 
-TR_time = [1961, 2004]
-sst = ersst(f"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
+TR_time = [1962, 2006]
+sst = ersst(f"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1962, 2022)
 # SLP
 slp = era5_s(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
 swvl1 = era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl1')
@@ -429,13 +430,13 @@ EHCI = xr.open_dataset(f"{PYFILE}/p5/data/EHCI_daily.nc")
 EHCI = EHCI.groupby('time.year')
 EHCI30 = EHCI.apply(lambda x: (x > 0.6).sum())
 EHCI30 = (EHCI30 - EHCI30.mean()) / EHCI30.std('year')
-EHCI30 = EHCI30['EHCI'].sel(year=slice(f'1961', f'{TR_time[1]}'))
+EHCI30 = EHCI30['EHCI'].sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
 timeSerie = EHCI30.values
 
 #———————————————————因子1——————————————————
 sm_1 = sm.sel(time=sm['time.month'].isin([5, 6])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
 
-X1_zone = [50, 70, 100, 130]
+X1_zone = [50,  68,  96,  136]
 slpReg1, slpCorr1 = regress(timeSerie, sm_1['swvl'].data), corr(timeSerie, sm_1['swvl'].data)
 slpReg1 = xr.DataArray(slpReg1, coords=[sm_1['lat'], sm_1['lon']],
                        dims=['lat', 'lon'], name='slp_reg')
@@ -447,10 +448,8 @@ X1 = X1.mean(['lat', 'lon'])
 X1_mean, X1_std = X1.mean(), X1.std()  # 均值和标准差
 X1 = (X1 - X1_mean) / X1_std  # 标准化
 #———————————————————因子2——————————————————
-sst_2_0 = sst.sel(time=sst['time.month'].isin([2, 3])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-sst_2_1 = sst.sel(time=sst['time.month'].isin([5, 6])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
-sst_2 = sst_2_1 - sst_2_0
-X2_zone = [9, -9, 170, 170+110]
+sst_2 = sst.sel(time=sst['time.month'].isin([5, 6])).groupby('time.year').mean('time').transpose('year', 'lat', 'lon').sel(year=slice(f'{TR_time[0]}', f'{TR_time[1]}'))
+X2_zone = [10, -10, 360-150,  360-80]
 sstReg2, sstCorr2 = regress(timeSerie, sst_2['sst'].data), corr(timeSerie, sst_2['sst'].data)
 sstReg2 = xr.DataArray(sstReg2, coords=[sst_2['lat'], sst_2['lon']],
                       dims=['lat', 'lon'], name='sst_reg')
@@ -462,51 +461,647 @@ X2 = X2.mean(['lat', 'lon'])
 X2_mean, X2_std = X2.mean(), X2.std()  # 均值和标准差
 X2 = (X2 - X2_mean) / X2_std  # 标准化
 
-#————————————————————————————————————————————————————————绘图————————————————————————————————————————————————————————————
-fig = plt.figure(figsize=np.array([12, 5])*0.7)
-fig.subplots_adjust(hspace=0.35)
-gs = gridspec.GridSpec(2, 3)  # 设置子图的高度比例
-# 绘制子图
-for imonth in [6, 7, 8]:
-    i = imonth-6
-    ax1 = fig.add_subplot(gs[i], projection=ccrs.PlateCarree(central_longitude=180-70))
-    X1_slpReg, X1_slpCorr = (regress(X1["swvl"].values, sm['swvl'].sel(time=sm['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values),
-                             corr(X1["swvl"].values, sm['swvl'].sel(time=sm['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values))
-    X1_slpReg = xr.DataArray(X1_slpReg, coords=[sm['lat'], sm['lon']],
-                             dims=['lat', 'lon'], name='slp_reg')
-    X1_slpCorr = xr.DataArray(X1_slpCorr, coords=[sm['lat'], sm['lon']],
-                              dims=['lat', 'lon'], name='slp_corr')
-    sub_pic(ax1, title=f'({chr(ord('a')+i)}) Reg_{imonth}_SM onto X1', extent=[-180, 180, -50, 80],
-            geoticks={'x': np.arange(-180, 181, 60), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
-            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-            shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-            shading2=X1_slpReg, shading2_levels=np.array([-.04, -.03, -.02, -.01, .01, .02, .03, .04]), shading2_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-            shading2_corr=X1_slpCorr, p_test_drawSet2={'N': TR_time[1] - TR_time[0], 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True if i == 2 else False,
-            contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
-            contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
-            wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
-            wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
-            rec_Set=None)
+#————————————————————————————————————————————————————————7-8月平均综合绘图————————————————————————————————————————————————————————————
+import warnings
+import matplotlib.colors as mcolors
 
-    ii = imonth-6+3
-    ax2 = fig.add_subplot(gs[ii], projection=ccrs.PlateCarree(central_longitude=180-70))
-    X2_sstReg, X2_sstCorr = (regress(X2["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values),
-                             corr(X2["sst"].values, sst['sst'].sel(time=sst['time.month'].isin([imonth])).sel(time=slice(f"{TR_time[0]}-01-01", f"{TR_time[1]}-12-31")).values))
-    X2_sstReg = xr.DataArray(X2_sstReg, coords=[sst['lat'], sst['lon']],
-                           dims=['lat', 'lon'], name='sst_reg')
-    X2_sstCorr = xr.DataArray(X2_sstCorr, coords=[sst['lat'], sst['lon']],
-                            dims=['lat', 'lon'], name='sst_corr')
-    sub_pic(ax2, title=f'({chr(ord('a')+ii)}) Reg_{imonth}_SST onto X2', extent=[-180, 180, -50, 80],
-            geoticks={'x': np.arange(-180, 181, 60), 'y': yticks, 'xminor': 10, 'yminor': 10}, fontsize_times=default_fontsize_times,
-            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]), shading_cmap=cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
-            shading_corr=None, p_test_drawSet={'N': TR_time[1]-TR_time[0], 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw=False, cb_draw=True,
-            shading2=X2_sstReg, shading2_levels=np.array([-.3, -.25, -.2, -.15, -.1, .1, .15, .2, .25, .3]), shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40],
-            shading2_corr=X2_sstCorr, p_test_drawSet2={'N': TR_time[1]-TR_time[0], 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'}, edgedraw2=False, cb_draw2=True if ii==5 else False,
-            contour=None, contour_levels=np.array([[-50, -20], [20, 50]])*0.0005, contour_cmap=default_contour_cmap,
-            contour_corr=None, p_test_drawSet_corr={'N': TR_time[1]-TR_time[0]+1, 'alpha': 0.1},
-            wind_1=default_wind_1, wind_1_set=default_wind_1_set, wind_1_key_set=default_wind_1_key_set, bbox_to_anchor_1=None, loc1='upper right',
-            wind_2=default_wind_2, wind_2_set=default_wind_2_set, wind_2_key_set=default_wind_2_key_set, bbox_to_anchor_2=None, loc2='upper right',
-            rec_Set=None)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-plt.savefig(f'{PYFILE}/p5/pic/因子发展.pdf', bbox_inches='tight')
-plt.savefig(f'{PYFILE}/p5/pic/因子发展.png', dpi=600, bbox_inches='tight')
+Z_TO_GPM = True
+G0 = 9.80665
+
+
+def ensure_cmap(cmap_like, name='custom_cmap'):
+    """
+    保证传入 sub_pic 的 cmap 具有 .N 属性。
+    cmaps 切片有时返回 list，需要转成 ListedColormap。
+    """
+    if hasattr(cmap_like, 'N'):
+        return cmap_like
+    return mcolors.ListedColormap(cmap_like, name=name)
+
+
+def rename_common(ds):
+    """统一 ERA5/ERSST 常见维度和坐标名"""
+    rename_map = {}
+
+    pairs = [
+        ('latitude', 'lat'),
+        ('longitude', 'lon'),
+        ('pressure_level', 'p'),
+        ('level', 'p'),
+        ('date', 'time')
+    ]
+
+    for old, new in pairs:
+        if old in ds.dims or old in ds.coords:
+            if new not in ds.dims and new not in ds.coords:
+                rename_map[old] = new
+
+    if rename_map:
+        ds = ds.rename(rename_map)
+
+    return ds
+
+
+def to_78_yearly(ds, varname=None, start=1961, end=2022):
+    """
+    输入 Dataset/DataArray，输出 7-8 月平均年序列 Dataset: [year, lat, lon]
+    如果输入已经是 year 维度，则只做命名整理和裁剪。
+    """
+    if isinstance(ds, xr.DataArray):
+        if varname is None:
+            varname = ds.name if ds.name is not None else 'var'
+        ds = ds.rename(varname).to_dataset()
+
+    ds = rename_common(ds)
+
+    if varname is not None:
+        if varname not in ds.data_vars:
+            raise ValueError(f"{varname} not found. Available vars: {list(ds.data_vars)}")
+        ds = ds[[varname]]
+
+    if 'time' in ds.dims or 'time' in ds.coords:
+        tvals = ds['time'].values
+
+        if np.issubdtype(tvals.dtype, np.integer):
+            ds = ds.assign_coords(time=pd.to_datetime(tvals.astype(str), format="%Y%m%d"))
+        else:
+            ds = ds.assign_coords(time=pd.to_datetime(tvals))
+
+        ds = ds.sel(time=slice(f'{start}-01-01', f'{end}-12-31'))
+        ds = ds.sel(time=ds['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+
+    if 'year' not in ds.dims and 'year' not in ds.coords:
+        raise ValueError("输入数据既没有 time 维，也没有 year 维，无法处理为 7-8 月平均。")
+
+    ds = ds.sel(year=slice(start, end))
+    ds = ds.sortby('lat').sortby('lon')
+
+    return ds
+
+
+def get_factor_da(factor_obj, preferred_name):
+    """从 X1/X2 中取出因子序列 DataArray"""
+    if isinstance(factor_obj, xr.Dataset):
+        if preferred_name in factor_obj.data_vars:
+            return factor_obj[preferred_name]
+        return factor_obj[list(factor_obj.data_vars)[0]]
+    return factor_obj
+
+
+def regcorr_2d(index_da, field_da, varname):
+    """
+    index_da: [year]
+    field_da: [year, lat, lon]
+    返回 regression 和 correlation 的 DataArray
+    """
+    field_da = field_da.sel(year=slice(TR_time[0], TR_time[1])).transpose('year', 'lat', 'lon')
+    index_da = index_da.sel(year=field_da['year'])
+
+    reg_data = regress(index_da.values, field_da.values)
+    corr_data = corr(index_da.values, field_da.values)
+
+    reg_da = xr.DataArray(
+        reg_data,
+        coords=[field_da['lat'], field_da['lon']],
+        dims=['lat', 'lon'],
+        name=f'{varname}_reg'
+    )
+
+    corr_da = xr.DataArray(
+        corr_data,
+        coords=[field_da['lat'], field_da['lon']],
+        dims=['lat', 'lon'],
+        name=f'{varname}_corr'
+    )
+
+    return reg_da, corr_da
+
+
+def make_waf_200(z200_reg, uvz78):
+    """
+    用 200 hPa 气候态 U/V 和 200 hPa Z 回归场计算 TN-WAF。
+    返回满足 sub_pic() 的风矢量格式 Dataset: {'u', 'v'}。
+    """
+    uvz200_clim = uvz78.sel(p=200).mean('year')
+
+    Uc = xr.DataArray(
+        uvz200_clim['u'].values[np.newaxis, :, :],
+        coords=[
+            ('level', [200]),
+            ('lat', uvz78['lat'].values),
+            ('lon', uvz78['lon'].values)
+        ]
+    )
+
+    Vc = xr.DataArray(
+        uvz200_clim['v'].values[np.newaxis, :, :],
+        coords=[
+            ('level', [200]),
+            ('lat', uvz78['lat'].values),
+            ('lon', uvz78['lon'].values)
+        ]
+    )
+
+    GEOa = xr.DataArray(
+        z200_reg.values[np.newaxis, :, :],
+        coords=[
+            ('level', [200]),
+            ('lat', z200_reg['lat'].values),
+            ('lon', z200_reg['lon'].values)
+        ]
+    )
+
+    waf_x, waf_y = TN_WAF_3D(Uc, Vc, GEOa)
+
+    if isinstance(waf_x, xr.DataArray):
+        waf_x_da = waf_x.squeeze(drop=True)
+    else:
+        waf_x_da = xr.DataArray(
+            np.squeeze(waf_x),
+            coords=[z200_reg['lat'], z200_reg['lon']],
+            dims=['lat', 'lon']
+        )
+
+    if isinstance(waf_y, xr.DataArray):
+        waf_y_da = waf_y.squeeze(drop=True)
+    else:
+        waf_y_da = xr.DataArray(
+            np.squeeze(waf_y),
+            coords=[z200_reg['lat'], z200_reg['lon']],
+            dims=['lat', 'lon']
+        )
+
+    waf = xr.Dataset(
+        {
+            'u': waf_x_da,
+            'v': waf_y_da
+        }
+    )
+
+    waf = waf.assign_coords(lat=z200_reg['lat'], lon=z200_reg['lon'])
+    return waf
+
+
+#————————————————————读取 / 整理 7-8 月平均资料————————————————————
+
+# 200/500 hPa U/V/Z
+try:
+    uvz78 = xr.open_dataset(fr"{PYFILE}/p2/data/uvz_78.nc")
+    uvz78 = rename_common(uvz78)
+
+except FileNotFoundError:
+    uvz_raw = xr.open_dataset(fr"{DATA}/ERA5/ERA5_pressLev/era5_pressLev.nc").sel(
+        date=slice('1961-01-01', '2022-12-31'),
+        pressure_level=[200, 500],
+        latitude=[90 - i * 0.5 for i in range(361)],
+        longitude=[i * 0.5 for i in range(720)]
+    )
+
+    uvz78 = xr.Dataset(
+        {
+            'u': (['time', 'p', 'lat', 'lon'], uvz_raw['u'].data),
+            'v': (['time', 'p', 'lat', 'lon'], uvz_raw['v'].data),
+            'z': (['time', 'p', 'lat', 'lon'], uvz_raw['z'].data)
+        },
+        coords={
+            'time': pd.to_datetime(uvz_raw['date'].values.astype(str), format="%Y%m%d"),
+            'p': uvz_raw['pressure_level'].data,
+            'lat': uvz_raw['latitude'].data,
+            'lon': uvz_raw['longitude'].data
+        }
+    )
+
+    uvz78 = uvz78.sel(time=uvz78['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+    uvz78.to_netcdf(fr"{PYFILE}/p2/data/uvz_78.nc")
+
+uvz78 = uvz78.sel(year=slice(TR_time[0], TR_time[1]))
+uvz78 = uvz78.transpose('year', 'p', 'lat', 'lon')
+uvz78 = uvz78.sortby('lat').sortby('lon')
+
+if 200 not in uvz78['p'].values or 500 not in uvz78['p'].values:
+    raise ValueError(f"uvz78 中必须同时包含 200 和 500 hPa。当前 p = {uvz78['p'].values}")
+
+# ERA5 z 原始变量通常是 geopotential，单位 m2/s2；这里转为 gpm
+if Z_TO_GPM:
+    if float(np.nanmean(np.abs(uvz78['z'].values))) > 50000:
+        uvz78['z'] = uvz78['z'] / G0
+
+
+# 土壤湿度 7-8 月平均
+sm78 = sm.sel(time=sm['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+sm78 = sm78.sel(year=slice(TR_time[0], TR_time[1]))
+sm78 = sm78.transpose('year', 'lat', 'lon')
+sm78 = sm78.sortby('lat').sortby('lon')
+
+
+# SST 7-8 月平均
+sst78 = sst.sel(time=sst['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+sst78 = sst78.sel(year=slice(TR_time[0], TR_time[1]))
+sst78 = sst78.transpose('year', 'lat', 'lon')
+sst78 = sst78.sortby('lat').sortby('lon')
+
+
+# T2m 7-8 月平均
+try:
+    t2m78 = xr.open_dataset(fr"{PYFILE}/p2/data/t2m_78.nc")
+    t2m78 = to_78_yearly(t2m78, varname='t2m', start=TR_time[0], end=TR_time[1])
+
+except FileNotFoundError:
+    t2m_raw = xr.open_dataset(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc")['t2m']
+    t2m_raw = t2m_raw.sel(date=slice('1961-01-01', '2022-12-31'))
+
+    t2m78 = xr.Dataset(
+        {'t2m': (['time', 'lat', 'lon'], t2m_raw.data)},
+        coords={
+            'time': pd.to_datetime(t2m_raw['date'].values.astype(str), format="%Y%m%d"),
+            'lat': t2m_raw['latitude'].data,
+            'lon': t2m_raw['longitude'].data
+        }
+    )
+
+    t2m78 = t2m78.sel(time=t2m78['time.month'].isin([7, 8])).groupby('time.year').mean('time')
+    t2m78.to_netcdf(fr"{PYFILE}/p2/data/t2m_78.nc")
+
+t2m78 = t2m78.sel(year=slice(TR_time[0], TR_time[1]))
+t2m78 = t2m78.transpose('year', 'lat', 'lon')
+t2m78 = t2m78.sortby('lat').sortby('lon')
+
+
+# omega 7-8 月平均
+w78 = xr.open_dataset(fr"{PYFILE}/p2/data/W.nc")
+w78 = rename_common(w78)
+
+if 'p' in w78.coords:
+    w78 = w78.sel(p=500)
+
+if 'w' in w78.data_vars:
+    w_name = 'w'
+elif 'omega' in w78.data_vars:
+    w_name = 'omega'
+else:
+    w_name = list(w78.data_vars)[0]
+
+w78 = to_78_yearly(w78, varname=w_name, start=TR_time[0], end=TR_time[1])
+w78 = w78.rename({w_name: 'omega'})
+w78 = w78.transpose('year', 'lat', 'lon')
+w78 = w78.sortby('lat').sortby('lon')
+
+
+# 总云量 TCC 7-8 月平均
+tcc78 = xr.open_dataset(fr"{PYFILE}/p2/data/TCC.nc")
+tcc78 = rename_common(tcc78)
+
+if 'tcc' in tcc78.data_vars:
+    tcc_name = 'tcc'
+elif 'TCC' in tcc78.data_vars:
+    tcc_name = 'TCC'
+else:
+    tcc_name = list(tcc78.data_vars)[0]
+
+tcc78 = to_78_yearly(tcc78, varname=tcc_name, start=TR_time[0], end=TR_time[1])
+tcc78 = tcc78.rename({tcc_name: 'tcc'})
+tcc78 = tcc78.transpose('year', 'lat', 'lon')
+tcc78 = tcc78.sortby('lat').sortby('lon')
+
+
+#————————————————————因子序列————————————————————
+
+X1_idx = get_factor_da(X1, 'swvl').sel(year=slice(TR_time[0], TR_time[1]))
+X2_idx = get_factor_da(X2, 'sst').sel(year=slice(TR_time[0], TR_time[1]))
+
+
+#————————————————————回归 / 相关 / WAF 计算————————————————————
+
+plot_data = {}
+
+for fname, idx in [('X1', X1_idx), ('X2', X2_idx)]:
+
+    # 200 hPa Z
+    z200_reg, z200_corr = regcorr_2d(idx, uvz78['z'].sel(p=200), 'z200')
+
+    # 500 hPa Z
+    z500_reg, z500_corr = regcorr_2d(idx, uvz78['z'].sel(p=500), 'z500')
+
+    # 7-8 月土壤湿度
+    sm_reg, sm_corr = regcorr_2d(idx, sm78['swvl'], 'sm')
+
+    # 7-8 月 SST
+    sst_reg, sst_corr = regcorr_2d(idx, sst78['sst'], 'sst')
+
+    # 7-8 月 T2m
+    t2m_reg, t2m_corr = regcorr_2d(idx, t2m78['t2m'], 't2m')
+
+    # 7-8 月 omega
+    omega_reg, omega_corr = regcorr_2d(idx, w78['omega'], 'omega')
+
+    # 7-8 月总云量
+    tcc_reg, tcc_corr = regcorr_2d(idx, tcc78['tcc'], 'tcc')
+
+    # 200 hPa WAF
+    waf200 = make_waf_200(z200_reg, uvz78)
+
+    plot_data[fname] = {
+        'z200_reg': z200_reg,
+        'z200_corr': z200_corr,
+        'z500_reg': z500_reg,
+        'z500_corr': z500_corr,
+        'sm_reg': sm_reg,
+        'sm_corr': sm_corr,
+        'sst_reg': sst_reg,
+        'sst_corr': sst_corr,
+        't2m_reg': t2m_reg,
+        't2m_corr': t2m_corr,
+        'omega_reg': omega_reg,
+        'omega_corr': omega_corr,
+        'tcc_reg': tcc_reg,
+        'tcc_corr': tcc_corr,
+        'waf200': waf200
+    }
+
+
+#————————————————————绘图参数————————————————————
+
+plot_extent = [-180, 180, -50, 80]
+
+plot_geoticks = {
+    'x': np.arange(-180, 181, 60),
+    'y': yticks,
+    'xminor': 10,
+    'yminor': 10
+}
+
+# X1 第一行：土壤湿度填色，粉红-绿
+sm_levels = np.array([-.04, -.03, -.02, -.01, .01, .02, .03, .04])
+sm_cmap = ensure_cmap(
+    cmaps.GreenMagenta16[8-5:8] + cmaps.GMT_red2green_r[11:11+4],
+    name='sm_pink_green'
+)
+
+# X2 第一行：SST 填色，红-蓝
+sst_levels = np.array([-.3, -.25, -.2, -.15, -.1, .1, .15, .2, .25, .3])
+sst_cmap = ensure_cmap(
+    cmaps.BlueWhiteOrangeRed[40:-40],
+    name='sst_red_blue'
+)
+
+# 第二行：T2m 填色
+t2m_levels = np.array([-1.2, -.9, -.6, -.3, .3, .6, .9, 1.2])
+t2m_cmap = ensure_cmap(
+    cmaps.BlueWhiteOrangeRed[40:-40],
+    name='t2m_red_blue'
+)
+
+# 第三行：omega 填色
+omega_levels = np.array([-.02, -.015, -.01, -.005, .005, .01, .015, .02])
+omega_cmap = ensure_cmap(
+    cmaps.BlueWhiteOrangeRed[40:-40],
+    name='omega_red_blue'
+)
+
+# 200/500 hPa Z 等值线
+z200_levels = [[-30, -20, -10], [10, 20, 30]]
+z500_levels = [[-30, -20, -10], [10, 20, 30]]
+
+# TCC 等值线
+# 如果你的 TCC 是 0-100 百分比单位，可改为 [[-6, -4, -2], [2, 4, 6]]
+tcc_levels = [[-.06, -.04, -.02], [.02, .04, .06]]
+
+# WAF 矢量设置
+waf_set = default_wind_2_set.copy()
+waf_set.update({
+    'regrid': 15,
+    'arrowsize': 0.5,
+    'scale': 5,
+    'lw': 0.35,
+    'color': 'purple',
+    'thinning': ['40%', 'min'],
+    'nanmax': 0.1,
+    'MinDistance': [0.2, 0.1]
+})
+
+waf_key_set = default_wind_2_key_set.copy()
+waf_key_set.update({
+    'U': 0.03,
+    'label': '0.03 m$^2$/s$^2$',
+    'arrowsize': 0.5,
+    'edgecolor': 'none',
+    'lw': 0.5
+})
+
+
+#————————————————————正式绘图：3行 × 2列————————————————————
+
+fig = plt.figure(figsize=np.array([8.5, 8.8]))
+fig.subplots_adjust(hspace=0.28, wspace=0.18)
+
+gs = gridspec.GridSpec(3, 2)
+letters = ['a', 'b', 'c', 'd', 'e', 'f']
+
+for col, fname in enumerate(['X1', 'X2']):
+
+    pdata = plot_data[fname]
+    draw_cbar = True if col == 1 else False
+
+    #———————————————— 第一行 ————————————————
+    # X1: 200Z 等值线 + WAF 矢量 + 土壤湿度填色
+    # X2: 200Z 等值线 + WAF 矢量 + SST 填色
+    ax = fig.add_subplot(gs[0, col], projection=ccrs.PlateCarree(central_longitude=180-70))
+
+    if fname == 'X1':
+        first_shading = pdata['sm_reg']
+        first_corr = pdata['sm_corr']
+        first_levels = sm_levels
+        first_cmap = sm_cmap
+        first_name = 'SM'
+    else:
+        first_shading = pdata['sst_reg']
+        first_corr = pdata['sst_corr']
+        first_levels = sst_levels
+        first_cmap = sst_cmap
+        first_name = 'SST'
+
+    sub_pic(
+        ax,
+        title=f"({letters[col]}) 200Z&WAF&{first_name} reg onto {fname}",
+        extent=plot_extent,
+        geoticks=plot_geoticks,
+        fontsize_times=default_fontsize_times,
+
+        shading=None,
+        shading_levels=first_levels,
+        shading_cmap=first_cmap,
+        shading_corr=None,
+        cb_draw=False,
+        p_test_drawSet={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1,
+            'lw': 0.2,
+            'color': '#454545'
+        },
+        edgedraw=False,
+
+        shading2=first_shading,
+        shading2_levels=first_levels,
+        shading2_cmap=first_cmap,
+        shading2_corr=first_corr,
+        p_test_drawSet2={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1,
+            'lw': 0.2,
+            'color': '#454545'
+        },
+        edgedraw2=False,
+
+        contour=pdata['z200_reg'],
+        contour_levels=z200_levels,
+        contour_cmap=default_contour_cmap,
+        contour_corr=None,
+        cb_draw2=draw_cbar,
+        p_test_drawSet_corr={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1
+        },
+
+        wind_1=default_wind_1, ###################pdata['waf200'],
+        wind_1_set=waf_set,
+        wind_1_key_set=waf_key_set,
+        bbox_to_anchor_1=None,
+        loc1='upper right',
+
+        wind_2=default_wind_2,
+        wind_2_set=default_wind_2_set,
+        wind_2_key_set=default_wind_2_key_set,
+        bbox_to_anchor_2=None,
+        loc2='upper right',
+
+        rec_Set=None
+    )
+
+
+    #———————————————— 第二行：500Z 等值线 + T2m 填色 ————————————————
+    ax = fig.add_subplot(gs[1, col], projection=ccrs.PlateCarree(central_longitude=180-70))
+
+    sub_pic(
+        ax,
+        title=f"({letters[col + 2]}) 500Z&T2m reg onto {fname}",
+        extent=plot_extent,
+        geoticks=plot_geoticks,
+        fontsize_times=default_fontsize_times,
+
+        shading=None,
+        shading_levels=t2m_levels,
+        shading_cmap=t2m_cmap,
+        shading_corr=None,
+        cb_draw=False,
+        p_test_drawSet={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1,
+            'lw': 0.2,
+            'color': '#454545'
+        },
+        edgedraw=False,
+
+        shading2=pdata['t2m_reg'],
+        shading2_levels=t2m_levels,
+        shading2_cmap=t2m_cmap,
+        shading2_corr=pdata['t2m_corr'],
+        p_test_drawSet2={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1,
+            'lw': 0.2,
+            'color': '#454545'
+        },
+        edgedraw2=False,
+
+        contour=pdata['z500_reg'],
+        contour_levels=z500_levels,
+        contour_cmap=default_contour_cmap,
+        contour_corr=None,
+        cb_draw2=draw_cbar,
+        p_test_drawSet_corr={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1
+        },
+
+        wind_1=default_wind_1,
+        wind_1_set=default_wind_1_set,
+        wind_1_key_set=default_wind_1_key_set,
+        bbox_to_anchor_1=None,
+        loc1='upper right',
+
+        wind_2=default_wind_2,
+        wind_2_set=default_wind_2_set,
+        wind_2_key_set=default_wind_2_key_set,
+        bbox_to_anchor_2=None,
+        loc2='upper right',
+
+        rec_Set=None
+    )
+
+
+    #———————————————— 第三行：omega 填色 + TCC 等值线 ————————————————
+    ax = fig.add_subplot(gs[2, col], projection=ccrs.PlateCarree(central_longitude=180-70))
+
+    sub_pic(
+        ax,
+        title=f"({letters[col + 4]}) $\\omega$&TCC reg onto {fname}",
+        extent=plot_extent,
+        geoticks=plot_geoticks,
+        fontsize_times=default_fontsize_times,
+
+        shading=None,
+        shading_levels=omega_levels,
+        shading_cmap=omega_cmap,
+        shading_corr=None,
+        cb_draw=False,
+        p_test_drawSet={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1,
+            'lw': 0.2,
+            'color': '#454545'
+        },
+        edgedraw=False,
+
+        shading2=pdata['omega_reg'],
+        shading2_levels=omega_levels,
+        shading2_cmap=omega_cmap,
+        shading2_corr=pdata['omega_corr'],
+        p_test_drawSet2={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1,
+            'lw': 0.2,
+            'color': '#454545'
+        },
+        edgedraw2=False,
+
+        contour=pdata['tcc_reg'],
+        contour_levels=tcc_levels,
+        contour_cmap=default_contour_cmap,
+        contour_corr=None,
+        cb_draw2=draw_cbar,
+        p_test_drawSet_corr={
+            'N': TR_time[1] - TR_time[0] + 1,
+            'alpha': 0.1
+        },
+
+        wind_1=default_wind_1,
+        wind_1_set=default_wind_1_set,
+        wind_1_key_set=default_wind_1_key_set,
+        bbox_to_anchor_1=None,
+        loc1='upper right',
+
+        wind_2=default_wind_2,
+        wind_2_set=default_wind_2_set,
+        wind_2_key_set=default_wind_2_key_set,
+        bbox_to_anchor_2=None,
+        loc2='upper right',
+
+        rec_Set=None
+    )
+
+
+plt.savefig(f'{PYFILE}/p5/pic/因子发展_78平均.pdf', bbox_inches='tight')
+plt.savefig(f'{PYFILE}/p5/pic/因子发展_78平均.png', dpi=600, bbox_inches='tight')
+plt.show()

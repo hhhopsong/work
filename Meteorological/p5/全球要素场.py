@@ -287,13 +287,13 @@ uvz_clim = uvz.mean('year')
 try:
     t2m = xr.open_dataset(fr"{PYFILE}/p2/data/t2m_78.nc")
 except:
-    t2m = xr.open_dataset(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc")['t2m']
-    t2m = t2m.sel(date=slice('1961-01-01', '2023-12-31'))
+    t2m = era5_land(fr"{DATA}/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')['t2m']
+    t2m = t2m.sel(time=slice('1961-01-01', '2023-12-31'))
     t2m = xr.Dataset(
         {'t2m': (['time', 'lat', 'lon'], t2m.data)},
-        coords={'time': pd.to_datetime(t2m['date'], format="%Y%m%d"),
-                'lat': t2m['latitude'].data,
-                'lon': t2m['longitude'].data})
+        coords={'time': pd.to_datetime(t2m['time'], format="%Y%m%d"),
+                'lat': t2m['lat'].data,
+                'lon': t2m['lon'].data})
     t2m = t2m.sel(time=slice('1961-01-01', '2022-12-31'))
     t2m = t2m.sel(time=t2m['time.month'].isin([7, 8])).groupby('time.year').mean('time')
     t2m.to_netcdf(fr"{PYFILE}/p2/data/t2m_78.nc")
@@ -309,25 +309,25 @@ tcc = tcc.transpose('year', 'lat', 'lon')  # 500hPa
 tcc_clim = tcc.mean('year')
 
 
-# 空间图
-time_ser = EHCI30
-from concurrent.futures import ThreadPoolExecutor
-time_ser = (time_ser - time_ser.mean()) / time_ser.std()
-with ThreadPoolExecutor() as executor:
-    futures = {
-        'u': executor.submit(regress, time_ser, uvz['u'].data),
-        'v': executor.submit(regress, time_ser, uvz['v'].data),
-        'z': executor.submit(regress, time_ser, uvz['z'].data),
-        't2m': executor.submit(regress, time_ser, t2m['t2m'].data),
-        'w': executor.submit(regress, time_ser, w['w'].data),
-        'tcc': executor.submit(regress, time_ser, tcc['tcc'].data)
-    }
-    reg_K_u = futures['u'].result()
-    reg_K_v = futures['v'].result()
-    reg_K_z = futures['z'].result()
-    reg_K_t2m = futures['t2m'].result()
-    reg_K_w = futures['w'].result()
-    reg_K_tcc = futures['tcc'].result()
+## 空间图
+# time_ser = EHCI30
+# from concurrent.futures import ThreadPoolExecutor
+# time_ser = (time_ser - time_ser.mean()) / time_ser.std()
+# with ThreadPoolExecutor() as executor:
+#     futures = {
+#         'u': executor.submit(regress, time_ser, uvz['u'].data),
+#         'v': executor.submit(regress, time_ser, uvz['v'].data),
+#         'z': executor.submit(regress, time_ser, uvz['z'].data),
+#         't2m': executor.submit(regress, time_ser, t2m['t2m'].data),
+#         'w': executor.submit(regress, time_ser, w['w'].data),
+#         'tcc': executor.submit(regress, time_ser, tcc['tcc'].data)
+#     }
+#     reg_K_u = futures['u'].result()
+#     reg_K_v = futures['v'].result()
+#     reg_K_z = futures['z'].result()
+#     reg_K_t2m = futures['t2m'].result()
+#     reg_K_w = futures['w'].result()
+#     reg_K_tcc = futures['tcc'].result()
 #%%
 fig = plt.figure(figsize=(5.75, 7))
 gs = gridspec.GridSpec(3, 1,  height_ratios=[1, 1, 1], wspace=0.27, hspace=0.4)
@@ -338,16 +338,19 @@ plt.rcParams['mathtext.fontset'] = 'stix'
 #---------------------SST PRE
 Pre = xr.open_dataset(fr"{PYFILE}/p2/data/pre.nc")
 Sst = xr.open_dataset(fr"{PYFILE}/p2/data/sst.nc")
+T2m = xr.open_dataset(fr"{PYFILE}/p2/data/t2m_78.nc")
 Z = xr.open_dataset(fr"{PYFILE}/p2/data/Z.nc").sel(level=[200, 500, 850])
 U = xr.open_dataset(fr"{PYFILE}/p2/data/U.nc").sel(level=[200, 500, 850])
 V = xr.open_dataset(fr"{PYFILE}/p2/data/V.nc").sel(level=[200, 500, 850])
 from cartopy.util import add_cyclic_point
 corr_pre = np.zeros((2, len(Pre['lat']), len(Pre['lon'])))
 corr_sst = np.zeros((2, len(Sst['lat']), len(Sst['lon'])))
+corr_t2m = np.zeros((2, len(t2m['lat']), len(t2m['lon'])))
 time_series = EHCI30
 time_series = (time_series - np.mean(time_series)) / np.std(time_series)
 corr_pre[0], corr_pre[1] = regress(time_series, Pre['pre'].data)
 corr_sst[0], corr_sst[1] = regress(time_series, Sst['sst'].data)
+corr_t2m[0], corr_t2m[1] = regress(time_series, t2m['t2m'].data)
 
 corr_z = np.zeros((2, len(Z['level']), len(Z['lat']), len(Z['lon'])))
 reg_z = np.zeros((len(Z['level']), len(Z['lat']), len(Z['lon'])))
@@ -372,6 +375,11 @@ corr_sst = xr.Dataset({'corr': (['lat', 'lon'], corr_sst[1]),
                       coords={
                               'lat': Sst['lat'].data,
                               'lon': Sst['lon'].data})
+corr_t2m = xr.Dataset({'corr': (['lat', 'lon'], corr_t2m[1]),
+                       'reg': (['lat', 'lon'], corr_t2m[0])},
+                      coords={
+                          'lat': T2m['lat'].data,
+                        'lon': T2m['lon'].data}).interp(lon=np.arange(0, 360, 0.5), lat=np.arange(-90, 90.1, 0.5))
 corr_z = xr.Dataset({'corr': (['level', 'lat', 'lon'], corr_z[1]),
                      'reg': (['level', 'lat', 'lon'], corr_z[0])},
                     coords={
@@ -467,7 +475,7 @@ plt.rcParams['hatch.color'] = '#FFFFFF'
 for spine in ax2.spines.values():
     spine.set_linewidth(1)  # 设置边框线宽
 
-ax2.set_title(f"(b) Reg 500UVZ&SST", fontsize=12, loc='left')
+ax2.set_title(f"(b) Reg 500UVZ&SST&T2m", fontsize=12, loc='left')
 ax2.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.75, color="#a4a4a4")
 ax2.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
                    facecolor='none', edgecolor='black', linewidth=.5)
@@ -501,6 +509,22 @@ for label in clabels:
                         alpha=1,  # 背景的透明度 (0.8表示80%不透明)
                         zorder=20
                         ))
+
+
+reg_t2m_, lon = add_cyclic_point(corr_t2m['reg'], coord=corr_t2m['lon'])
+corr_t2m_, lon = add_cyclic_point(corr_t2m['corr'], coord=corr_t2m['lon'])
+# t2m
+lev_t2m = np.array([-.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8])
+t2m = ax2.contourf(lon, corr_t2m['lat'], reg_t2m_,
+                   cmap=cmaps.MPL_PiYG_r[15:64-10] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.MPL_PiYG_r[64+10:-15],
+                   levels=lev_t2m, extend='both', transform=ccrs.PlateCarree(central_longitude=0), alpha=0.8)
+p_test = np.where(np.abs(corr_t2m_) > p_th, 0, np.nan)
+
+# 显著性
+p_hatches = ax2.contourf(lon, corr_t2m['lat'], p_test, levels=[0, 1], hatches=['////////////', None],
+                         colors="none", add_colorbar=False, transform=ccrs.PlateCarree(central_longitude=0),
+                         edgecolor='none', linewidths=0)
+
 reg_sst_, lon = add_cyclic_point(corr_sst['reg'], coord=corr_sst['lon'])
 corr_sst_, lon = add_cyclic_point(corr_sst['corr'], coord=corr_sst['lon'])
 # sst
@@ -514,6 +538,7 @@ p_test = np.where(np.abs(corr_sst_) > p_th, 0, np.nan)
 p_hatches = ax2.contourf(lon, corr_sst['lat'], p_test, levels=[0, 1], hatches=['////////////', None],
                          colors="none", add_colorbar=False, transform=ccrs.PlateCarree(central_longitude=0),
                          edgecolor='none', linewidths=0)
+
 plt.rcParams['hatch.linewidth'] = 0.2
 plt.rcParams['hatch.color'] = '#FFFFFF'
 
@@ -531,13 +556,22 @@ for spine in ax2.spines.values():
     spine.set_edgecolor('black')
 
 # 色条
-ax2_colorbar = inset_axes(ax2, width="2.5%", height="100%", loc='lower left', bbox_to_anchor=(1.025, 0., 1, 1),
+ax2_colorbar = inset_axes(ax2, width="2.5%", height="100%", loc='lower left', bbox_to_anchor=(1.015, 0., 1, 1),
                           bbox_transform=ax2.transAxes, borderpad=0)
 cb2 = plt.colorbar(sst, cax=ax2_colorbar, orientation='vertical', drawedges=True)
 cb2.outline.set_edgecolor('black')  # 将colorbar边框调为黑色
 cb2.dividers.set_color('black')  # 将colorbar内间隔线调为黑色
 cb2.locator = ticker.FixedLocator(lev_sst)
 cb2.set_ticklabels([str(f'{lev:.2f}') for lev in lev_sst])
+cb2.ax.tick_params(length=0, labelsize=10)  # length为刻度线的长度
+
+ax2_colorbar = inset_axes(ax2, width="2.5%", height="100%", loc='lower left', bbox_to_anchor=(1.13, 0., 1, 1),
+                          bbox_transform=ax2.transAxes, borderpad=0)
+cb2 = plt.colorbar(t2m, cax=ax2_colorbar, orientation='vertical', drawedges=True)
+cb2.outline.set_edgecolor('black')  # 将colorbar边框调为黑色
+cb2.dividers.set_color('black')  # 将colorbar内间隔线调为黑色
+cb2.locator = ticker.FixedLocator(lev_t2m)
+cb2.set_ticklabels([str(f'{lev:.1f}') for lev in lev_t2m])
 cb2.ax.tick_params(length=0, labelsize=10)  # length为刻度线的长度
 
 ax3 = fig.add_subplot(gs[2], projection=ccrs.PlateCarree(central_longitude=c_lon))
@@ -640,7 +674,7 @@ ax3.grid(False)
 for spine in ax3.spines.values():
     spine.set_edgecolor('black')
 # 色条
-ax3_colorbar = inset_axes(ax3, width="2.5%", height="100%", loc='lower left', bbox_to_anchor=(1.025, 0., 1, 1),
+ax3_colorbar = inset_axes(ax3, width="2.5%", height="100%", loc='lower left', bbox_to_anchor=(1.015, 0., 1, 1),
                           bbox_transform=ax3.transAxes, borderpad=0)
 cb3 = plt.colorbar(pre, cax=ax3_colorbar, orientation='vertical', drawedges=True)
 cb3.outline.set_edgecolor('black')  # 将colorbar边框调为黑色

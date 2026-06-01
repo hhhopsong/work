@@ -416,14 +416,14 @@ def detrend(obj, dim='year', deg=1):
     else:
         raise TypeError("obj 必须是 xarray.DataArray 或 xarray.Dataset")
 
-adv_T_78 = detrend(adv_T_78, dim='year')
-ver_78 = detrend(ver_78, dim='year')
-Q_78 = detrend(Q_78, dim='year')
-uvz = detrend(uvz, dim='year')
-t2m = detrend(t2m, dim='year')
-w = detrend(w, dim='year')
-tcc = detrend(tcc, dim='year')
-surface_radio = detrend(surface_radio, dim='year')
+# adv_T_78 = detrend(adv_T_78, dim='year')
+# ver_78 = detrend(ver_78, dim='year')
+# Q_78 = detrend(Q_78, dim='year')
+# uvz = detrend(uvz, dim='year')
+# t2m = detrend(t2m, dim='year')
+# w = detrend(w, dim='year')
+# tcc = detrend(tcc, dim='year')
+# surface_radio = detrend(surface_radio, dim='year')
 
 #%%
 

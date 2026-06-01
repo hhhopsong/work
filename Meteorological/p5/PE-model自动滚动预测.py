@@ -1,3 +1,27 @@
+# -*- coding: utf-8 -*-
+"""
+完整可替换版：自动筛选预测因子 + 逐步回归 + 按气象要素和 mode 绘制因子区域图
+
+新增功能：
+1. 在 meta_df 生成后，按照 elem + mode 分别出图：
+   - mean: 两月平均一张图
+   - trend: 单月相减一张图
+   - two_month_trend: 双月平均相减一张图
+2. 每张图中每个 month_expr 为一个子图。
+3. 显著联通区域用虚线框选，并标注 X_name。
+4. 出图风格按 SCI 风格设置。
+5. 自动筛选因子时仅保留 30S 以北，即 lat >= -30。
+6. Region maps 叠加 90% 显著性打点，颜色 #757575。
+7. Region maps 默认每行 6 张图，并压缩横纵间隙。
+
+注意：
+- 该脚本依赖你原来的 climkit、cmaps、本地数据路径和字体环境。
+- 如果你的 Cartopy 第一次使用 Natural Earth 数据，可能会联网下载海岸线数据。
+"""
+
+# =========================================================
+# 0. imports
+# =========================================================
 from cartopy import crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
@@ -10,6 +34,7 @@ from matplotlib import ticker
 from matplotlib.lines import lineStyles
 from matplotlib.pyplot import quiverkey
 from matplotlib.ticker import MultipleLocator, FixedLocator
+from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import cmaps
 
@@ -26,6 +51,9 @@ import statsmodels.formula.api as smf
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
+import os
+import ast
+
 from climkit.significance_test import corr_test, r_test
 from climkit.TN_WaveActivityFlux import TN_WAF_3D, TN_WAF
 from climkit.Cquiver import *
@@ -39,7 +67,7 @@ read_sic = sic
 
 
 # =========================================================
-# 0. 数据预处理
+# 1. 数据预处理
 # =========================================================
 def prepare_sic_dataset(ds):
     """Normalize HadISST sea-ice dataset to a stable {'sic': [time, lat, lon]} schema."""
@@ -121,7 +149,7 @@ def prepare_swvl_dataset(swvl_like):
 
 
 # =========================================================
-# 1. 一些辅助函数
+# 2. 辅助函数
 # =========================================================
 def _make_slice(coord, v1, v2):
     """根据坐标升降序自动生成 slice"""
@@ -142,7 +170,7 @@ def _to_lon180(da):
 
 def month_to_season_order(month, cross_month=9):
     """
-    把自然月映射到以 cross_month 为起点的季节年顺序
+    把自然月映射到以 cross_month 为起点的季节年顺序。
     例如 cross_month=9:
     9->1, 10->2, 11->3, 12->4, 1->5, ..., 8->12
     """
@@ -152,8 +180,8 @@ def month_to_season_order(month, cross_month=9):
 def generate_avg_month_combos_excluding_predict_month(predict_month=[7, 8]):
     """
     连续两个月平均：
-    12-1, 1-2, 2-3, ..., 11-12 都视为连续
-    但组合中不能包含 predict_month
+    12-1, 1-2, 2-3, ..., 11-12 都视为连续。
+    但组合中不能包含 predict_month。
     """
     combos = []
     pm = set(predict_month)
@@ -171,8 +199,8 @@ def generate_avg_month_combos_excluding_predict_month(predict_month=[7, 8]):
 def generate_trend_month_combos_excluding_predict_month(cross_month=9, predict_month=[7, 8]):
     """
     单月趋势：
-    严格按时间顺序 later - earlier
-    月份顺序由 cross_month 定义
+    严格按时间顺序 later - earlier。
+    月份顺序由 cross_month 定义。
     """
     pm = set(predict_month)
 
@@ -192,7 +220,7 @@ def generate_trend_month_combos_excluding_predict_month(cross_month=9, predict_m
 def generate_two_month_trend_combos_excluding_predict_month(cross_month=9, predict_month=[7, 8]):
     """
     两月平均趋势：
-    后面连续两月平均 - 前面连续两月平均
+    后面连续两月平均 - 前面连续两月平均。
     """
     pm = set(predict_month)
 
@@ -242,7 +270,7 @@ def connected_components_periodic_lon(mask, connectivity=2, periodic_lon=True):
     """
     在二维 mask[lat, lon] 上做联通域标记。
     支持经向周期边界：lon=0 与 lon=-1 可相连。
-    返回 labels, num_labels
+    返回 labels, num_labels。
     """
     nlat, nlon = mask.shape
     labels = np.zeros((nlat, nlon), dtype=np.int32)
@@ -344,8 +372,8 @@ def connected_components_periodic_lon(mask, connectivity=2, periodic_lon=True):
 
 def get_min_lon_arc(lons, lon_mode='360'):
     """
-    给定一个联通区域里的所有经度点，找到“最短覆盖弧段”
-    返回 (lon1, lon2, wraps)
+    给定一个联通区域里的所有经度点，找到“最短覆盖弧段”。
+    返回 (lon1, lon2, wraps)。
     """
     lons = np.asarray(lons).astype(float)
 
@@ -395,7 +423,7 @@ def select_region_no_cut(da, lat1, lat2, lon1, lon2):
 
 def rolling_corr_centered_index(x, y, window=11):
     """
-    计算滑动相关，并把结果索引从窗口右端年改成窗口中心年
+    计算滑动相关，并把结果索引从窗口右端年改成窗口中心年。
     """
     rc = x.rolling(window=window).corr(y)
 
@@ -414,17 +442,21 @@ def find_connected_regions_from_corr(
     min_size=40,
     split_sign=True,
     connectivity=2,
-    periodic_lon=True
+    periodic_lon=True,
+    region_lat_min=-30.0
 ):
     """
-    从 corr 场中提取通过 90% 显著性检验且格点数 > min_size 的联通区域。
-    注意：
-    - 不做 180° 截断
-    - 支持经向周期连接
+    从 corr 场中提取通过显著性检验且格点数 > min_size 的联通区域。
+
+    新增：
+    - region_lat_min=-30.0：只在 30S 以北筛选因子，即 lat >= -30。
+      若设为 None，则不限制纬度。
     """
     corr_da = corr_da.copy().sortby('lat')
 
     lon_vals = corr_da.lon.values
+    lat_vals = corr_da.lat.values
+
     if np.nanmax(lon_vals) > 180:
         lon_mode = '360'
     else:
@@ -434,6 +466,13 @@ def find_connected_regions_from_corr(
 
     arr = corr_da.values
     valid = np.isfinite(arr)
+
+    # =====================================================
+    # 新增：只保留 30S 以北格点参与联通域筛选
+    # =====================================================
+    if region_lat_min is not None:
+        lat_keep = lat_vals[:, None] >= float(region_lat_min)
+        valid = valid & lat_keep
 
     if split_sign:
         masks = {
@@ -487,11 +526,8 @@ def find_connected_regions_from_corr(
 
     return regions
 
-
 def get_corr_map_from_predictor_output(pred_out):
-    """
-    predictor 返回值转成 corr 字典
-    """
+    """predictor 返回值转成 corr 字典。"""
     (
         _, _, _, TS, TS_pre, TS_all,
         t2mReg, t2mCorr,
@@ -514,8 +550,8 @@ def get_corr_map_from_predictor_output(pred_out):
 
 def calc_period_corr_stats(ts, x):
     """
-    计算某一时期内 TS 与 X 的相关统计
-    返回: corr, pval, n
+    计算某一时期内 TS 与 X 的相关统计。
+    返回: corr, pval, n。
     """
     sub = pd.concat(
         [ts.rename('TS'), x.rename('X')],
@@ -543,9 +579,7 @@ def calc_late_rolling_stats(
     train_sign=None,
     min_count=3
 ):
-    """
-    统计预测期（独立样本期）上的 rolling corr 表现
-    """
+    """统计预测期独立样本期上的 rolling corr 表现。"""
     s = rolling_series.copy()
 
     if isinstance(s.index, pd.DatetimeIndex):
@@ -732,9 +766,7 @@ def is_late_significant_same_sign(
 
 
 def is_late_significant(rolling_series, PR_time, r_sig, min_ratio=0.5, min_count=3):
-    """
-    判断某个因子在后期（独立样本期）是否比较显著
-    """
+    """判断某个因子在后期独立样本期是否比较显著。"""
     s = rolling_series.copy()
 
     if isinstance(s.index, pd.DatetimeIndex):
@@ -752,7 +784,7 @@ def is_late_significant(rolling_series, PR_time, r_sig, min_ratio=0.5, min_count
 
 
 # =========================================================
-# 2. predictor 主函数
+# 3. predictor 主函数
 # =========================================================
 def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=None, cross_month=9):
 
@@ -760,7 +792,7 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
         predictor_zone = []
 
     def seasonal_mean_same_year(da, months, start_year, end_year):
-        """不跨年的月份平均，例如 [3,4,5]"""
+        """不跨年的月份平均，例如 [3,4,5]。"""
         return (
             da.sel(time=da["time.month"].isin(months))
               .sel(time=slice(f"{start_year}", f"{end_year}"))
@@ -771,7 +803,7 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
 
     def seasonal_mean_cross_year(da, months, start_year, end_year, cross_month=cross_month):
         """
-        跨年月份平均，例如 [11,12,1,2]
+        跨年月份平均，例如 [11,12,1,2]。
         规则：
         - month >= cross_month 的月份，season_year = 原年份 + 1
         - month < cross_month 的月份，season_year = 原年份
@@ -1028,7 +1060,7 @@ def predictor(timeSerie, TR_time, PR_time, month1, month2=None, predictor_zone=N
 
 
 # =========================================================
-# 3. 自动搜索 predictor
+# 4. 自动搜索 predictor
 # =========================================================
 def auto_build_predictors(
     timeSerie,
@@ -1042,13 +1074,17 @@ def auto_build_predictors(
     split_sign=True,
     connectivity=2,
     periodic_lon=True,
+    region_lat_min=-30.0,
     verbose=True
 ):
     """
     自动构造三类 predictor:
     1. mean: 连续两月平均
-    2. trend: 单月趋势（后月 - 前月）
-    3. two_month_trend: 两月平均趋势（后两月平均 - 前两月平均）
+    2. trend: 单月趋势，后月 - 前月
+    3. two_month_trend: 两月平均趋势，后两月平均 - 前两月平均
+
+    新增：
+    - region_lat_min=-30.0：自动筛选因子时只保留 30S 以北区域。
     """
     X_train_all_dict = {}
     X_pre_all_dict = {}
@@ -1058,7 +1094,15 @@ def auto_build_predictors(
     global_idx = 0
     TS_ref, TS_pre_ref, TS_all_ref = None, None, None
 
-    def _append_predictors(pred_out_zone, local_meta, X_train_all_dict, X_pre_all_dict, X_roll_all_dict, meta_records, global_idx):
+    def _append_predictors(
+        pred_out_zone,
+        local_meta,
+        X_train_all_dict,
+        X_pre_all_dict,
+        X_roll_all_dict,
+        meta_records,
+        global_idx
+    ):
         X_train_dict, X_pre_dict, X_roll_dict = pred_out_zone[:3]
 
         for i, meta in enumerate(local_meta, start=1):
@@ -1111,7 +1155,8 @@ def auto_build_predictors(
                 min_size=min_size,
                 split_sign=split_sign,
                 connectivity=connectivity,
-                periodic_lon=periodic_lon
+                periodic_lon=periodic_lon,
+                region_lat_min=region_lat_min
             )
 
             for rg in regions:
@@ -1126,11 +1171,11 @@ def auto_build_predictors(
                     'month2': None,
                     'sign': rg['sign'],
                     'ncell': rg['ncell'],
+                    'wraps': rg.get('wraps', False),
                     'lat1': rg['lat1'],
                     'lat2': rg['lat2'],
                     'lon1': rg['lon1'],
                     'lon2': rg['lon2'],
-                    'wraps': rg.get('wraps', False),
                     'mean_corr': rg['mean_corr'],
                     'max_corr': rg['max_corr'],
                     'min_corr': rg['min_corr'],
@@ -1150,9 +1195,13 @@ def auto_build_predictors(
         )
 
         global_idx = _append_predictors(
-            pred_out_zone, local_meta,
-            X_train_all_dict, X_pre_all_dict, X_roll_all_dict,
-            meta_records, global_idx
+            pred_out_zone,
+            local_meta,
+            X_train_all_dict,
+            X_pre_all_dict,
+            X_roll_all_dict,
+            meta_records,
+            global_idx
         )
 
     # -----------------------------------------------------
@@ -1192,7 +1241,8 @@ def auto_build_predictors(
                 min_size=min_size,
                 split_sign=split_sign,
                 connectivity=connectivity,
-                periodic_lon=periodic_lon
+                periodic_lon=periodic_lon,
+                region_lat_min=region_lat_min
             )
 
             for rg in regions:
@@ -1207,11 +1257,11 @@ def auto_build_predictors(
                     'month2': tuple(earlier_month),
                     'sign': rg['sign'],
                     'ncell': rg['ncell'],
+                    'wraps': rg.get('wraps', False),
                     'lat1': rg['lat1'],
                     'lat2': rg['lat2'],
                     'lon1': rg['lon1'],
                     'lon2': rg['lon2'],
-                    'wraps': rg.get('wraps', False),
                     'mean_corr': rg['mean_corr'],
                     'max_corr': rg['max_corr'],
                     'min_corr': rg['min_corr'],
@@ -1231,9 +1281,13 @@ def auto_build_predictors(
         )
 
         global_idx = _append_predictors(
-            pred_out_zone, local_meta,
-            X_train_all_dict, X_pre_all_dict, X_roll_all_dict,
-            meta_records, global_idx
+            pred_out_zone,
+            local_meta,
+            X_train_all_dict,
+            X_pre_all_dict,
+            X_roll_all_dict,
+            meta_records,
+            global_idx
         )
 
     # -----------------------------------------------------
@@ -1273,7 +1327,8 @@ def auto_build_predictors(
                 min_size=min_size,
                 split_sign=split_sign,
                 connectivity=connectivity,
-                periodic_lon=periodic_lon
+                periodic_lon=periodic_lon,
+                region_lat_min=region_lat_min
             )
 
             for rg in regions:
@@ -1288,11 +1343,11 @@ def auto_build_predictors(
                     'month2': tuple(earlier_months),
                     'sign': rg['sign'],
                     'ncell': rg['ncell'],
+                    'wraps': rg.get('wraps', False),
                     'lat1': rg['lat1'],
                     'lat2': rg['lat2'],
                     'lon1': rg['lon1'],
                     'lon2': rg['lon2'],
-                    'wraps': rg.get('wraps', False),
                     'mean_corr': rg['mean_corr'],
                     'max_corr': rg['max_corr'],
                     'min_corr': rg['min_corr'],
@@ -1312,9 +1367,13 @@ def auto_build_predictors(
         )
 
         global_idx = _append_predictors(
-            pred_out_zone, local_meta,
-            X_train_all_dict, X_pre_all_dict, X_roll_all_dict,
-            meta_records, global_idx
+            pred_out_zone,
+            local_meta,
+            X_train_all_dict,
+            X_pre_all_dict,
+            X_roll_all_dict,
+            meta_records,
+            global_idx
         )
 
     meta_df = pd.DataFrame(meta_records)
@@ -1332,9 +1391,8 @@ def auto_build_predictors(
 
     return X_train_all_dict, X_pre_all_dict, X_roll_all_dict, meta_df, TS_ref, TS_pre_ref, TS_all_ref
 
-
 # ============================================================
-# 4. 逐步回归前的工具函数
+# 5. 逐步回归前的工具函数
 # ============================================================
 def calc_vif(df, features):
     if len(features) <= 1:
@@ -1641,7 +1699,476 @@ def fallback_predictors_from_screen(screen_df, max_n=3):
 
 
 # ============================================================
-# 5. 执行自动搜索
+# 6. 新增：按气象要素 + mode 绘制因子区域图
+# ============================================================
+MODE_LABEL = {
+    'mean': 'Two-month mean',
+    'trend': 'Single-month difference',
+    'two_month_trend': 'Two-month difference'
+}
+
+ELEM_LABEL = {
+    'sst': 'SST',
+    'sic': 'SIC',
+    'swvl': 'Soil moisture',
+    'slp': 'SLP',
+    't2m': '2-m temperature'
+}
+
+
+def set_sci_map_style():
+    """SCI 风格绘图参数。"""
+    plt.rcParams.update({
+        'font.family': ['Arial', 'Helvetica', 'DejaVu Sans'],
+        'axes.unicode_minus': False,
+        'font.size': 8,
+        'axes.labelsize': 8,
+        'axes.titlesize': 9,
+        'xtick.labelsize': 7,
+        'ytick.labelsize': 7,
+        'legend.fontsize': 7,
+        'figure.titlesize': 11,
+        'axes.linewidth': 0.6,
+        'pdf.fonttype': 42,
+        'ps.fonttype': 42,
+        'savefig.dpi': 600
+    })
+
+
+def _safe_month_list(x):
+    """
+    支持 tuple/list/None/字符串形式的 month1 month2。
+    如果 meta_df 从 csv 读回来，month1/month2 可能是字符串。
+    """
+    if x is None:
+        return None
+
+    if isinstance(x, float) and np.isnan(x):
+        return None
+
+    if isinstance(x, str):
+        xs = x.strip()
+        if xs.lower() in ['none', 'nan', '']:
+            return None
+        try:
+            x = ast.literal_eval(xs)
+        except Exception:
+            x = xs.replace('[', '').replace(']', '')
+            x = x.replace('(', '').replace(')', '')
+            return [int(v.strip()) for v in x.split(',') if v.strip() != '']
+
+    if isinstance(x, (list, tuple, np.ndarray)):
+        return [int(v) for v in x]
+
+    return [int(x)]
+
+
+def _month_sort_key(row, cross_month=9):
+    """按气候季节顺序给 month_expr 排序。"""
+    m1 = _safe_month_list(row['month1'])
+    m2 = _safe_month_list(row['month2'])
+
+    key = []
+    if m1 is not None:
+        key.extend([month_to_season_order(m, cross_month) for m in m1])
+    if m2 is not None:
+        key.extend([month_to_season_order(m, cross_month) for m in m2])
+
+    return tuple(key)
+
+
+def _lon_to_data(lon, lon_values):
+    """把 lon 转换到当前数据经度体系。"""
+    lon = float(lon)
+
+    if np.nanmax(lon_values) > 180:
+        return lon % 360
+    else:
+        return ((lon + 180) % 360) - 180
+
+
+def draw_factor_box(
+    ax,
+    row,
+    lon_values,
+    label=True,
+    linewidth=1.1,
+    zorder=20
+):
+    """
+    在地图上画因子区域虚线框。
+    支持跨 0/360 或 -180/180 经线的区域。
+    """
+    lat_low = min(float(row['lat1']), float(row['lat2']))
+    lat_high = max(float(row['lat1']), float(row['lat2']))
+
+    lon1 = _lon_to_data(row['lon1'], lon_values)
+    lon2 = _lon_to_data(row['lon2'], lon_values)
+
+    lon_min = float(np.nanmin(lon_values))
+    lon_max = float(np.nanmax(lon_values))
+
+    wraps = bool(row.get('wraps', False)) or (lon1 > lon2)
+
+    if row.get('sign', 'pos') == 'pos':
+        edgecolor = '#B22222'
+    else:
+        edgecolor = '#1F4E79'
+
+    if not wraps:
+        segments = [(lon1, lon2)]
+    else:
+        segments = [(lon1, lon_max), (lon_min, lon2)]
+
+    for a, b in segments:
+        if b < a:
+            continue
+
+        rect = Rectangle(
+            xy=(a, lat_low),
+            width=b - a,
+            height=lat_high - lat_low,
+            fill=False,
+            edgecolor=edgecolor,
+            linewidth=linewidth,
+            linestyle=(0, (4, 2)),
+            transform=ccrs.PlateCarree(),
+            zorder=zorder
+        )
+        ax.add_patch(rect)
+
+    if label:
+        x_text = lon1
+        y_text = lat_high
+
+        ax.text(
+            x_text,
+            y_text,
+            str(row['X_name']),
+            transform=ccrs.PlateCarree(),
+            ha='left',
+            va='bottom',
+            fontsize=6,
+            color=edgecolor,
+            bbox=dict(
+                boxstyle='round,pad=0.12',
+                fc='white',
+                ec='none',
+                alpha=0.65
+            ),
+            zorder=zorder + 1
+        )
+
+
+def get_corr_da_for_month_expr(
+    timeSerie,
+    TR_time,
+    PR_time,
+    elem,
+    month1,
+    month2,
+    cross_month=9
+):
+    """针对某个 elem + month_expr 重新计算相关场。"""
+    pred_out = predictor(
+        timeSerie=timeSerie,
+        TR_time=TR_time,
+        PR_time=PR_time,
+        month1=month1,
+        month2=month2,
+        predictor_zone=[],
+        cross_month=cross_month
+    )
+
+    corr_map, _, _, _ = get_corr_map_from_predictor_output(pred_out)
+    return corr_map[elem].sortby('lat').sortby('lon')
+
+
+def add_significance_stippling(
+    ax,
+    corr_da,
+    alpha=0.1,
+    color='#757575',
+    size=1.0,
+    stride=1,
+    min_lat=None,
+    alpha_scatter=0.65,
+    zorder=12
+):
+    """
+    在相关场上添加显著性打点。
+
+    参数：
+    - alpha=0.1：90% 显著性。
+    - color='#757575'：打点颜色。
+    - stride：抽稀步长。1 表示不抽稀；2 表示隔一个点画一个。
+    - min_lat：若设为 -30，则只给 30S 以北显著区域打点；None 表示全图打点。
+    """
+    corr_da = corr_da.sortby('lat').sortby('lon')
+
+    r_crit = r_test(TR_time[1] - TR_time[0] + 1, alpha)
+
+    arr = corr_da.values
+    lats = corr_da['lat'].values
+    lons = corr_da['lon'].values
+
+    sig_mask = np.isfinite(arr) & (np.abs(arr) > r_crit)
+
+    if min_lat is not None:
+        sig_mask = sig_mask & (lats[:, None] >= float(min_lat))
+
+    if stride is not None and stride > 1:
+        ii, jj = np.indices(sig_mask.shape)
+        sig_mask = sig_mask & (ii % stride == 0) & (jj % stride == 0)
+
+    if not np.any(sig_mask):
+        return
+
+    lon2d, lat2d = np.meshgrid(lons, lats)
+
+    ax.scatter(
+        lon2d[sig_mask],
+        lat2d[sig_mask],
+        s=size,
+        c=color,
+        marker='.',
+        linewidths=0,
+        alpha=alpha_scatter,
+        transform=ccrs.PlateCarree(),
+        zorder=zorder,
+        rasterized=True
+    )
+
+
+def plot_auto_predictor_region_maps(
+    meta_df,
+    timeSerie,
+    TR_time,
+    PR_time,
+    out_dir,
+    elements=('sst', 'sic', 'swvl', 'slp', 't2m'),
+    modes=('mean', 'trend', 'two_month_trend'),
+    cross_month=9,
+    ncols=6,
+    figsize_per_panel=(2.35, 1.65),
+    cmap='RdBu_r',
+    levels=np.arange(-1.0, 1.01, 0.1),
+    label_xname=True,
+    dpi=600,
+    stipple_sig=True,
+    stipple_alpha=0.1,
+    stipple_color='#757575',
+    stipple_size=1.0,
+    stipple_stride=1,
+    stipple_min_lat=None,
+    wspace=0.025,
+    hspace=0.055
+):
+    """
+    按 elem + mode 分别绘图。
+
+    新增：
+    - 每行默认 6 张图。
+    - 子图横纵间隙更小。
+    - 显著性打点，默认 90% 显著性，颜色 #757575。
+    """
+    set_sci_map_style()
+    os.makedirs(out_dir, exist_ok=True)
+
+    meta_plot = meta_df.copy()
+    saved_files = []
+
+    if len(meta_plot) == 0:
+        print('[Region maps] meta_df is empty. Skip region map plotting.')
+        return saved_files
+
+    for elem in elements:
+        for mode in modes:
+
+            sub_all = meta_plot[
+                (meta_plot['elem'].astype(str).str.lower() == elem.lower()) &
+                (meta_plot['mode'].astype(str) == mode)
+            ].copy()
+
+            if len(sub_all) == 0:
+                print(f'[Skip] No predictors for {elem} - {mode}')
+                continue
+
+            sub_all['_order_key'] = sub_all.apply(
+                lambda r: _month_sort_key(r, cross_month=cross_month),
+                axis=1
+            )
+
+            month_expr_order = (
+                sub_all
+                .sort_values('_order_key')
+                .drop_duplicates('month_expr')['month_expr']
+                .tolist()
+            )
+
+            n_panel = len(month_expr_order)
+            ncols_use = min(ncols, n_panel)
+            nrows_use = int(np.ceil(n_panel / ncols_use))
+
+            fig_w = figsize_per_panel[0] * ncols_use
+            fig_h = figsize_per_panel[1] * nrows_use + 0.55
+
+            fig, axes = plt.subplots(
+                nrows_use,
+                ncols_use,
+                figsize=(fig_w, fig_h),
+                subplot_kw={
+                    'projection': ccrs.PlateCarree(central_longitude=180)
+                },
+                constrained_layout=False
+            )
+
+            axes = np.atleast_1d(axes).ravel()
+            mappable = None
+
+            for ipanel, month_expr in enumerate(month_expr_order):
+                ax = axes[ipanel]
+
+                sub = sub_all[sub_all['month_expr'] == month_expr].copy()
+                row0 = sub.iloc[0]
+
+                month1 = _safe_month_list(row0['month1'])
+                month2 = _safe_month_list(row0['month2'])
+
+                corr_da = get_corr_da_for_month_expr(
+                    timeSerie=timeSerie,
+                    TR_time=TR_time,
+                    PR_time=PR_time,
+                    elem=elem,
+                    month1=month1,
+                    month2=month2,
+                    cross_month=cross_month
+                )
+
+                corr_da = corr_da.sortby('lat').sortby('lon')
+
+                corr_plot, lon_plot = add_cyclic_point(
+                    corr_da.values,
+                    coord=corr_da['lon'].values
+                )
+                lat_plot = corr_da['lat'].values
+
+                mappable = ax.contourf(
+                    lon_plot,
+                    lat_plot,
+                    corr_plot,
+                    levels=levels,
+                    cmap=cmap,
+                    extend='both',
+                    transform=ccrs.PlateCarree(),
+                    zorder=1
+                )
+
+                # =================================================
+                # 新增：显著性打点
+                # =================================================
+                if stipple_sig:
+                    add_significance_stippling(
+                        ax=ax,
+                        corr_da=corr_da,
+                        alpha=stipple_alpha,
+                        color=stipple_color,
+                        size=stipple_size,
+                        stride=stipple_stride,
+                        min_lat=stipple_min_lat,
+                        alpha_scatter=0.65,
+                        zorder=12
+                    )
+
+                ax.coastlines(resolution='110m', linewidth=0.42, zorder=15)
+                ax.set_global()
+
+                ax.set_xticks(
+                    np.arange(-180, 181, 60),
+                    crs=ccrs.PlateCarree()
+                )
+                ax.set_yticks(
+                    np.arange(-60, 91, 30),
+                    crs=ccrs.PlateCarree()
+                )
+
+                ax.xaxis.set_major_formatter(LongitudeFormatter())
+                ax.yaxis.set_major_formatter(LatitudeFormatter())
+
+                row_id = ipanel // ncols_use
+                col_id = ipanel % ncols_use
+
+                if row_id != nrows_use - 1:
+                    ax.set_xticklabels([])
+                if col_id != 0:
+                    ax.set_yticklabels([])
+
+                ax.tick_params(length=1.8, width=0.45, pad=1.5)
+
+                for _, rg in sub.iterrows():
+                    draw_factor_box(
+                        ax=ax,
+                        row=rg,
+                        lon_values=corr_da['lon'].values,
+                        label=label_xname,
+                        linewidth=1.0,
+                        zorder=20
+                    )
+
+                panel_label = chr(ord('a') + ipanel)
+
+                ax.set_title(
+                    f'({panel_label}) {month_expr}  n={len(sub)}',
+                    loc='left',
+                    fontsize=7.2,
+                    pad=2
+                )
+
+            for j in range(n_panel, len(axes)):
+                fig.delaxes(axes[j])
+
+            fig.subplots_adjust(
+                left=0.035,
+                right=0.995,
+                top=0.925,
+                bottom=0.105,
+                wspace=wspace,
+                hspace=hspace
+            )
+
+            cbar = fig.colorbar(
+                mappable,
+                ax=axes[:n_panel],
+                orientation='horizontal',
+                fraction=0.032,
+                pad=0.035,
+                aspect=45
+            )
+            cbar.set_label('Correlation coefficient', fontsize=8)
+            cbar.ax.tick_params(labelsize=7, length=2.0, width=0.45)
+
+            title = (
+                f'{ELEM_LABEL.get(elem, elem.upper())} | '
+                f'{MODE_LABEL.get(mode, mode)} predictor regions'
+            )
+
+            fig.suptitle(title, y=0.985, fontsize=10.5)
+
+            png_path = os.path.join(out_dir, f'auto_regions_{elem}_{mode}.png')
+            pdf_path = os.path.join(out_dir, f'auto_regions_{elem}_{mode}.pdf')
+
+            fig.savefig(png_path, dpi=dpi, bbox_inches='tight')
+            fig.savefig(pdf_path, bbox_inches='tight')
+            plt.close(fig)
+
+            saved_files.extend([png_path, pdf_path])
+            print(f'[Saved] {png_path}')
+            print(f'[Saved] {pdf_path}')
+
+    return saved_files
+
+# ============================================================
+# 7. 执行自动搜索
 # ============================================================
 PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
@@ -1654,12 +2181,16 @@ EHCI30 = EHCI30['EHCI']
 
 # 2mT
 t2m = era5_land(fr"{DATA}/ERA5/ERA5_land/uv_2mTTd_sfp_pre_0.nc", 1961, 2022, 't2m')
+
 # SLP
 slp = era5_s(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc", 1961, 2022, 'msl')
+
 # SST
 sst = ersst(fr"{DATA}/NOAA/ERSSTv5/sst.mnmean.nc", 1961, 2022)
+
 # SIC
 sic_ds = prepare_sic_dataset(read_sic(fr"{DATA}/NOAA/HadISST/HadISST_ice.nc", 1961, 2022))
+
 # SWVL = swvl1 + swvl2
 swvl1 = era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl1')
 swvl2 = era5_land(fr"{DATA}/ERA5/ERA5_land/sm.nc", 1961, 2022, 'swvl2')
@@ -1685,25 +2216,27 @@ TR_time = [1962, 2004]
 PR_time = [2005, 2022]
 timeSerie = EHCI30
 
-slope, intercept, r_value, p_value, std_err = stats.linregress(
+slope, intercept_trend, r_value, p_value, std_err = stats.linregress(
     [i for i in range(len(EHCI30))], EHCI30
 )
 print(f"##################################{p_value}#########################################")
 
 predict_month = [7, 8, 9, 10]
+cross_month = 9
 
 X_train_all_dict, X_pre_all_dict, X_roll_all_dict, meta_df, TS, TS_pre, TS_all = auto_build_predictors(
     timeSerie=timeSerie,
     TR_time=TR_time,
     PR_time=PR_time,
     predict_month=predict_month,
-    elements=('sst', 'sic', 'swvl'),
+    elements=('sst', 'sic', 'swvl', 'slp', 't2m'),
     alpha=0.1,
     min_size=40,
-    cross_month=9,
+    cross_month=cross_month,
     split_sign=True,
     connectivity=2,
     periodic_lon=True,
+    region_lat_min=-30.0,   # 只筛选 30S 以北因子
     verbose=True
 )
 
@@ -1737,7 +2270,42 @@ meta_df.to_csv(
 
 
 # ============================================================
-# 6. 逐步回归与绘图
+# 8. 新增调用：输出每个气象要素和每个 mode 的因子空间分布图
+# ============================================================
+region_fig_dir = fr'{PYFILE}/p5/pic/auto_predictor_region_maps'
+
+saved_region_files = plot_auto_predictor_region_maps(
+    meta_df=meta_df,
+    timeSerie=timeSerie,
+    TR_time=TR_time,
+    PR_time=PR_time,
+    out_dir=region_fig_dir,
+    elements=('sst', 'sic', 'swvl', 'slp', 't2m'),
+    modes=('mean', 'trend', 'two_month_trend'),
+    cross_month=cross_month,
+    ncols=6,                         # 每行 6 张图
+    figsize_per_panel=(2.35, 1.65),   # 更紧凑的 SCI 排版
+    cmap='RdBu_r',
+    levels=np.arange(-1.0, 1.01, 0.1),
+    label_xname=True,
+    dpi=600,
+    stipple_sig=True,                 # 显著性打点
+    stipple_alpha=0.1,                # 90% 显著性
+    stipple_color='#757575',          # 打点颜色
+    stipple_size=1.0,
+    stipple_stride=1,                 # 若点太密可改成 2
+    stipple_min_lat=None,             # 全图显著性打点；若只想 30S 以北打点，改成 -30.0
+    wspace=0.025,
+    hspace=0.055
+)
+
+print('Region map files:')
+for f in saved_region_files:
+    print(f)
+
+
+# ============================================================
+# 9. 逐步回归与最终预测图
 # ============================================================
 plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']
 plt.rcParams['axes.unicode_minus'] = False
@@ -1978,7 +2546,7 @@ df_train['predicted_TS'] = model.predict(df_train)
 df_pre['inDependent_pre'] = model.predict(df_pre)
 df_train['residuals'] = df_train['TS'] - df_train['predicted_TS']
 
-TS_all = pd.concat([TS.rename('TS'), TS_pre.rename('TS')])
+TS_all_plot = pd.concat([TS.rename('TS'), TS_pre.rename('TS')])
 
 # ------------------------------------------------------------
 # 预测图
@@ -1986,7 +2554,7 @@ TS_all = pd.concat([TS.rename('TS'), TS_pre.rename('TS')])
 ax_predict = fig.add_subplot(gs[1])
 ax_predict.set_ylim(-3, 3)
 
-ax_predict.plot(TS_all.index, TS_all.values, color='black', linestyle='-', linewidth=1.5, label='Obs')
+ax_predict.plot(TS_all_plot.index, TS_all_plot.values, color='black', linestyle='-', linewidth=1.5, label='Obs')
 ax_predict.plot(df_train.index, df_train['predicted_TS'], color='blue', linestyle='--', linewidth=1.5, label='Reforecast')
 ax_predict.plot(df_pre.index, df_pre['inDependent_pre'], color='red', linestyle=(0, (1, 1)), linewidth=1.5, label='Independent forecast')
 ax_predict.axhline(y=0, color='#999999', linestyle='-', linewidth=0.5, alpha=0.5)
@@ -2041,3 +2609,6 @@ print("Final equation:", func)
 
 plt.savefig(fr'{PYFILE}/p5/pic/pemodle_auto.pdf', bbox_inches='tight')
 plt.savefig(fr'{PYFILE}/p5/pic/pemodle_auto.png', dpi=600, bbox_inches='tight')
+plt.close(fig)
+
+print('Done.')
