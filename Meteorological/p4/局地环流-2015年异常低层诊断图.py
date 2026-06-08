@@ -383,9 +383,9 @@ def plot_scalar_map(
 # -------------------------
 # 分析时段与层次
 # -------------------------
-analysis_start = "2015-06-15"
+analysis_start = "2015-07-01"
 analysis_end = "2015-07-31"
-level_plot = 925
+level_plot = 850
 
 # -------------------------
 # 读取原始数据
@@ -498,8 +498,8 @@ lev_budget = np.array([
 
 # 配色
 cmap_a = plt.get_cmap("RdBu_r")   # 平流项
-cmap_b = plt.get_cmap("PuOr")     # 垂直运动项
-cmap_c = plt.get_cmap("BrBG")     # 非绝热加热项
+cmap_b = plt.get_cmap("PuOr_r")     # 垂直运动项
+cmap_c = plt.get_cmap("PiYG_r")     # 非绝热加热项
 
 # =========================================================
 # 作图

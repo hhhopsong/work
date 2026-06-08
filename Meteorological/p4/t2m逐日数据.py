@@ -1096,7 +1096,7 @@ def plot_panel(
     comp_y_filt = plot_df["comp_filt_plot"].values
 
     # Study period background: Jun-15 to Jul-31.
-    ax.axvspan(14.5, 61.5, color="#959595", alpha=0.3, zorder=0)
+    ax.axvspan(30.5, 61.5, color="#959595", alpha=0.3, zorder=0)
 
     # 2015 vs climatology fill.
     ax.fill_between(

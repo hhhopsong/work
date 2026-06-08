@@ -69,7 +69,7 @@ def select_jja_1961_2022(da):
     if "time" in da.coords and np.issubdtype(da.time.dtype, np.datetime64):
         month = da.time.dt.month
         day = da.time.dt.day
-        in_window = ((month == 6) & (day >= 15)) | ((month == 7) & (day <= 31))
+        in_window = ((month == 7) & (day >= 1)) | ((month == 7) & (day <= 31))
         da = da.where(in_window, drop=True)
 
     return da
@@ -426,7 +426,7 @@ svd_t2m_v200 = xeofs.cross.MCA(
     use_coslat=True
 ).fit(
     t2m_bp,
-    transform(v_bp, "lon", "360->180").sel(level=200, lon=slice(0, 160), lat=slice(36, 75)),
+    transform(v_bp, "lon", "360->180").sel(level=200, lon=slice(40, 130), lat=slice(36, 65)),
     dim="time"
 )
 
@@ -436,7 +436,7 @@ svd_t2m_olr = xeofs.cross.MCA(
     use_coslat=True
 ).fit(
     t2m_bp,
-    transform(olr_bp, "lon", "360->180").sel(lon=slice(40, 180), lat=slice(-10, 24)),
+    transform(olr_bp, "lon", "360->180").sel(lon=slice(90, 180), lat=slice(-10, 24)),
     dim="time"
 )
 
@@ -511,6 +511,7 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
 
         t2m_score = t2m_score / 10 * SIGN
         atm_score = atm_score / 10 * SIGN
+        corvar = float(svd_obj.squared_covariance_fraction().sel(mode=1) * 100)
 
     elif level == 850:
         t2m_mode = svd_obj.components()[0].sel(mode=1)
@@ -518,6 +519,7 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
 
         atm_score = svd_obj.scores()[1].sel(mode=1)
         t2m_score = svd_obj.scores()[0].sel(mode=1)
+        corvar = float(svd_obj.squared_covariance_fraction().sel(mode=1) * 100)
 
         # 保持你原来 850 hPa / OLR 的符号和幅度设置
         SIGN = 1 if t2m_mode.mean() < 0 else -1
@@ -587,7 +589,7 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
     ax.set_aspect("auto")
 
     if level == 200:
-        extent = [-10, 170, 10, 80]
+        extent = [10, 160, 10, 80]
         extent_crs = ccrs.PlateCarree(central_longitude=0)
     else:
         extent = [20, 200, -20, 50]
@@ -877,10 +879,6 @@ def draw_one(row, level, svd_obj, left_score_name, right_score_name,
         loc="upper left"
     )
 
-    try:
-        corvar = float(svd_obj.squared_covariance_fraction().sel(mode=1) * 100)
-    except Exception:
-        corvar = float(svd_obj.explained_variance_ratio().sel(mode=1) * 100)
 
     t2m_score_raw, atm_score_raw = xr.align(t2m_score_raw, atm_score_raw, join="inner")
     score_mask = np.isfinite(t2m_score_raw.values) & np.isfinite(atm_score_raw.values)
@@ -923,8 +921,8 @@ ax200, ax200_ts, t2m200_score, v200_score, cf_v200_mode = draw_one(
     svd_obj=svd_t2m_v200,
     left_score_name="T2m",
     right_score_name="V200",
-    map_extent=[-10, 170, 20, 80],
-    box_blue=[0, 160, 36, 75],
+    map_extent=[10, 160, 20, 80],
+    box_blue=[40, 130, 36, 65],
     box_orange=[-70, 0, -20, 45],
     title_left="(a) SVD (T2m&V200)",
     title_right="(b) Annual STD",
@@ -940,8 +938,8 @@ ax850, ax850_ts, t2m850_score, olr_score, cf_olr_mode = draw_one(
     svd_obj=svd_t2m_olr,
     left_score_name="T2m",
     right_score_name="OLR",
-    map_extent=[20, 200, -20, 50],
-    box_blue=[40, 180, -10, 24],
+    map_extent=[30, 190, -20, 50],
+    box_blue=[120, 170, -10, 30],
     box_orange=[90, 122, 20, 35],
     title_left="(c) SVD (T2m&OLR)",
     title_right="(d) Annual STD",

@@ -20,13 +20,13 @@ PYFILE = r"/volumes/TiPlus7100/PyFile"
 DATA = r"/volumes/TiPlus7100/data"
 
 t2m = xr.open_dataset(fr"{DATA}/ERA5/ERA5_singleLev/ERA5_sgLEv.nc")['t2m']
-t2m = t2m.sel(date=slice('1979-01-01', '2022-12-31'))
+t2m = t2m.sel(date=slice('1961-01-01', '2022-12-31'))
 t2m = xr.Dataset(
     {'t2m': (['time', 'lat', 'lon'], t2m.data)},
     coords={'time': pd.to_datetime(t2m['date'], format="%Y%m%d"),
             'lat': t2m['latitude'].data,
             'lon': t2m['longitude'].data})
-t2m = t2m.sel(time=slice('1979-01-01', '2022-12-31'))
+t2m = t2m.sel(time=slice('1961-01-01', '2022-12-31'))
 t2m = t2m.sel(time=t2m['time.month'].isin([5, 6, 7, 8, 9]))
 t2m = t2m.transpose('time', 'lat', 'lon')
 
@@ -41,7 +41,7 @@ proj = ccrs.PlateCarree()   # 投影方式
 
 #ax1
 # 读取CN05.1逐日最高气温数据
-t2m_clim = t2m.groupby('time.month').mean('time')  # 逐月气候态
+t2m_clim = t2m.sel(time=slice('1991-01-01', '2020-12-31')).groupby('time.month').mean('time')  # 逐月气候态
 t2m_ano = t2m.groupby('time.month') - t2m_clim  # 逐月距平
 t2m_ano = masked(t2m_ano, fr"{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp")
 t2m_ano = t2m_ano.assign_coords(year=t2m_ano["time"].dt.year, month=t2m_ano["time"].dt.month).set_index(time=["year", "month"]).unstack("time")
@@ -49,7 +49,7 @@ t2m_ano = t2m_ano.assign_coords(year=t2m_ano["time"].dt.year, month=t2m_ano["tim
 
 fig = plt.figure(figsize=(15, 6))   # 创建画布
 for i in [5, 6, 7, 8, 9]:
-    year = 1980
+    year = 2015
     ax = fig.add_subplot(spec[i-5], projection=proj)  # 添加子图
     # 统一加粗所有四个边框
     for spine in ax.spines.values():
@@ -60,7 +60,7 @@ for i in [5, 6, 7, 8, 9]:
     ax.set_title(f'({chr(ord('a')+i-5)}) {i}_T2m', fontsize=16, loc='left')
     a1 = ax.contourf(t2m['lon'], t2m['lat'], t2m_ano.sel(year=year, month=i).to_array()[0], cmap=cmaps.GMT_polar[4:10] + cmaps.CBR_wet[0] + cmaps.GMT_polar[10:-4], levels=[-2, -1.6, -1.2, -0.8, -0.4, -0.1, 0.1, 0.4, 0.8, 1.2, 1.6, 2], extend='both', transform=proj)
     ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
-    # ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(), ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
+    ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(), ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
     ax.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='blue', linewidth=0.6)
     ax.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江干流_lake/lake_wsg84.shp').geometries(), ccrs.PlateCarree(), facecolor='blue', edgecolor='blue', linewidth=0.2)
 

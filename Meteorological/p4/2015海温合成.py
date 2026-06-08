@@ -249,10 +249,10 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
                             MinDistance=wind_1_set['MinDistance'])
         if wind_1_key_set['lr'] is not None:
             wind1.key(U=wind_1_key_set['U'], label=wind_1_key_set['label'], bbox_to_anchor=bbox_to_anchor_1, loc=loc1, edgewidth=spine_lw,
-                      edgecolor=wind_1_key_set['edgecolor'], arrowsize=wind_1_key_set['arrowsize'], linewidth=wind_1_key_set['lw'])
+                      edgecolor=wind_1_key_set['edgecolor'], arrowsize=wind_1_key_set['arrowsize'], linewidth=wind_1_key_set['lw'], intetval=1)
         else:
             wind1.key(U=wind_1_key_set['U'], label=wind_1_key_set['label'], bbox_to_anchor=bbox_to_anchor_1, loc=loc1, edgewidth=spine_lw,
-                      edgecolor=wind_1_key_set['edgecolor'], arrowsize=wind_1_key_set['arrowsize'], linewidth=wind_1_key_set['lw'])
+                      edgecolor=wind_1_key_set['edgecolor'], arrowsize=wind_1_key_set['arrowsize'], linewidth=wind_1_key_set['lw'], intetval=1)
 
     # 风矢量No.2
     if wind_2_signal:
@@ -262,7 +262,7 @@ def sub_pic(axes_sub, title, extent, geoticks, fontsize_times,
                             color=wind_2_set['color'], thinning=wind_2_set['thinning'], nanmax=wind_2_set['nanmax'],
                             MinDistance=wind_2_set['MinDistance'])
         wind2.key(U=wind_2_key_set['U'], label=wind_2_key_set['label'], bbox_to_anchor=bbox_to_anchor_2, loc=loc2, edgewidth=spine_lw,
-                  edgecolor=wind_2_key_set['edgecolor'], arrowsize=wind_2_key_set['arrowsize'], linewidth=wind_2_key_set['lw'])
+                  edgecolor=wind_2_key_set['edgecolor'], arrowsize=wind_2_key_set['arrowsize'], linewidth=wind_2_key_set['lw'], intetval=1)
     # 边框显示为黑色
     axes_sub.grid(False)
     for spine in axes_sub.spines.values():
@@ -398,145 +398,518 @@ pre_clim = pre.groupby('time.month').mean('time')  # 逐月气候态
 pre_ano = pre.groupby('time.month') - pre_clim  # 逐月距平
 pre_ano = pre_ano.assign_coords(year=pre_ano["time"].dt.year, month=pre_ano["time"].dt.month).set_index(time=["year", "month"]).unstack("time")
 #%%
+#%%
 print("######draw######")
-fig = plt.figure(figsize=np.array([17, 6*3])*0.5)   # 创建画布
-proj = ccrs.PlateCarree(central_longitude=110)  # 投影方式
-spec = gridspec.GridSpec(ncols=3, nrows=2, wspace=0.16, hspace=0.13)  # 设置子图比例
-plt.rcParams['font.family'] = ['AVHershey Simplex', 'AVHershey Duplex', 'Helvetica']    # 字体为Hershey (安装字体后，清除.matplotlib的字体缓存即可生效)
+
+# ============================================================
+# 只画 7 月，并把绘图范围改为 10°S–80°N
+# 第一张图叠加 200 hPa WAF
+# 三张图分别叠加各层 Z anomaly 等值线：
+# 200 hPa: [-200, -100, 100, 200]
+# 500 hPa: [-120, -60, 60, 120]
+# 850 hPa: [-80, -40, 40, 80]
+# 负值：蓝色虚线；正值：红色实线；不显示 clabel
+# ============================================================
+
+i = 7
+year = [2015]
+level = 200
+
+plot_extent = [-180, 180, -10, 80]
+yticks_new = np.arange(-10, 81, 30)
+
+
+def _standardize_waf_to_uv(waf, template):
+    """
+    将 TN_WAF_3D 的输出统一整理成 sub_pic 可识别的 Dataset:
+    Dataset 里必须包含变量 u 和 v，且坐标为 lat/lon。
+    """
+    if isinstance(waf, xr.Dataset):
+        if ('u' in waf.data_vars) and ('v' in waf.data_vars):
+            return waf[['u', 'v']]
+
+        candidate_pairs = [
+            ('px', 'py'),
+            ('Px', 'Py'),
+            ('p_x', 'p_y'),
+            ('waFx', 'waFy'),
+            ('waf_x', 'waf_y'),
+            ('wafx', 'wafy'),
+            ('Fx', 'Fy'),
+            ('fx', 'fy'),
+            ('F_x', 'F_y'),
+            ('F_lon', 'F_lat'),
+        ]
+
+        for xname, yname in candidate_pairs:
+            if (xname in waf.data_vars) and (yname in waf.data_vars):
+                return xr.Dataset(
+                    {
+                        'u': waf[xname],
+                        'v': waf[yname],
+                    }
+                )
+
+        data_vars = list(waf.data_vars)
+        if len(data_vars) == 2:
+            return xr.Dataset(
+                {
+                    'u': waf[data_vars[0]],
+                    'v': waf[data_vars[1]],
+                }
+            )
+
+        raise ValueError(
+            f"无法识别 TN_WAF_3D 输出变量名：{list(waf.data_vars)}，"
+            f"请检查 WAF 输出，并手动改名为 u/v。"
+        )
+
+    elif isinstance(waf, xr.DataArray):
+        for dim in waf.dims:
+            if waf.sizes[dim] == 2:
+                u_da = waf.isel({dim: 0})
+                v_da = waf.isel({dim: 1})
+
+                if dim in u_da.coords:
+                    u_da = u_da.drop_vars(dim, errors='ignore')
+                if dim in v_da.coords:
+                    v_da = v_da.drop_vars(dim, errors='ignore')
+
+                return xr.Dataset(
+                    {
+                        'u': u_da,
+                        'v': v_da,
+                    }
+                )
+
+        raise ValueError(
+            f"TN_WAF_3D 输出是 DataArray，但无法判断哪个维度是 WAF 两个分量：{waf.dims}"
+        )
+
+    elif isinstance(waf, (list, tuple)) and len(waf) >= 2:
+        wx, wy = waf[0], waf[1]
+
+        if not isinstance(wx, xr.DataArray):
+            wx = xr.DataArray(
+                wx,
+                coords={'lat': template['lat'], 'lon': template['lon']},
+                dims=['lat', 'lon']
+            )
+
+        if not isinstance(wy, xr.DataArray):
+            wy = xr.DataArray(
+                wy,
+                coords={'lat': template['lat'], 'lon': template['lon']},
+                dims=['lat', 'lon']
+            )
+
+        return xr.Dataset({'u': wx, 'v': wy})
+
+    else:
+        raise TypeError(f"无法识别 TN_WAF_3D 输出类型：{type(waf)}")
+
+
+# ============================================================
+# 计算 200 hPa WAF
+# ============================================================
+
+z_ano_200 = uvz_ano['z'].sel(year=year, month=i, p=level).mean('year')
+u_clim_200 = uvz_clim['u'].sel(month=i, p=level)
+v_clim_200 = uvz_clim['v'].sel(month=i, p=level)
+
+WAF_200_raw = TN_WAF_3D(
+    u_clim_200,
+    v_clim_200,
+    z_ano_200,
+    single_level=level
+)
+
+WAF_200 = _standardize_waf_to_uv(WAF_200_raw, z_ano_200)
+
+
+# ============================================================
+# 各层 Z anomaly，用于等值线绘制
+# ERA5 z 通常为 geopotential，单位 m2/s2
+# 这里除以 g 转为 geopotential height，单位约为 gpm
+# ============================================================
+
+g = 9.80665
+
+z_ano_200_hgt = z_ano_200 / g
+z_ano_500_hgt = uvz_ano['z'].sel(year=year, month=i, p=500).mean('year') / g
+z_ano_850_hgt = uvz_ano['z'].sel(year=year, month=i, p=850).mean('year') / g
+
+
+# ============================================================
+# 建图
+# ============================================================
+
+fig = plt.figure(figsize=np.array([6.5, 8.8]) * 0.8)
+proj = ccrs.PlateCarree(central_longitude=110)
+ax_spec = gridspec.GridSpec(ncols=1, nrows=3, wspace=0, hspace=0.15)
+
+plt.rcParams['font.family'] = ['Times New Roman']
 plt.rcParams['axes.edgecolor'] = 'black'
-plt.rcParams['axes.unicode_minus'] = False  # 负号正常显示
+plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['mathtext.fontset'] = 'stix'
 
-for i in [5, 6, 7, 8, 9]:
-    year = [2015]
+def add_yangtze_shape(ax):
+    ax.add_geometries(
+        Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(),
+        ccrs.PlateCarree(),
+        facecolor='none',
+        edgecolor='black',
+        linewidth=.5
+    )
 
-    ax_spec = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=spec[i - 5], wspace=0, hspace=0)
+    ax.add_geometries(
+        Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(),
+        ccrs.PlateCarree(),
+        facecolor='none',
+        edgecolor='blue',
+        linewidth=0.2
+    )
 
-    ax1 = fig.add_subplot(ax_spec[0], projection=proj)  # 添加子图
-    ax1.set_aspect('auto')  # 设置长宽比
-    sub_pic(ax1, title=f'({chr(ord('a')+i-5)}) {i}_200UVZ_500UV&SST_850UV&PRE', extent=[-180, 180, -30, 80],
-            geoticks={'x': [], 'y': yticks, 'xminor': 10, 'yminor': 10},
-            fontsize_times=1.0,
+    ax.add_geometries(
+        Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(),
+        ccrs.PlateCarree(),
+        facecolor='none',
+        edgecolor='black',
+        linewidth=.5
+    )
 
-            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
-            shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4], cb_draw=True if i==7 else False,
-            shading_corr=None,
-            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-            edgedraw=False,
 
-            shading2=uvz_ano['z'].sel(year=year, month=i, p=200).mean('year'), shading2_levels=[-1500, -1200, -900, -600, -300, -150, 150, 300, 600, 900, 1200, 1500],
-            shading2_cmap=cmaps.sunshine_diff_12lev, cb_draw2=True if i==7 else False,
-            shading2_corr=None,
-            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-            edgedraw2=False,
+def add_z_contour_no_label(
+        ax,
+        z_da,
+        neg_levels,
+        pos_levels,
+        neg_color='blue',
+        pos_color='red',
+        lw=0.9
+):
+    """
+    绘制 Z anomaly 等值线：
+    负值：蓝色虚线
+    正值：红色实线
+    不显示 clabel
+    """
 
-            contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
+    z_plot = transform(z_da, lon_name='lon', type='360->180')
 
-            contour_corr=None, p_test_drawSet_corr={'N': 2023-1961+1, 'alpha': 0.1},
+    z_data, z_lon = add_cyclic_point(z_plot, z_plot['lon'])
 
-            wind_1=uvz_ano.sel(year=year, month=i, p=200).mean('year'),
-            wind_1_set={'regrid': 15, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
-                      'color': 'black', 'thinning': ['30%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.5]},
-            wind_1_key_set={'U': 5, 'label': '5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 5, 'edgecolor': 'black', 'lw': 0.5},
-            bbox_to_anchor_1=None, loc1="lower right",
+    ax.contour(
+        z_lon,
+        z_plot['lat'],
+        z_data,
+        levels=neg_levels,
+        colors=neg_color,
+        linestyles='dashed',
+        linewidths=lw,
+        transform=ccrs.PlateCarree(central_longitude=0),
+        zorder=20
+    )
 
-            wind_2=None,
-            wind_2_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
-                      'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.5]},
-            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 5, 'edgecolor': 'none', 'lw': 0.5},
-            bbox_to_anchor_2=None, loc2="upper right",
-            rec_Set=None)
-    ax1.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
-    ax1.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
-                       facecolor='none', edgecolor='blue', linewidth=0.2)
-    ax1.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
-#————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
-    ax2 = fig.add_subplot(ax_spec[1], projection=proj)  # 添加子图
-    ax2.set_aspect('auto')  # 设置长宽比
-    sub_pic(ax2, title=f'', extent=[-180, 180, -30, 80],
-            geoticks={'x': [], 'y': yticks, 'xminor': 10, 'yminor': 10},
-            fontsize_times=1.0,
+    ax.contour(
+        z_lon,
+        z_plot['lat'],
+        z_data,
+        levels=pos_levels,
+        colors=pos_color,
+        linestyles='solid',
+        linewidths=lw,
+        transform=ccrs.PlateCarree(central_longitude=0),
+        zorder=20
+    )
 
-            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
-            shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4],
-            cb_draw=True if i == 7 else False,
-            shading_corr=None,
-            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-            edgedraw=False,
 
-            shading2=sst_ano.sel(year=year, month=i).mean('year').to_array()[0],
-            shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.]) * 2, 2),
-            shading2_cmap=cmaps.BlueWhiteOrangeRed[40:-40], cb_draw2=True if i == 7 else False,
-            shading2_corr=None,
-            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-            edgedraw2=False,
+# ============================================================
+# 第一张图：200 hPa Z anomaly + 200 hPa UV anomaly + WAF
+# ============================================================
 
-            contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
+ax1 = fig.add_subplot(ax_spec[0], projection=proj)
+ax1.set_aspect('auto')
 
-            contour_corr=None, p_test_drawSet_corr={'N': 2023-1961+1, 'alpha': 0.1},
+sub_pic(
+    ax1,
+    title=f'({chr(ord("a"))}) 2015 July 200UVZ&WAF',
+    extent=plot_extent,
+    geoticks={'x': [], 'y': yticks_new, 'xminor': 10, 'yminor': 10},
+    fontsize_times=1.4,
 
-            wind_1=uvz_ano.sel(year=year, month=i, p=500).mean('year'),
-            wind_1_set={'regrid': 15, 'arrowsize': 0.5, 'scale': 10, 'lw': 0.4,
-                        'color': 'black', 'thinning': ['20%', 'min'], 'nanmax': 20 / 3, 'MinDistance': [0.2, 0.5]},
-            wind_1_key_set={'U': 2.5, 'label': '2.5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 2.5, 'edgecolor': 'k',
-                            'lw': 0.5},
-            bbox_to_anchor_1=None, loc1="lower right",
+    shading=None,
+    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+    shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4],
+    cb_draw=False,
+    shading_corr=None,
+    p_test_drawSet={'N': 2023 - 1961 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw=False,
 
-            wind_2=None,
-            wind_2_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
-                        'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.5]},
-            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 2.5,
-                            'edgecolor': 'none', 'lw': 0.5},
-            bbox_to_anchor_2=None, loc2="upper right",
-            rec_Set=None)
-    ax2.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
-    ax2.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
-                       facecolor='none', edgecolor='blue', linewidth=0.2)
-    ax2.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(),
-                       ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
-#————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
-    ax3 = fig.add_subplot(ax_spec[2], projection=proj)  # 添加子图
-    ax3.set_aspect('auto')  # 设置长宽比
-    sub_pic(ax3, title=f'', extent=[-180, 180, -30, 80],
-            geoticks={'x': np.arange(-180, 181, 60), 'y': yticks, 'xminor': 10, 'yminor': 10},
-            fontsize_times=1.0,
+    shading2=z_ano_200,
+    shading2_levels=[-1500, -1200, -900, -600, -300, -150, 150, 300, 600, 900, 1200, 1500],
+    shading2_cmap=cmaps.sunshine_diff_12lev,
+    cb_draw2=True,
+    shading2_corr=None,
+    p_test_drawSet2={'N': 2023 - 1961 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw2=False,
 
-            shading=None, shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
-            shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4], cb_draw=True if i==7 else False,
-            shading_corr=None,
-            p_test_drawSet={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-            edgedraw=False,
+    contour=None,
+    contour_levels=np.array([[-50, -20], [20, 50]]) * .005,
+    contour_cmap=default_contour_cmap,
 
-            shading2=pre_ano['pre'].sel(year=year, month=i).mean('year'), shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.])*10, 2),
-            shading2_cmap=cmaps.MPL_RdYlGn[22+0:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106-0], cb_draw2=True if i==7 else False,
-            shading2_corr=None,
-            p_test_drawSet2={'N': 2023-1961+1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
-            edgedraw2=False,
+    contour_corr=None,
+    p_test_drawSet_corr={'N': 2023 - 1961 + 1, 'alpha': 0.1},
 
-            contour=None, contour_levels=np.array([[-50, -20], [20, 50]]) * .005, contour_cmap=default_contour_cmap,
+    wind_1=uvz_ano.sel(year=year, month=i, p=200).mean('year'),
+    wind_1_set={
+        'regrid': 15,
+        'arrowsize': 1.0,
+        'scale': 3,
+        'lw': 0.8,
+        'color': 'black',
+        'thinning': ['30%', 'min'],
+        'nanmax': 20 / 3,
+        'MinDistance': [0.2, 0.5]
+    },
+    wind_1_key_set={
+        'U': 10,
+        'label': '10 m/s',
+        'ud': 7.7,
+        'lr': None,
+        'arrowsize': 14,
+        'edgecolor': 'none',
+        'lw': 0.5
+    },
+    bbox_to_anchor_1=[0, 0.15, 1, 1],
+    loc1="upper right",
 
-            contour_corr=None, p_test_drawSet_corr={'N': 2023-1961+1, 'alpha': 0.1},
+    wind_2=WAF_200,
+    wind_2_set={
+        'regrid': 12,
+        'arrowsize': 1.5,
+        'scale': 2,
+        'lw': 1.5,
+        'color': 'purple',
+        'thinning': ['60%', 'min'],
+        'nanmax': 2,
+        'MinDistance': [0.2, 0.5]
+    },
+    wind_2_key_set={
+        'U': 5,
+        'label': '5 m$^2$/s$^2$',
+        'ud': 7.7,
+        'lr': None,
+        'arrowsize': 10,
+        'edgecolor': 'none',
+        'lw': 0.9
+    },
+    bbox_to_anchor_2=[-.15, 0.15, 1, 1],
+    loc2="upper right",
 
-            wind_1=uvz_ano.sel(year=year, month=i, p=850).mean('year'),
-            wind_1_set={'regrid': 15, 'arrowsize': 0.5, 'scale': 16.66, 'lw': 0.4,
-                      'color': 'black', 'thinning': ['20%', 'min'], 'nanmax': 20/3, 'MinDistance': [0.2, 0.5]},
-            wind_1_key_set={'U': 1.5, 'label': '1.5 m/s', 'ud': 7.7, 'lr': None, 'arrowsize': 1.25, 'edgecolor': 'k', 'lw': 0.5},
-            bbox_to_anchor_1=None, loc1="lower right",
+    rec_Set=None
+)
 
-            wind_2=None,
-            wind_2_set={'regrid': 20, 'arrowsize': 0.5, 'scale': 5, 'lw': 0.4,
-                      'color': 'purple', 'thinning': ['40%', 'min'], 'nanmax': 0.1, 'MinDistance': [0.2, 0.5]},
-            wind_2_key_set={'U': 0.03, 'label': '0.03 m$^2$/s$^2$', 'ud': 7.7, 'lr': 1.7, 'arrowsize': 1.25, 'edgecolor': 'none', 'lw': 0.5},
-            bbox_to_anchor_2=None, loc2="upper right",
-            rec_Set=None)
-    ax3.add_geometries(Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(), ccrs.PlateCarree(),
-                      facecolor='none', edgecolor='black', linewidth=.5)
-    ax3.add_geometries(Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(), ccrs.PlateCarree(),
-                       facecolor='none', edgecolor='blue', linewidth=0.2)
-    ax3.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
-                       ccrs.PlateCarree(), facecolor='gray', edgecolor='gray', linewidth=.1, hatch='.', zorder=10)
-    ax3.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(), ccrs.PlateCarree(), facecolor='none', edgecolor='black', linewidth=.5)
 
-plt.savefig(fr'{PYFILE}/p4/pic/图2_{year}.pdf', bbox_inches='tight')
-plt.savefig(fr'{PYFILE}/p4/pic/图2_{year}.png', dpi=600, bbox_inches='tight')
+add_yangtze_shape(ax1)
+
+
+# ============================================================
+# 第二张图：SST anomaly + 500 hPa UV anomaly + 500 hPa Z contour
+# ============================================================
+
+ax2 = fig.add_subplot(ax_spec[1], projection=proj)
+ax2.set_aspect('auto')
+
+sub_pic(
+    ax2,
+    title='(b) 2015 July 500UVZ&SST',
+    extent=plot_extent,
+    geoticks={'x': [], 'y': yticks_new, 'xminor': 10, 'yminor': 10},
+    fontsize_times=1.4,
+
+    shading=None,
+    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+    shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4],
+    cb_draw=False,
+    shading_corr=None,
+    p_test_drawSet={'N': 2023 - 1961 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw=False,
+
+    shading2=sst_ano.sel(year=year, month=i).mean('year').to_array()[0],
+    shading2_levels=np.round(np.array([-2., -1.6, -1.2, -.8, -.4, .4, .8, 1.2, 1.6, 2.]), 2),
+    shading2_cmap=cmaps.BlueWhiteOrangeRed[40:128-30] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] + cmaps.CBR_wet[0] +cmaps.BlueWhiteOrangeRed[128+30:-40],
+    cb_draw2=True,
+    shading2_corr=None,
+    p_test_drawSet2={'N': 2023 - 1961 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw2=False,
+
+    contour=None,
+    contour_levels=np.array([[-50, -20], [20, 50]]) * .005,
+    contour_cmap=default_contour_cmap,
+
+    contour_corr=None,
+    p_test_drawSet_corr={'N': 2023 - 1961 + 1, 'alpha': 0.1},
+
+    wind_1=uvz_ano.sel(year=year, month=i, p=500).mean('year'),
+    wind_1_set={
+        'regrid': 15,
+        'arrowsize': 1.0,
+        'scale': 6,
+        'lw': 0.8,
+        'color': 'black',
+        'thinning': ['20%', 'min'],
+        'nanmax': 20 / 3,
+        'MinDistance': [0.2, 0.5]
+    },
+    wind_1_key_set={
+        'U': 5,
+        'label': '5 m/s',
+        'ud': 7.7,
+        'lr': None,
+        'arrowsize': 10,
+        'edgecolor': 'none',
+        'lw': 0.5
+    },
+    bbox_to_anchor_1=[0, 0.15, 1, 1],
+    loc1="upper right",
+
+    wind_2=None,
+    wind_2_set=default_wind_2_set,
+    wind_2_key_set=default_wind_2_key_set,
+    bbox_to_anchor_2=[0, 0.15, 1, 1],
+    loc2="upper right",
+
+    rec_Set=None
+)
+
+add_z_contour_no_label(
+    ax2,
+    z_ano_500_hgt,
+    neg_levels=[-70, -10],
+    pos_levels=[40, 60],
+    lw=1.2
+)
+
+add_yangtze_shape(ax2)
+
+
+# ============================================================
+# 第三张图：PRE anomaly + 850 hPa UV anomaly + 850 hPa Z contour
+# ============================================================
+
+ax3 = fig.add_subplot(ax_spec[2], projection=proj)
+ax3.set_aspect('auto')
+
+sub_pic(
+    ax3,
+    title='(c) 2015 July 850UVZ&PRE',
+    extent=plot_extent,
+    geoticks={'x': np.arange(-180, 181, 60), 'y': yticks_new, 'xminor': 10, 'yminor': 10},
+    fontsize_times=1.4,
+
+    shading=None,
+    shading_levels=np.array([-.5, -.4, -.3, -.2, -.1, .1, .2, .3, .4, .5]),
+    shading_cmap=cmaps.GreenMagenta16[8 - 5:8] + cmaps.GMT_red2green_r[11:11 + 4],
+    cb_draw=False,
+    shading_corr=None,
+    p_test_drawSet={'N': 2023 - 1961 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw=False,
+
+    shading2=pre_ano['pre'].sel(year=year, month=i).mean('year'),
+    shading2_levels=np.round(np.array([-1., -.8, -.6, -.4, -.2, -.1, .1, .2, .4, .6, .8, 1.]) * 10, 2),
+    shading2_cmap=cmaps.MPL_RdYlGn[22:56] + cmaps.CBR_wet[0] + cmaps.MPL_RdYlGn[72:106],
+    cb_draw2=True,
+    shading2_corr=None,
+    p_test_drawSet2={'N': 2023 - 1961 + 1, 'alpha': 0.1, 'lw': 0.2, 'color': '#454545'},
+    edgedraw2=False,
+
+    contour=None,
+    contour_levels=np.array([[-50, -20], [20, 50]]) * .005,
+    contour_cmap=default_contour_cmap,
+
+    contour_corr=None,
+    p_test_drawSet_corr={'N': 2023 - 1961 + 1, 'alpha': 0.1},
+
+    wind_1=uvz_ano.sel(year=year, month=i, p=850).mean('year'),
+    wind_1_set={
+        'regrid': 15,
+        'arrowsize': 1.0,
+        'scale': 8,
+        'lw': 0.8,
+        'color': 'black',
+        'thinning': ['20%', 'min'],
+        'nanmax': 20 / 3,
+        'MinDistance': [0.2, 0.5]
+    },
+    wind_1_key_set={
+        'U': 3,
+        'label': '3 m/s',
+        'ud': 7.7,
+        'lr': None,
+        'arrowsize': 7,
+        'edgecolor': 'none',
+        'lw': 0.5
+    },
+    bbox_to_anchor_1=[0, 0.15, 1, 1],
+    loc1="upper right",
+
+    wind_2=None,
+    wind_2_set=default_wind_2_set,
+    wind_2_key_set=default_wind_2_key_set,
+    bbox_to_anchor_2=None,
+    loc2="upper right",
+
+    rec_Set=None
+)
+
+add_z_contour_no_label(
+    ax3,
+    z_ano_850_hgt,
+    neg_levels=[-60, -10],
+    pos_levels=[15, 50],
+    lw=1.2
+)
+
+ax3.add_geometries(
+    Reader(fr'{PYFILE}/map/self/长江_TP/长江_tp.shp').geometries(),
+    ccrs.PlateCarree(),
+    facecolor='none',
+    edgecolor='black',
+    linewidth=.5
+)
+
+ax3.add_geometries(
+    Reader(fr'{PYFILE}/map/地图线路数据/长江/长江.shp').geometries(),
+    ccrs.PlateCarree(),
+    facecolor='none',
+    edgecolor='blue',
+    linewidth=0.2
+)
+
+ax3.add_geometries(
+    Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary_2500m/TPBoundary_2500m.shp').geometries(),
+    ccrs.PlateCarree(),
+    facecolor='gray',
+    edgecolor='gray',
+    linewidth=.1,
+    hatch='.',
+    zorder=1000
+)
+
+ax3.add_geometries(
+    Reader(fr'{PYFILE}/map/地图边界数据/长江区1：25万界线数据集（2002年）/长江区.shp').geometries(),
+    ccrs.PlateCarree(),
+    facecolor='none',
+    edgecolor='black',
+    linewidth=.5
+)
+
+
+# ============================================================
+# 保存
+# ============================================================
+
+plt.savefig(fr'{PYFILE}/p4/pic/图2_{year[0]}_07_WAF_Zcontour.pdf', bbox_inches='tight')
+plt.savefig(fr'{PYFILE}/p4/pic/图2_{year[0]}_07_WAF_Zcontour.png', dpi=600, bbox_inches='tight')
+

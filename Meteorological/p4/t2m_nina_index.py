@@ -60,7 +60,7 @@ t2m = xr.Dataset(
             'lon': t2m['longitude'].data}
 )
 
-t2m = t2m.sel(time=slice('1961-01-01', '2024-12-31'))
+t2m = t2m.sel(time=slice('1961-01-01', '2022-12-31'))
 t2m = t2m.sel(time=t2m['time.month'].isin([6, 7, 8]))
 t2m = t2m.mean(dim=['lat', 'lon'])
 t2m678 = t2m.groupby('time.year').mean('time')
@@ -132,13 +132,13 @@ bars = ax.bar(
 # 2. 未去趋势原始距平：紫色线 + 棕色点
 raw_line, = ax.plot(
     years, vals_raw,
-    color='saddlebrown', #e91e63
+    color='#8b4f2a', #e91e63
     linewidth=1.8,
-    marker='o',
+    marker='s',
     markersize=4,
-    markerfacecolor='none',
-    markeredgecolor='none',
-    markeredgewidth=1.0,
+    markerfacecolor='#8b3b00',
+    markeredgecolor='#000000',
+    markeredgewidth=0.5,
     label='Original',
     zorder=10
 )
@@ -165,19 +165,19 @@ offset = 0.03 * (np.nanmax(vals) - np.nanmin(vals))
 if offset == 0:
     offset = 0.05
 
-# 给 EL/LA 年份加标记
-for year, val in zip(years, vals):
-    tag = el_la_dict.get(int(year), 0)
-
-    if val >= 0:
-        y_mark = val + offset
-    else:
-        y_mark = val - offset
-
-    if tag == 1:
-        ax.scatter(year, y_mark, marker='.', s=40, color='red', zorder=20)
-    elif tag == -1:
-        ax.scatter(year, y_mark, marker='.', s=40, color='blue', zorder=20)
+# # 给 EL/LA 年份加标记
+# for year, val in zip(years, vals):
+#     tag = el_la_dict.get(int(year), 0)
+#
+#     if val >= 0:
+#         y_mark = val + offset
+#     else:
+#         y_mark = val - offset
+#
+#     if tag == 1:
+#         ax.scatter(year, y_mark, marker='.', s=40, color='red', zorder=20)
+#     elif tag == -1:
+#         ax.scatter(year, y_mark, marker='.', s=40, color='blue', zorder=20)
 
 # 坐标轴设置
 ax.set_xlim(years.min() - 1, years.max() + 1)
@@ -190,8 +190,8 @@ ax.tick_params(axis='x', labelrotation=45, labelsize=10)
 ax.tick_params(axis='y', labelsize=12, rotation=0)
 
 # 图例
-elnino_handle = ax.scatter([], [], marker='.', s=40, color='red', label='El Niño')
-lanina_handle = ax.scatter([], [], marker='.', s=40, color='blue', label='La Niña')
+# elnino_handle = ax.scatter([], [], marker='.', s=40, color='red', label='El Niño')
+# lanina_handle = ax.scatter([], [], marker='.', s=40, color='blue', label='La Niña')
 
 from matplotlib.patches import Rectangle
 from matplotlib.legend_handler import HandlerBase
@@ -217,10 +217,10 @@ class HandlerBiColorPatch(HandlerBase):
 detrend_line = Rectangle((0, 0), 1, 1, facecolor="none", edgecolor="none")
 detrend_line.set_label("Detrend")
 ax.legend(
-    handles=[raw_line, trend_line, detrend_line, elnino_handle, lanina_handle],
+    handles=[raw_line, trend_line, detrend_line],
     handler_map={detrend_line: HandlerBiColorPatch()},
     loc='upper center',
-    ncol=2,
+    ncol=3,
     frameon=False,
     fontsize=12,
     borderaxespad=0.

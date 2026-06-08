@@ -25,6 +25,7 @@ import cmaps
 
 # 字体为新罗马
 plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['mathtext.fontset'] = 'stix'
 
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
@@ -37,7 +38,7 @@ cont = ax.contour(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:
 plt.rcParams['hatch.color'] = '#454545'
 plt.rcParams['hatch.linewidth'] = 0.5
 xianzhu_contf = ax.contourf(np.arange(0.1, 0.901, 0.01), np.arange(30, 38.01, 0.1), corr[:, :], [0, .2500349005300471, .3248184473571816, 1],
-                            hatches=[None, r'++', r'//'], colors="none", zorder=3, corner_mask=False)
+                            hatches=[None, r'||', r'xx'], colors="none", zorder=3, corner_mask=False)
 
 # plt.rcParams['hatch.color'] = '#c3c3c3'
 # plt.rcParams['hatch.linewidth'] = 2.2
@@ -55,13 +56,13 @@ for spine in ax.spines.values():
     spine.set_linewidth(1.5)  # 设置边框线宽
 
 # 设置x=0.3的线
-ax.axvline(0.3, color='g', linestyle='-', linewidth=1)
+ax.axvline(0.3, color='g', linestyle='-', linewidth=1, zorder=100)
 # 设置y=31.76的线
-ax.axhline(31.76, color='b', linestyle='-', linewidth=1)
-ax.text(0.025, 31.76, "$T_{90th}$---", color='b', va='center', ha='left',
-        fontsize=8)
+ax.axhline(31.76, color='b', linestyle='-', linewidth=1, zorder=100)
+ax.text(0.025, 31.76, "$T_{90th}$----", color='b', va='center', ha='left',
+        fontsize=8, fontweight='bold')
 # 设置(0.3, 31.76)的点
-ax.scatter(0.3, 31.76, color='#202020', s=130, zorder=2, marker=(5, 1), alpha=0.85, edgecolors='none')
+ax.scatter(0.3, 31.76, color='#202020', s=130, marker=(5, 1), alpha=0.85, edgecolors='none', zorder=100)
 # 设置x轴
 ax.set_xlabel("EHT coverage index", fontsize=14)
 ax.set_xlim(0.1, 0.9)

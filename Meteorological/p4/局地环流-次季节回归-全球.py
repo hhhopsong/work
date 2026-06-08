@@ -564,7 +564,7 @@ YEAR = [2015]
 filter_start = "2015-05-01"
 filter_end   = "2015-09-30"
 
-analysis_start = "2015-06-15"
+analysis_start = "2015-07-01"
 analysis_end   = "2015-07-31"
 
 # 1) 先在 5–9 月上计算逐日异常
@@ -693,7 +693,7 @@ def cyclic_dataarray(da):
 # =========================================================
 CLIM_JJA = xr.open_dataset(
     "/Volumes/TiPlus7100/p4/data/ERA5_CPC_daily_clim_sum.nc"
-).sel(mmdd=slice("06-01", "08-31"))
+).sel(mmdd=slice("07-01", "07-31"))
 
 u_clim_jja = CLIM_JJA["u_clim"].mean(dim="mmdd")
 v_clim_jja = CLIM_JJA["v_clim"].mean(dim="mmdd")
@@ -725,10 +725,14 @@ waf_y = waf_y.interp(lon=u200.lon, lat=u200.lat)
 # =========================================================
 # 3. 准备 500 hPa / 850 hPa 回归场
 # =========================================================
+u200_ = to_lon180(u_reg.sel(level=200))
+v200_ = to_lon180(v_reg.sel(level=200))
+z200_ = to_lon180(z_reg.sel(level=200))
+
 u500 = to_lon180(u_reg.sel(level=500))
 v500 = to_lon180(v_reg.sel(level=500))
 z500 = to_lon180(z_reg.sel(level=500))
-olr_map = to_lon180(olr_reg)
+olr_map = to_lon180(olr_reg).interpolate_na(dim="lon").interpolate_na(dim="lat")
 
 u850 = to_lon180(u_reg.sel(level=850))
 v850 = to_lon180(v_reg.sel(level=850))
@@ -805,9 +809,9 @@ cmap_200z = make_listed_cmap(
 
 # 图 b：OLR 填色 cmap
 cmap_olr = make_listed_cmap(
-    _color_list(cmaps.MPL_BrBG_r[:64])
+    _color_list(cmaps.MPL_BrBG_r[20:64])
     + _color_list(cmaps.CBR_wet[0]) * 4
-    + _color_list(cmaps.MPL_BrBG_r[64:]),
+    + _color_list(cmaps.MPL_BrBG_r[64:-20]),
     "custom_olr_BrBG"
 )
 
@@ -842,7 +846,7 @@ def setup_global_ax(fig, loc, title):
     for spine in ax.spines.values():
         spine.set_linewidth(1.5)
 
-    ax.set_extent([-180, 180, -30, 80], crs=ccrs.PlateCarree())
+    ax.set_extent([-60, 190, -10, 80], crs=ccrs.PlateCarree())
     ax.set_aspect("auto")
     ax.set_title(title, loc="left", fontsize=10)
 
@@ -852,8 +856,8 @@ def setup_global_ax(fig, loc, title):
     ax.add_geometries(Reader(fr'{PYFILE}/map/地图边界数据/青藏高原边界数据总集/TPBoundary2500m_长江流域/TPBoundary2500m_长江流域.shp').geometries(),
                       ccrs.PlateCarree(), facecolor='gray', edgecolor='black', linewidth=.5)
 
-    xticks = np.arange(-180, 181, 60)
-    yticks = np.arange(-30, 81, 30)
+    xticks = np.arange(-60, 191, 60)
+    yticks = np.arange(-10, 81, 20)
 
     ax.set_xticks(xticks, crs=ccrs.PlateCarree())
     ax.set_yticks(yticks, crs=ccrs.PlateCarree())
@@ -898,7 +902,7 @@ def add_right_colorbar(ax, mappable, ticks=None, labelsize=8):
     return cb
 
 
-def plot_200z_waf(fig, loc, z, u200, waf_x, waf_y, title):
+def plot_200z_waf(fig, loc, z, u200, v200, waf_x, waf_y, title):
     ax1 = setup_global_ax(fig, loc, title)
     data_crs = ccrs.PlateCarree()
 
@@ -906,21 +910,30 @@ def plot_200z_waf(fig, loc, z, u200, waf_x, waf_y, title):
     # 200 hPa Z 填色
     # 图 a：删除等值线，填色透明度 0.7
     # -------------------------
-    z_levels = np.arange(-240, 241, 40)
     z_data, z_lon, z_lat = cyclic_dataarray(z)
 
-    cf = ax1.contourf(
+    cont_p = ax1.contour(
         z_lon,
         z_lat,
         z_data,
-        levels=z_levels,
-        cmap=cmap_200z,
-        extend="both",
-        alpha=0.95,
+        levels=[70 , 300],
+        colors="red",
+        linewidths=1.3,
         transform=data_crs,
-        antialiased=False
+        zorder=100
     )
-    cf = remove_contourf_white_lines(cf)
+
+    cont_n = ax1.contour(
+        z_lon,
+        z_lat,
+        z_data,
+        levels=[-300, -120],
+        colors="blue",
+        linestyles="--",
+        linewidths=1.3,
+        transform=data_crs,
+        zorder=100
+    )
 
     # -------------------------
     # WAF 矢量
@@ -933,32 +946,59 @@ def plot_200z_waf(fig, loc, z, u200, waf_x, waf_y, title):
         arrowsize=1.3,
         transform=data_crs,
         scale=10,
-        linewidth=1.2,
-        regrid=13,
-        color="purple",
-        thinning=["50%", "min"],
+        linewidth=1.8,
+        regrid=12,
+        color="#b041a9",
+        thinning=["70%", "min"],
+        nanmax=2,
+        MinDistance=[0.2, 0.4],
+        zorder=101
+    )
+
+    q.key(
+        U=1,
+        label="1 ${m}^{2}/{s}^{2}$",
+        color="#b041a9",
+        fontproperties={"size": 8},
+        linewidth=0.8,
+        arrowsize=1.8,
+        facecolor="none",
+        edgecolor="none",
+        bbox_to_anchor=(-0.2, 0.18, 1, 1)
+    )
+
+    # -------------------------
+    # UV 矢量
+    # -------------------------
+    q = ax1.Curlyquiver(
+        u200.lon,
+        u200.lat,
+        u200,
+        v200,
+        arrowsize=1,
+        transform=data_crs,
+        scale=2,
+        linewidth=0.8,
+        regrid=16,
+        color="#484848",
+        thinning=["30%", "min"],
         nanmax=2,
         MinDistance=[0.2, 0.4]
     )
 
     q.key(
-        U=2,
-        label="2",
-        color="purple",
+        U=8,
+        label="8 m/s",
+        color="k",
         fontproperties={"size": 8},
         linewidth=0.8,
-        arrowsize=1.8,
-        facecolor="#FFFFFF"
+        arrowsize=2.8,
+        facecolor="none",
+        edgecolor="none",
+        bbox_to_anchor=(0, 0.18, 1, 1)
     )
 
-    add_right_colorbar(
-        ax1,
-        cf,
-        ticks=np.arange(-240, 241, 120),
-        labelsize=8
-    )
-
-    return ax1, cf
+    return ax1
 
 
 def plot_uvz_scalar(
@@ -1003,8 +1043,8 @@ def plot_uvz_scalar(
     # -------------------------
     z_data, z_lon, z_lat = cyclic_dataarray(z)
 
-    z_cont_pos = [60, 120, 240]
-    z_cont_neg = [-240, -120, -60]
+    z_cont_pos = [70, 240]
+    z_cont_neg = [-200, -40]
 
     cont_p = ax1.contour(
         z_lon,
@@ -1012,7 +1052,7 @@ def plot_uvz_scalar(
         z_data,
         levels=z_cont_pos,
         colors="red",
-        linewidths=0.8,
+        linewidths=1.3,
         transform=data_crs
     )
 
@@ -1023,7 +1063,7 @@ def plot_uvz_scalar(
         levels=z_cont_neg,
         colors="blue",
         linestyles="--",
-        linewidths=0.8,
+        linewidths=1.3,
         transform=data_crs
     )
 
@@ -1038,23 +1078,25 @@ def plot_uvz_scalar(
         v,
         arrowsize=1,
         transform=data_crs,
-        scale=5,
+        scale=4 ,
         linewidth=0.8,
         regrid=16,
-        color="#454545",
-        thinning=["15%", "min"],
+        color="#484848",
+        thinning=["35%", "min"],
         nanmax=2,
         MinDistance=[0.2, 0.4]
     )
 
     q.key(
-        U=2,
-        label="2 m/s",
+        U=4,
+        label="4 m/s",
         color="k",
         fontproperties={"size": 8},
         linewidth=0.8,
         arrowsize=1.8,
-        facecolor="#FFFFFF"
+        facecolor="none",
+        edgecolor="none",
+        bbox_to_anchor=(0.0, 0.18, 1, 1)
     )
 
     add_right_colorbar(
@@ -1070,10 +1112,10 @@ def plot_uvz_scalar(
 # =========================================================
 # 5. 作图：三张图
 # =========================================================
-fig = plt.figure(figsize=(7.2, 8.8))
-plt.subplots_adjust(wspace=0.2, hspace=0.28)
+fig = plt.figure(figsize=np.array([7.2, 8.8])*0.75)
+plt.subplots_adjust(wspace=0.2, hspace=0.35)
 
-title_head = "JJA"
+title_head = "2015 July"
 
 # -------------------------
 # 第一张图：200Z & WAF
@@ -1082,14 +1124,15 @@ title_head = "JJA"
 # 2. 填色 alpha = 0.7
 # 3. cmap 改为指定 RdBu 拼接色表
 # -------------------------
-ax1, cf1 = plot_200z_waf(
+ax1 = plot_200z_waf(
     fig,
     311,
     z200,
-    u200,
+    u200_,
+    v200_,
     waf_x,
     waf_y,
-    f"(a) {title_head} 200Z & WAF"
+    f"(a) Reg. 200Z&WAF onto CSI in {title_head}"
 )
 
 # -------------------------
@@ -1099,8 +1142,8 @@ ax1, cf1 = plot_200z_waf(
 # 2. 填色 alpha = 0.75
 # 3. cmap 改为指定 BrBG 拼接色表
 # -------------------------
-olr_levels = np.array([-12, -9, -6, -3, -1, 1, 3, 6, 9, 12])
-olr_ticks = [-12, -6, -1, 1, 6, 12]
+olr_levels = np.array([-12, -10, -8, -6, -4, 4, 6, 8, 10, 12])
+olr_ticks = [-12, -10, -8, -6, -4, 4, 6, 8, 10, 12]
 
 ax2, cf2 = plot_uvz_scalar(
     fig,
@@ -1109,7 +1152,7 @@ ax2, cf2 = plot_uvz_scalar(
     v500,
     z500,
     olr_map,
-    f"(b) {title_head} 500UVZ & OLR",
+    f"(b) {title_head}Reg. 500UVZ&OLR onto CSI in {title_head}",
     olr_levels,
     olr_ticks,
     scalar_cmap=cmap_olr,
@@ -1133,7 +1176,7 @@ ax3, cf3 = plot_uvz_scalar(
     v850,
     z850,
     t2m_map,
-    f"(c) {title_head} 850UVZ & T2m",
+    f"(c) Reg. 850UVZ&T2m onto CSI in {title_head}",
     t2m_levels,
     t2m_ticks,
     scalar_cmap=cmap_t2m,
