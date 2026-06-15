@@ -310,7 +310,7 @@ for spine in ax1.spines.values():
 # 绘制柱状图（单色表示每年的总天数）
 bars = ax1.bar(grouped_data.index, total_by_year, color='lightgray', alpha=0.8, edgecolor='black', label='Total')
 ax1.legend(fontsize=10, loc='upper left', bbox_to_anchor=(0.28, 0.985), edgecolor='none', ncol=1)
-ax1.set_title('(d) Interannual Occurrences of BWHT', loc='left', fontsize=14)  # 设置标题
+ax1.set_title('(d) Interannual Occurrences of EHTBW', loc='left', fontsize=14)  # 设置标题
 ax1.set_xlim(1960, 2023)
 ax1.set_xlabel('Year', fontsize=12)  # 设置 x 轴标签
 ax1.set_ylim(0, 63)
