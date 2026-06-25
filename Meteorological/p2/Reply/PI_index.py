@@ -100,7 +100,7 @@ def pic(fig, lat, lon, corr_u, corr_v, corr_z, corr_t2m, p_test_):
 
 # read data
 lamda = 2.45e6
-t2m_78 = xr.open_dataset(fr"{PYFILE}/p2/data/t2m_78.nc") - 273.15
+t2m_78 = xr.open_dataset(fr"{PYFILE}/p2/data/t2m_78_global.nc") - 273.15
 try:
     H = xr.open_dataset(fr"{PYFILE}/p2/data/H_78.nc")
     Hp = xr.open_dataset(fr"{PYFILE}/p2/data/Hp_78.nc")
