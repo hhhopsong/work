@@ -198,17 +198,17 @@ for ax in axes[:-1]:
     )
 
 # x轴刻度
-axes[-1].set_xlim(-1, len(day))
-axes[-1].set_xticks([0, 12, 29, 43, 57])
+axes[-1].set_xlim(-2.5, len(day)+.3)
+axes[-1].set_xticks([-2, 12, 29, 43, 58])
 axes[-1].set_xticklabels(
-    ["07/03", "07/15", "08/01", "08/15", "08/29"],
+    ["07/01", "07/15", "08/01", "08/15", "08/30"],
     fontsize=9
 )
 
 # 总标题
 fig.suptitle(
-    "Climatological daily distribution of three EHTBW types",
-    x=0.10,
+    "Clim_daily of three types EHTBW",
+    x=0.12,
     y=0.98,
     ha="left",
     fontsize=12,
@@ -217,7 +217,7 @@ fig.suptitle(
 
 # 公共y轴标题
 fig.text(
-    0.015,
+    0.045,
     0.50,
     "Frequency",
     rotation=90,

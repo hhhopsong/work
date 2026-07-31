@@ -564,7 +564,7 @@ YEAR = [2015]
 filter_start = "2015-05-01"
 filter_end   = "2015-09-30"
 
-analysis_start = "2015-06-15"
+analysis_start = "2015-07-01"
 analysis_end   = "2015-07-31"
 
 # 1) 先在 5–9 月上计算逐日异常
@@ -671,7 +671,7 @@ Q_X_dTdt   = np.nanmean(Q_yz_925.values)
 # =========================================================
 fig = plt.figure(figsize=(3, 5))
 plt.subplots_adjust(wspace=0.2, hspace=0.35)
-title_head = 'JJA'
+title_head = 'Jul.'
 
 # -------------------------
 # (a) 柱状图（仅10–30天滤波结果）
