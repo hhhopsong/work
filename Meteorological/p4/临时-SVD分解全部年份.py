@@ -159,33 +159,6 @@ def symmetric_axis_limit(values, minimum=0.1, padding=0.10):
     return max(maximum * (1 + padding), minimum)
 
 
-def positive_axis_limit(*arrays, minimum=1.5, padding=0.15):
-    """
-    Return a positive y-axis upper limit.
-    """
-    finite_values = []
-
-    for values in arrays:
-        values = np.asarray(values, dtype=float)
-        valid = values[np.isfinite(values)]
-
-        if valid.size > 0:
-            finite_values.append(valid)
-
-    if len(finite_values) == 0:
-        return minimum
-
-    maximum = np.nanmax(np.concatenate(finite_values))
-
-    if not np.isfinite(maximum) or maximum <= 0:
-        return minimum
-
-    upper = maximum * (1 + padding)
-    upper = np.ceil(upper / 0.2) * 0.2
-
-    return max(float(upper), minimum)
-
-
 def standardize_over_time(da, *, name=None, eps=1e-12):
     """
     Standardize a DataArray along time.
@@ -283,6 +256,52 @@ def annual_std_from_standardized(standardized_da, *, name):
     )
 
     return annual_std
+
+
+def annual_positive_minus_negative_day_count(da, *, name):
+    """
+    Calculate annual positive-mode days minus negative-mode days.
+
+    Only finite daily values within July are considered. Values equal
+    to zero are not counted in either group.
+    """
+    if "time" not in da.dims:
+        raise ValueError(
+            "annual_positive_minus_negative_day_count requires a "
+            "'time' dimension."
+        )
+
+    positive_days = (
+        (da.notnull() & (da > 0))
+        .groupby("time.year")
+        .sum(dim="time", skipna=True)
+    )
+
+    negative_days = (
+        (da.notnull() & (da < 0))
+        .groupby("time.year")
+        .sum(dim="time", skipna=True)
+    )
+
+    sign_day_difference = (
+        positive_days - negative_days
+    ).astype("int32").rename(name)
+
+    sign_day_difference.attrs.update(
+        {
+            "calculation": (
+                "Number of finite daily positive-mode days minus "
+                "number of finite daily negative-mode days within "
+                "July of each year"
+            ),
+            "positive_condition": "mode > 0",
+            "negative_condition": "mode < 0",
+            "zero_value_policy": "Values equal to zero are excluded",
+            "units": "days",
+        }
+    )
+
+    return sign_day_difference
 
 
 def validate_nonnegative_std(obj, *, tolerance=1e-7):
@@ -926,7 +945,8 @@ def draw_one(
 ):
     """
     Draw one MCA map, standardized daily scores,
-    and annual STD of standardized daily scores.
+    and the annual difference between positive- and
+    negative-atmospheric-mode days.
 
     Daily score standardization:
 
@@ -1055,12 +1075,18 @@ def draw_one(
         atm_z_name = "b_v200_score_z"
         t2m_std_name = "b_t2m_score_z_std"
         atm_std_name = "b_v200_score_z_std"
+        atm_sign_day_difference_name = (
+            "b_v200_positive_minus_negative_days"
+        )
 
     else:
         t2m_z_name = "d_t2m_score_z"
         atm_z_name = "d_olr_score_z"
         t2m_std_name = "d_t2m_score_z_std"
         atm_std_name = "d_olr_score_z_std"
+        atm_sign_day_difference_name = (
+            "d_olr_positive_minus_negative_days"
+        )
 
     # =========================
     # Standardize daily scores
@@ -1785,14 +1811,12 @@ def draw_one(
     )
 
     # =========================
-    # Lower: annual STD
+    # Lower: annual positive-mode days minus negative-mode days
     # =========================
     ax_std = fig.add_subplot(
         gs_middle[1, 0],
         sharex=ax2,
     )
-
-    ax_stdb = ax_std.twinx()
 
     t2m_std = annual_std_from_standardized(
         t2m_daily_z,
@@ -1819,7 +1843,14 @@ def draw_one(
         )
     )
 
-    std_years = t2m_std["year"].values
+    atm_sign_day_difference = annual_positive_minus_negative_day_count(
+        atm_daily_z,
+        name=atm_sign_day_difference_name,
+    )
+
+    sign_day_difference_years = (
+        atm_sign_day_difference["year"].values
+    )
 
     year_to_center = {
         int(year): center
@@ -1829,75 +1860,49 @@ def draw_one(
         )
     }
 
-    std_x = np.asarray(
+    sign_day_difference_x = np.asarray(
         [
             year_to_center[int(year)]
-            for year in std_years
+            for year in sign_day_difference_years
         ],
         dtype=float,
     )
 
-    std_bar_width = 18.0
+    sign_day_difference_bar_width = 18.0
 
     ax_std.bar(
-        std_x,
-        t2m_std.values,
-        width=std_bar_width,
-        color="red",
-        alpha=0.70,
-        label="T2m standardized STD",
-        zorder=2,
-    )
-
-    ax_stdb.bar(
-        std_x,
-        atm_std.values,
-        width=std_bar_width,
+        sign_day_difference_x,
+        atm_sign_day_difference.values,
+        width=sign_day_difference_bar_width,
         facecolor="none",
         edgecolor="black",
         linewidth=0.75,
         alpha=1.0,
         label=(
-            f"{score_label} standardized STD"
+            f"{score_label}: positive days − negative days"
         ),
-        zorder=3,
+        zorder=2,
     )
 
-    std_upper_limit = positive_axis_limit(
-        t2m_std.values,
-        atm_std.values,
-        minimum=1.5,
+    sign_day_difference_limit = symmetric_axis_limit(
+        atm_sign_day_difference.values,
+        minimum=5.0,
         padding=0.18,
     )
 
-    ax_std.set_ylim(0, std_upper_limit)
-    ax_stdb.set_ylim(0, std_upper_limit)
-
-    ax_std.set_ylabel(
-        "STD",
-        fontsize=9,
-        color="red",
-        labelpad=2,
+    ax_std.set_ylim(
+        -sign_day_difference_limit,
+        sign_day_difference_limit,
     )
 
-    ax_stdb.set_ylabel(
-        "STD",
+    ax_std.set_ylabel(
+        "Days",
         fontsize=9,
         color="black",
         labelpad=2,
     )
 
     ax_std.tick_params(
-        axis="y",
-        labelsize=8,
-        colors="red",
-        direction="out",
-        length=2.5,
-        width=0.9,
-        pad=2,
-    )
-
-    ax_stdb.tick_params(
         axis="y",
         labelsize=8,
         colors="black",
@@ -1907,8 +1912,10 @@ def draw_one(
         pad=2,
     )
 
-    ax_std.spines["left"].set_color("red")
-    ax_stdb.spines["right"].set_color("black")
+    ax_std.spines["left"].set_color("black")
+    ax_std.yaxis.set_major_locator(
+        ticker.MaxNLocator(integer=True, nbins=5)
+    )
 
     ax_std.axhline(
         0,
@@ -1917,19 +1924,19 @@ def draw_one(
         zorder=1,
     )
 
-    if 2015 in std_years:
+    if 2015 in sign_day_difference_years:
         i2015 = int(
             np.where(
-                std_years == 2015
+                sign_day_difference_years == 2015
             )[0][0]
         )
 
 
-        ax_stdb.scatter(
-            std_x[i2015],
-            2,
+        ax_std.scatter(
+            sign_day_difference_x[i2015],
+            sign_day_difference_limit * 0.94,
             color="blue",
-            s=65,
+            s=30,
             marker="*",
             zorder=10,
             clip_on=False,
@@ -1959,7 +1966,7 @@ def draw_one(
     ax_std.text(
         0.01,
         0.90,
-        "Annual STD",
+        f"Annual {score_label}",
         transform=ax_std.transAxes,
         fontsize=9,
         ha="left",
