@@ -258,50 +258,39 @@ def annual_std_from_standardized(standardized_da, *, name):
     return annual_std
 
 
-def annual_positive_minus_negative_day_count(da, *, name):
+def annual_above_threshold_day_count(da, *, threshold=0.75, name):
     """
-    Calculate annual positive-mode days minus negative-mode days.
+    Calculate annual days with standardized mode values above a threshold.
 
-    Only finite daily values within July are considered. Values equal
-    to zero are not counted in either group.
+    Only finite daily values within July are considered.
     """
     if "time" not in da.dims:
         raise ValueError(
-            "annual_positive_minus_negative_day_count requires a "
+            "annual_above_threshold_day_count requires a "
             "'time' dimension."
         )
 
-    positive_days = (
-        (da.notnull() & (da > 0))
+    threshold_days = (
+        (da.notnull() & (da > threshold))
         .groupby("time.year")
         .sum(dim="time", skipna=True)
     )
 
-    negative_days = (
-        (da.notnull() & (da < 0))
-        .groupby("time.year")
-        .sum(dim="time", skipna=True)
-    )
+    threshold_days = threshold_days.astype("int32").rename(name)
 
-    sign_day_difference = (
-        positive_days - negative_days
-    ).astype("int32").rename(name)
-
-    sign_day_difference.attrs.update(
+    threshold_days.attrs.update(
         {
             "calculation": (
-                "Number of finite daily positive-mode days minus "
-                "number of finite daily negative-mode days within "
-                "July of each year"
+                "Number of finite daily mode values above the threshold "
+                "within July of each year"
             ),
-            "positive_condition": "mode > 0",
-            "negative_condition": "mode < 0",
-            "zero_value_policy": "Values equal to zero are excluded",
+            "threshold": threshold,
+            "condition": f"mode > {threshold} standard deviations",
             "units": "days",
         }
     )
 
-    return sign_day_difference
+    return threshold_days
 
 
 def validate_nonnegative_std(obj, *, tolerance=1e-7):
@@ -738,8 +727,7 @@ olr_bp = open_var(
     "ttr_bp_JJA_10-30d.nc",
     "ttr_bp",
     time_slice=TIME_SLICE,
-    lat_slice=slice(-20, 30),
-    lon_slice=slice(40, 180),
+    lat_slice=slice(-50, 50),
     scale=-1 / 86400,
 )
 
@@ -790,8 +778,8 @@ svd_t2m_v200 = xeofs.cross.MCA(
         "360->180",
     ).sel(
         level=200,
-        lon=slice(40, 130),
-        lat=slice(36, 65),
+        lon=slice(20, 125),
+        lat=slice(37, 75),
     ),
     dim="time",
 )
@@ -806,10 +794,10 @@ svd_t2m_olr = xeofs.cross.MCA(
     transform(
         olr_bp,
         "lon",
-        "360->180",
+        "180->360",
     ).sel(
-        lon=slice(50, 170),
-        lat=slice(-10, 24),
+        lon=slice(127, 167),
+        lat=slice(5, 37),
     ),
     dim="time",
 )
@@ -1075,18 +1063,20 @@ def draw_one(
         atm_z_name = "b_v200_score_z"
         t2m_std_name = "b_t2m_score_z_std"
         atm_std_name = "b_v200_score_z_std"
-        atm_sign_day_difference_name = (
-            "b_v200_positive_minus_negative_days"
+        atm_threshold_day_count_name = (
+            "b_v200_above_0_6sigma_days"
         )
+        atm_threshold = 0.6
 
     else:
         t2m_z_name = "d_t2m_score_z"
         atm_z_name = "d_olr_score_z"
         t2m_std_name = "d_t2m_score_z_std"
         atm_std_name = "d_olr_score_z_std"
-        atm_sign_day_difference_name = (
-            "d_olr_positive_minus_negative_days"
+        atm_threshold_day_count_name = (
+            "d_olr_above_0_8sigma_days"
         )
+        atm_threshold = 0.8
 
     # =========================
     # Standardize daily scores
@@ -1471,7 +1461,7 @@ def draw_one(
             regrid=18,
             color="#555555",
             thinning=[
-                "50%",
+                "35%",
                 "min",
             ],
             nanmax=2,
@@ -1513,7 +1503,7 @@ def draw_one(
             scale=1e1,
             linewidth=2,
             regrid=12,
-            color="purple",
+            color="#e33bff",
             thinning=[
                 "70%",
                 "min",
@@ -1811,7 +1801,7 @@ def draw_one(
     )
 
     # =========================
-    # Lower: annual positive-mode days minus negative-mode days
+    # Lower: annual days above the row-specific standard-deviation threshold
     # =========================
     ax_std = fig.add_subplot(
         gs_middle[1, 0],
@@ -1843,13 +1833,14 @@ def draw_one(
         )
     )
 
-    atm_sign_day_difference = annual_positive_minus_negative_day_count(
+    atm_threshold_day_count = annual_above_threshold_day_count(
         atm_daily_z,
-        name=atm_sign_day_difference_name,
+        threshold=atm_threshold,
+        name=atm_threshold_day_count_name,
     )
 
-    sign_day_difference_years = (
-        atm_sign_day_difference["year"].values
+    threshold_day_count_years = (
+        atm_threshold_day_count["year"].values
     )
 
     year_to_center = {
@@ -1860,39 +1851,36 @@ def draw_one(
         )
     }
 
-    sign_day_difference_x = np.asarray(
+    threshold_day_count_x = np.asarray(
         [
             year_to_center[int(year)]
-            for year in sign_day_difference_years
+            for year in threshold_day_count_years
         ],
         dtype=float,
     )
 
-    sign_day_difference_bar_width = 18.0
+    threshold_day_count_bar_width = 18.0
 
     ax_std.bar(
-        sign_day_difference_x,
-        atm_sign_day_difference.values,
-        width=sign_day_difference_bar_width,
+        threshold_day_count_x,
+        atm_threshold_day_count.values,
+        width=threshold_day_count_bar_width,
         facecolor="none",
         edgecolor="black",
         linewidth=0.75,
         alpha=1.0,
         label=(
-            f"{score_label}: positive days − negative days"
+            f"{score_label} > {atm_threshold:g}$\sigma$ days"
         ),
         zorder=2,
     )
 
-    sign_day_difference_limit = symmetric_axis_limit(
-        atm_sign_day_difference.values,
-        minimum=5.0,
-        padding=0.18,
-    )
-
     ax_std.set_ylim(
-        -sign_day_difference_limit,
-        sign_day_difference_limit,
+        0,
+        max(
+            float(np.nanmax(atm_threshold_day_count.values)) * 1.18,
+            5.0,
+        ),
     )
 
     ax_std.set_ylabel(
@@ -1924,17 +1912,17 @@ def draw_one(
         zorder=1,
     )
 
-    if 2015 in sign_day_difference_years:
+    if 2015 in threshold_day_count_years:
         i2015 = int(
             np.where(
-                sign_day_difference_years == 2015
+                threshold_day_count_years == 2015
             )[0][0]
         )
 
 
         ax_std.scatter(
-            sign_day_difference_x[i2015],
-            sign_day_difference_limit * 0.94,
+            threshold_day_count_x[i2015],
+            ax_std.get_ylim()[1] * 0.94,
             color="blue",
             s=30,
             marker="*",
@@ -1966,7 +1954,7 @@ def draw_one(
     ax_std.text(
         0.01,
         0.90,
-        f"Annual {score_label}",
+        f"Annual {score_label} > {atm_threshold:g}$\sigma$ days",
         transform=ax_std.transAxes,
         fontsize=9,
         ha="left",
@@ -2014,10 +2002,10 @@ def draw_one(
         80,
     ],
     box_blue=[
-        40,
-        130,
-        36,
-        65,
+        20,
+        125,
+        37,
+        75,
     ],
     box_orange=[
         -70,
@@ -2060,10 +2048,10 @@ def draw_one(
         50,
     ],
     box_blue=[
-        50,
-        170,
-        -10,
-        24,
+        125,
+        168,
+        5,
+        33,
     ],
     box_orange=[
         90,

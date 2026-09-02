@@ -78,10 +78,10 @@ TEMPERATURE_QUANTILE = 0.95
 DAY_SLICE = slice(-2, 89)
 
 # 小波绘图所保留的最大周期
-MAX_PERIOD = 32.0
+MAX_PERIOD = 64.0
 
 # 小波全局显著性水平
-SIGNIFICANCE_LEVEL = 0.90
+SIGNIFICANCE_LEVEL = 0.95
 
 # 逐日 EHCI 滑动平均窗口：
 # 1 表示不平滑；
