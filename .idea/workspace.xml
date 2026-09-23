@@ -4,10 +4,15 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="27fefdc7-2ef4-4931-90a2-e41a0ed3b5c9" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/发展场.py" afterDir="false" />
+    <list default="true" id="27fefdc7-2ef4-4931-90a2-e41a0ed3b5c9" name="更改" comment="upupup">
+      <change afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/02_prepare_predictand.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地同期.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地热力诊断.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地热力诊断时间线图.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地辐射通量诊断时间线图.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Meteorological/p4/临时-SVD分解全部年份.py" beforeDir="false" afterPath="$PROJECT_DIR$/Meteorological/p4/临时-SVD分解全部年份.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-全球.py" beforeDir="false" afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-全球.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/逐日EHCI功率谱绘图-合成.py" beforeDir="false" afterPath="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/逐日EHCI功率谱绘图-合成.py" afterDir="false" />
     </list>
@@ -22,7 +27,7 @@
     </persistenceIdMap>
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="1690" />
+    <option name="cachedIndexableFilesCount" value="1692" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -45,23 +50,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.000004949133972" />
-      <entry key="S5" value="1.0118941812194175" />
-      <entry key="S10" value="1.1785896541259273" />
-      <entry key="S30" value="2.1540690920369507" />
-      <entry key="S60" value="2.8569970498038626" />
-      <entry key="M2" value="3.3590997921213446" />
-      <entry key="M5" value="3.724768962939105" />
-      <entry key="M10" value="3.8711178904105084" />
-      <entry key="M15" value="3.9741033948757662" />
-      <entry key="M30" value="4.429245002119439" />
-      <entry key="H1" value="5.764653890540297" />
-      <entry key="H2" value="8.385026022786523" />
-      <entry key="H4" value="11.632467845665031" />
-      <entry key="D1" value="17.24210640704553" />
-      <entry key="W1" value="18.729950971574443" />
+      <entry key="MS100" value="1.000000000000073" />
+      <entry key="MS500" value="1.002358360530247" />
+      <entry key="S2" value="1.2203700394767925" />
+      <entry key="S5" value="1.5460859712159538" />
+      <entry key="S10" value="1.7389762994954263" />
+      <entry key="S30" value="1.9040868864621612" />
+      <entry key="S60" value="1.950834836584231" />
+      <entry key="M2" value="1.975107602567138" />
+      <entry key="M5" value="1.9899676818458047" />
+      <entry key="M10" value="1.994971196490534" />
+      <entry key="M15" value="1.9966446481545452" />
+      <entry key="M30" value="1.9983209983269752" />
+      <entry key="H1" value="1.999754208786759" />
+      <entry key="H2" value="2.05835177978007" />
+      <entry key="H4" value="2.7361362871428723" />
+      <entry key="D1" value="15.843080106231207" />
+      <entry key="W1" value="34.485812577296834" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -71,35 +76,35 @@
       <entry key="S10" value="0.0" />
       <entry key="S30" value="0.0" />
       <entry key="S60" value="0.0" />
-      <entry key="M2" value="0.0" />
-      <entry key="M5" value="0.0" />
-      <entry key="M10" value="0.0" />
-      <entry key="M15" value="0.0" />
-      <entry key="M30" value="0.0" />
-      <entry key="H1" value="0.0" />
-      <entry key="H2" value="0.0" />
-      <entry key="H4" value="0.0" />
-      <entry key="D1" value="0.0" />
-      <entry key="W1" value="0.0" />
+      <entry key="M2" value="4.655376324804392E-177" />
+      <entry key="M5" value="2.9321211961790852E-71" />
+      <entry key="M10" value="5.4149064591912236E-36" />
+      <entry key="M15" value="3.0836184759827692E-24" />
+      <entry key="M30" value="1.7560234838929321E-12" />
+      <entry key="H1" value="1.3251511943593158E-6" />
+      <entry key="H2" value="0.0011530207231164166" />
+      <entry key="H4" value="0.03689903105609731" />
+      <entry key="D1" value="2.012149379302341" />
+      <entry key="W1" value="5.108864086000202" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9075191553171609" />
-      <entry key="MS500" value="0.9807790039885513" />
-      <entry key="S2" value="0.9951646371530004" />
-      <entry key="S5" value="1.0099223253060432" />
-      <entry key="S10" value="1.1773581307664247" />
-      <entry key="S30" value="2.1531461864888852" />
-      <entry key="S60" value="2.8563441773049587" />
-      <entry key="M2" value="3.358704006557643" />
-      <entry key="M5" value="3.724590285953693" />
-      <entry key="M10" value="3.8710244696092557" />
-      <entry key="M15" value="3.9740390632208493" />
-      <entry key="M30" value="4.429205091242168" />
-      <entry key="H1" value="5.764614992278581" />
-      <entry key="H2" value="8.384982978698673" />
-      <entry key="H4" value="11.632429585597395" />
-      <entry key="D1" value="17.242094685351372" />
-      <entry key="W1" value="18.729949084036203" />
+      <entry key="MS100" value="0.4475125354639932" />
+      <entry key="MS500" value="0.8529298014289414" />
+      <entry key="S2" value="1.1566049774724112" />
+      <entry key="S5" value="1.5051359786267924" />
+      <entry key="S10" value="1.7138562502752581" />
+      <entry key="S30" value="1.8943773744658376" />
+      <entry key="S60" value="1.945790136296351" />
+      <entry key="M2" value="1.9725358764100613" />
+      <entry key="M5" value="1.9889268915232268" />
+      <entry key="M10" value="1.9944487635554982" />
+      <entry key="M15" value="1.996295905115478" />
+      <entry key="M30" value="1.998146399205018" />
+      <entry key="H1" value="1.9996681729692607" />
+      <entry key="H2" value="2.0594604449453087" />
+      <entry key="H4" value="2.7730047374609748" />
+      <entry key="D1" value="17.855159613847757" />
+      <entry key="W1" value="39.59465233079354" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -113,8 +118,14 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.02_prepare_predictand.executor": "Run",
     "Python.临时-SVD分解全部年份.executor": "Run",
     "Python.局地环流-次季节回归-全球.executor": "Run",
+    "Python.局地环流-次季节回归-局地.executor": "Run",
+    "Python.局地环流-次季节回归-局地同期.executor": "Run",
+    "Python.局地环流-次季节回归-局地热力诊断.executor": "Run",
+    "Python.局地环流-次季节回归-局地热力诊断时间线图.executor": "Run",
+    "Python.局地环流-次季节回归-局地辐射通量诊断时间线图.executor": "Run",
     "Python.逐日EHCI功率谱绘图-合成.executor": "Run",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -128,19 +139,16 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "ml.llm.LLMProjectConfigurable",
+    "settings.editor.selected.configurable": "reference.idesettings.debugger.python",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="PyDebuggerOptionsProvider">
-    <option name="myDebuggerBackend" value="DEBUGPY" />
-  </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.局地环流-次季节回归-全球">
+  <component name="RunManager" selected="Python.局地环流-次季节回归-局地同期">
     <configuration name="局地环流-次季节回归-全球" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="work" />
       <option name="ENV_FILES" value="" />
@@ -166,32 +174,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="临时-SVD分解全部年份" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="work" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Meteorological/p4" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="DEBUG_JUST_MY_CODE" value="false" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Meteorological/p4/临时-SVD分解全部年份.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="逐日EHCI功率谱绘图-合成" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="局地环流-次季节回归-局地辐射通量诊断时间线图" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="work" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -207,7 +190,82 @@
       <option name="DEBUG_JUST_MY_CODE" value="false" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/逐日EHCI功率谱绘图-合成.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地辐射通量诊断时间线图.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="局地环流-次季节回归-局地同期" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="work" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地同期.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="局地环流-次季节回归-局地热力诊断" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="work" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地热力诊断.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="局地环流-次季节回归-局地热力诊断时间线图" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="work" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Meteorological/p6-次季节-大论文/局地环流-次季节回归-局地热力诊断时间线图.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -218,9 +276,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.局地环流-次季节回归-局地同期" />
+        <item itemvalue="Python.局地环流-次季节回归-局地辐射通量诊断时间线图" />
+        <item itemvalue="Python.局地环流-次季节回归-局地热力诊断时间线图" />
+        <item itemvalue="Python.局地环流-次季节回归-局地热力诊断" />
         <item itemvalue="Python.局地环流-次季节回归-全球" />
-        <item itemvalue="Python.逐日EHCI功率谱绘图-合成" />
-        <item itemvalue="Python.临时-SVD分解全部年份" />
       </list>
     </recent_temporary>
   </component>
@@ -244,8 +304,21 @@
       <workItem from="1776164299322" duration="14000" />
       <workItem from="1787808565199" duration="2698000" />
       <workItem from="1787811496794" duration="30202000" />
-      <workItem from="1788165303925" duration="29943000" />
+      <workItem from="1788165303925" duration="30079000" />
+      <workItem from="1788509155782" duration="6115000" />
+      <workItem from="1789363969868" duration="540000" />
+      <workItem from="1789364757926" duration="251000" />
+      <workItem from="1789883355560" duration="69189000" />
     </task>
+    <task id="LOCAL-00001" summary="upupup">
+      <option name="closed" value="true" />
+      <created>1788366286160</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1788366286160</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -262,10 +335,15 @@
       </map>
     </option>
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="upupup" />
+    <option name="LAST_COMMIT_MESSAGE" value="upupup" />
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/work$02_prepare_predictand.coverage" NAME="02_prepare_predictand 覆盖结果" MODIFIED="1790044968628" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
     <SUITE FILE_PATH="coverage/work$_SVD.coverage" NAME="临时-SVD分解全部年份 覆盖结果" MODIFIED="1788261289671" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Meteorological/p4" />
-    <SUITE FILE_PATH="coverage/work$EHCI_.coverage" NAME="逐日EHCI功率谱绘图-合成 覆盖结果" MODIFIED="1788359304703" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
-    <SUITE FILE_PATH="coverage/work$__.coverage" NAME="局地环流-次季节回归-全球 覆盖结果" MODIFIED="1788359776353" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
+    <SUITE FILE_PATH="coverage/work$EHCI_.coverage" NAME="逐日EHCI功率谱绘图-合成 覆盖结果" MODIFIED="1789907838044" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
+    <SUITE FILE_PATH="coverage/work$__.coverage" NAME="局地环流-次季节回归-局地同期 覆盖结果" MODIFIED="1790132168000" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Meteorological/p6-次季节-大论文" />
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>

@@ -78,7 +78,7 @@ TEMPERATURE_QUANTILE = 0.95
 DAY_SLICE = slice(-2, 89)
 
 # 小波绘图所保留的最大周期
-MAX_PERIOD = 64.0
+MAX_PERIOD = 50.0
 
 # 小波全局显著性水平
 SIGNIFICANCE_LEVEL = 0.95
@@ -1378,6 +1378,14 @@ def plot_spectrum_fields(
     period_ticks = period_ticks[
         period_ticks <= MAX_PERIOD
     ]
+
+    # 显式加入最大周期，使倒置 y 轴最下方显示 MAX_PERIOD 刻度。
+    period_ticks = np.unique(
+        np.append(
+            period_ticks,
+            MAX_PERIOD,
+        )
+    )
 
     year_ticks = build_year_ticks(
         years

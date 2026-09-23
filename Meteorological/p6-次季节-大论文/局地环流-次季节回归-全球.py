@@ -9,7 +9,7 @@ import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 from cartopy.util import add_cyclic_point
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import BoundaryNorm, ListedColormap
 from matplotlib import colors as mcolors
 from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -30,7 +30,7 @@ DATA = r"/volumes/TiPlus7100/data"
 RAW_DIR = "/Volumes/TiPlus7100/p4/data"
 YEAR_START, YEAR_END = 1961, 2022
 # 负值表示环流场/OLR 相对 EHCI 超前的天数。
-LAGS = [-64, -48, -32, -16, 0]
+LAGS = [-48, -45, -42, -39, -36, -33, -30, -27, -24, -21, -18, -15, -12, -9, -6, -3, 0]
 
 
 def build_daily_ehci(pyfile, data_dir, threshold_quantile=0.90):
@@ -65,7 +65,7 @@ def filter_ehci_10_90d(ehci):
     for year in np.unique(pd.DatetimeIndex(ehci.time.values).year):
         yearly = ehci.sel(time=slice(f'{year}-06-04', f'{year}-09-29'))
         yearly_bp = LanczosFilter(
-            yearly, 'bandpass', period=[10, 90], nwts=61
+            yearly, 'bandpass', period=[10, 60], nwts=61
         ).filted()
         filtered.append(yearly_bp)
     return (
@@ -138,7 +138,7 @@ def as_dataarray(arr, ref, name):
 
 def cyclic_dataarray(da):
     da = to_lon180(da)
-    values, lon = add_cyclic_point(da.values, coord=da.lon.values, axis=da.get_axis_num('lon'))
+    values, lon = add_cyclic_point(da.values, coord=da.lon.values)
     return values, lon, da.lat.values
 
 
@@ -204,13 +204,18 @@ def plot_z_waf_panel(fig, loc, z, waf_x, waf_y, lag,
                      z_positive_levels, z_negative_levels, panel_index):
     ax = setup_global_ax(fig, loc, f'({chr(97 + panel_index)}) 200 hPa Z&WAF|UV&OLR')
     data_crs = ccrs.PlateCarree()
+    ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False, labeltop=False)
     ax.text(0.04, 0.95, f'{lag} days', transform=ax.transAxes,
             ha='left', va='top', fontsize=10, color='red', fontweight='bold', zorder=102)
     z_data, z_lon, z_lat = cyclic_dataarray(z)
-    ax.contour(z_lon, z_lat, z_data, levels=z_positive_levels, colors='red',
-               linewidths=1.0, transform=data_crs, zorder=100)
-    ax.contour(z_lon, z_lat, z_data, levels=z_negative_levels, colors='blue',
-               linestyles='--', linewidths=1.0, transform=data_crs, zorder=100)
+    # 高度场按 -300、-100、300、1000 分段：两侧蓝/红，中间白色。
+    z_levels = np.sort(np.concatenate((z_negative_levels, z_positive_levels)))
+    z_cmap = ListedColormap(['#0d80aa', '#0da9e2', 'white', '#ea527e', '#b7435c'],
+                             name='z_blue_white_red')
+    z_norm = BoundaryNorm(z_levels, ncolors=z_cmap.N, extend='both', clip=False)
+    ax.contourf(z_lon, z_lat, z_data, levels=z_levels, cmap=z_cmap,
+                norm=z_norm, extend='both', alpha=.8, transform=data_crs,
+                antialiased=False, zorder=1)
     q_waf = ax.Curlyquiver(as_numpy(z.lon), as_numpy(z.lat), as_numpy(waf_x), as_numpy(waf_y),
                            arrowsize=2, transform=data_crs, scale=10, linewidth=1.3,
                            regrid=10, color='#a63aa9', thinning=['30%', 'min'], nanmax=2,
@@ -224,6 +229,7 @@ def plot_uv_olr_panel(fig, loc, u, v, olr, olr_levels, cmap, panel_index):
     ax = setup_global_ax(fig, loc, f'')
     data_crs = ccrs.PlateCarree()
     olr_data, olr_lon, olr_lat = cyclic_dataarray(olr)
+    olr_data, olr_lon = add_cyclic_point(olr_data, coord=olr_lon)
     cf = ax.contourf(olr_lon, olr_lat, olr_data, levels=olr_levels, cmap=cmap,
                      extend='both', alpha=.8, transform=data_crs, antialiased=False)
     if hasattr(cf, 'collections'):
@@ -235,12 +241,12 @@ def plot_uv_olr_panel(fig, loc, u, v, olr, olr_levels, cmap, panel_index):
         cf.set_edgecolor('face')
         cf.set_linewidth(0)
         cf.set_antialiased(False)
-    q_uv = ax.Curlyquiver(as_numpy(u.lon), as_numpy(u.lat), as_numpy(u), as_numpy(v),
-                          arrowsize=1, transform=data_crs, scale=0.6, linewidth=.6,
-                          regrid=22, color='#656565', thinning=['40%', 'min'], nanmax=2,
-                          MinDistance=[.2, .4], zorder=9)
-    q_uv.key(U=8, label='8 m/s', color='k', fontproperties={'size': 8}, linewidth=.8,
-             arrowsize=6, facecolor='none', edgecolor='none', bbox_to_anchor=(0, 1.18, 1, 1))
+    # q_uv = ax.Curlyquiver(as_numpy(u.lon), as_numpy(u.lat), as_numpy(u), as_numpy(v),
+    #                       arrowsize=1, transform=data_crs, scale=0.6, linewidth=.6,
+    #                       regrid=22, color='#656565', thinning=['40%', 'min'], nanmax=2,
+    #                       MinDistance=[.2, .4], zorder=9)
+    # q_uv.key(U=8, label='8 m/s', color='k', fontproperties={'size': 8}, linewidth=.8,
+    #          arrowsize=6, facecolor='none', edgecolor='none', bbox_to_anchor=(0, 1.18, 1, 1))
     return ax, cf
 
 
@@ -258,24 +264,31 @@ clim_july = xr.open_dataset(f'{RAW_DIR}/ERA5_CPC_daily_clim_sum.nc').sel(mmdd=sl
 u_clim200 = to_lon180(clim_july['u_clim'].sel(level=200).mean('mmdd'))
 v_clim200 = to_lon180(clim_july['v_clim'].sel(level=200).mean('mmdd'))
 
-OLR_LEVELS = np.array([-20, -10, -5, -2, 2, 5, 10, 20])
-# 200 hPa 高度正异常/负异常分别绘制红色实线/蓝色虚线。
-Z_POSITIVE_LEVELS = np.array([250, 1000])
+# 必须包含 0，否则 -2–2 W m^-2 区间不会被 contourf 填色，
+# 在 OLR 接近 0 的经度上会显示为背景色白条。
+OLR_LEVELS = np.array([-20, -10, -5, -2, 0, 2, 5, 10, 20])
+# 200 hPa 高度场填色边界：<-300、-300～-100、-100～300、300～1000、>1000。
+Z_POSITIVE_LEVELS = np.array([300, 1000])
 Z_NEGATIVE_LEVELS = np.array([-300, -100])
-fig = plt.figure(figsize=(16, 7.5))
-outer_grid = fig.add_gridspec(2, 3, wspace=.12, hspace=.2)
+# 每个 lag 占用一列内的两个子图（200 hPa Z&WAF、UV&OLR），
+# 每行放 5 个 lag。行数必须覆盖全部 LAGS，否则访问 outer_grid[row, col]
+# 时会在最后一行访问越界。
+ncols = 5
+nrows = int(np.ceil(len(LAGS) / ncols))
+fig = plt.figure(figsize=(18, 3.75 * nrows))
+outer_grid = fig.add_gridspec(nrows, ncols, wspace=.12, hspace=.2)
 olr_cmap = make_olr_cmap()
 last_ax = last_cf = None
 
 for i, lag in enumerate(LAGS):
-    row, col = divmod(i, 3)
+    row, col = divmod(i, ncols)
     inner_grid = outer_grid[row, col].subgridspec(2, 1, hspace=0)
     u_reg = materialize(to_lon180(regress_field_on_ehci(u_raw, EHCI, lag, 'u')))
     v_reg = materialize(to_lon180(regress_field_on_ehci(v_raw, EHCI, lag, 'v')))
     z_reg = materialize(to_lon180(regress_field_on_ehci(z_raw, EHCI, lag, 'z')))
     olr_reg = materialize(
         to_lon180(regress_field_on_ehci(olr_raw, EHCI, lag, 'olr'))
-        .where(lambda da: np.abs(da.lat) <= 23, drop=True)
+        .where(lambda da: np.abs(da.lat) <= 85, drop=True)
     )
     u_bg = u_clim200.interp(lon=z_reg.lon, lat=z_reg.lat)
     v_bg = v_clim200.interp(lon=z_reg.lon, lat=z_reg.lat)
